@@ -95,6 +95,11 @@ func RegisterRoutes(app *fiber.App, deps *Deps) {
 	a.Put("/settings", h.UpdateSettings)
 	a.Get("/audit", h.ListAudit)
 
+	a.Get("/backup/categories", h.BackupCategories)
+	a.Get("/backup/export", h.ExportBackup)
+	a.Post("/backup/inspect", h.InspectBackup)
+	a.Post("/backup/import", h.ImportBackup)
+
 	api.Use(func(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusNotFound, "unknown endpoint")
 	})

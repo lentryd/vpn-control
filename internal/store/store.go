@@ -24,16 +24,23 @@ func init() {
 // Open opens (creating if needed) the SQLite file at path and migrates the
 // schema. Additive auto-migration on every boot is fine at this scale.
 func Open(ctx context.Context, path string) (*ent.Client, error) {
+	client, _, err := OpenDB(ctx, path)
+	return client, err
+}
+
+// OpenDB is Open that also returns the underlying connection pool, for
+// table-level work Ent doesn't cover (backups).
+func OpenDB(ctx context.Context, path string) (*ent.Client, *sql.DB, error) {
 	if dir := filepath.Dir(path); dir != "" {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return nil, fmt.Errorf("create db dir: %w", err)
+			return nil, nil, fmt.Errorf("create db dir: %w", err)
 		}
 	}
 
 	dsn := "file:" + path + "?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)"
 	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("open database: %w", err)
+		return nil, nil, fmt.Errorf("open database: %w", err)
 	}
 	// SQLite allows one writer; a single connection avoids SQLITE_BUSY.
 	db.SetMaxOpenConns(1)
@@ -41,9 +48,9 @@ func Open(ctx context.Context, path string) (*ent.Client, error) {
 	client := ent.NewClient(ent.Driver(entsql.OpenDB(dialect.SQLite, db)))
 	if err := client.Schema.Create(ctx); err != nil {
 		_ = client.Close()
-		return nil, fmt.Errorf("run schema migration: %w", err)
+		return nil, nil, fmt.Errorf("run schema migration: %w", err)
 	}
-	return client, nil
+	return client, db, nil
 }
 
 // WithTx runs fn in a transaction, rolling back on error or panic.

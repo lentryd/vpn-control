@@ -5,6 +5,7 @@ import { TbSettings } from 'react-icons/tb'
 import { useEffect, useMemo, useState } from 'react'
 
 import { api } from '@/api/client'
+import { BackupPanel } from '@/components/BackupPanel'
 import { useApiMutation, useAudit, useSettings } from '@/api/hooks'
 import type { AuditRow } from '@/api/types'
 import { fmtDateTime } from '@/components/format'
@@ -74,10 +75,11 @@ export function SettingsPage() {
 
     return (
         <Page title="Настройки">
-            <PageHeader icon={<TbSettings size={24} />} title="Настройки" description="Параметры учёта и журнал действий" />
+            <PageHeader icon={<TbSettings size={24} />} title="Настройки" description="Параметры учёта, резервные копии и журнал действий" />
             <Tabs defaultValue="settings">
                 <Tabs.List mb="md">
                     <Tabs.Tab value="settings">Параметры</Tabs.Tab>
+                    <Tabs.Tab value="backup">Резервные копии</Tabs.Tab>
                     <Tabs.Tab value="audit">Журнал действий</Tabs.Tab>
                 </Tabs.List>
                 <Tabs.Panel value="settings">
@@ -121,6 +123,9 @@ export function SettingsPage() {
                             </Group>
                         </SettingsCardShared.Bottom>
                     </SettingsCardShared.Container>
+                </Tabs.Panel>
+                <Tabs.Panel value="backup">
+                    <BackupPanel />
                 </Tabs.Panel>
                 <Tabs.Panel value="audit">
                     <DataTableCard

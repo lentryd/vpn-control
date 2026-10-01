@@ -5,6 +5,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strconv"
 	"strings"
@@ -24,6 +25,7 @@ import (
 
 type Handlers struct {
 	DB       *ent.Client
+	SQL      *sql.DB // same database, for table-level backups
 	RW       *remnawave.Client
 	Billing  *billing.Service
 	Expenses *expenses.Service
@@ -31,6 +33,7 @@ type Handlers struct {
 	Sync     *rwsync.Service
 	Settings *settings.Store
 	Config   *config.Config
+	Version  string
 }
 
 func paramID(c *fiber.Ctx, name string) (int, error) {

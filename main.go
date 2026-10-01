@@ -79,7 +79,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	db, err := store.Open(ctx, cfg.DBPath)
+	db, sqlDB, err := store.OpenDB(ctx, cfg.DBPath)
 	if err != nil {
 		slog.Error("failed to open database", "error", err)
 		os.Exit(1)
@@ -105,8 +105,8 @@ func main() {
 
 	app := api.New(&api.Deps{
 		Handlers: &handlers.Handlers{
-			DB: db, RW: rw, Billing: billing.New(db, rw, st), Expenses: expSvc,
-			FX: fxs, Sync: syncSvc, Settings: st, Config: cfg,
+			DB: db, SQL: sqlDB, RW: rw, Billing: billing.New(db, rw, st), Expenses: expSvc,
+			FX: fxs, Sync: syncSvc, Settings: st, Config: cfg, Version: Version,
 		},
 		NoWeb: *noWeb,
 	})

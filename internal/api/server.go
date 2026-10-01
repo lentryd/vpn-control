@@ -26,6 +26,7 @@ func New(deps *Deps) *fiber.App {
 		ReadTimeout:           15 * time.Second,
 		WriteTimeout:          60 * time.Second,
 		IdleTimeout:           120 * time.Second,
+		BodyLimit:             256 << 20, // backup archives
 		ErrorHandler:          errorHandler,
 	})
 
