@@ -1,0 +1,7 @@
+.env
+data/
+bin/
+*.db
+*.db-*
+import-map.yml
+.DS_Store

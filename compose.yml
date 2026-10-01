@@ -1,0 +1,46 @@
+# Runs next to the Remnawave panel in its docker network. HOST_PORT is
+# tunnelled by frp to 1${HOST_PORT}, where Traefik serves it under
+# https://<panel domain>/control/.
+services:
+    vpn-control:
+        build: .
+        image: vpn-control:latest
+        container_name: vpn-control
+        hostname: vpn-control
+        restart: unless-stopped
+        ports:
+            - '${HOST_PORT}:8080'
+        env_file:
+            - .env
+        # Container-side values; they override the local ones from .env.
+        environment:
+            BASE_PATH: /control
+            PORT: 8080
+            DB_PATH: /data/vpn-control.db
+            ADDONS_CONFIG: /etc/vpn-control/addons.yml
+        volumes:
+            - vpn-control-data:/data
+            # subpage's add-ons file, so the add-on catalog matches what it serves
+            - ${ADDONS_FILE:-../subpage/addons.yml}:/etc/vpn-control/addons.yml:ro
+        networks:
+            - remnawave-network
+        labels:
+            - 'traefik.enable=true'
+            - 'traefik.http.routers.vpn-control.rule=Host(`${PANEL_DOMAIN}`) && PathPrefix(`/control`)'
+            - 'traefik.http.routers.vpn-control.priority=100'
+            - 'traefik.http.routers.vpn-control.tls=true'
+            - 'traefik.http.routers.vpn-control.entrypoints=web,websecure'
+            - 'traefik.http.routers.vpn-control.tls.certresolver=myresolver'
+            - 'traefik.http.services.vpn-control.loadbalancer.server.port=1${HOST_PORT}'
+            - 'frp.enable=true'
+            - 'frp.name=vpn-control'
+            - 'frp.local_port=${HOST_PORT}'
+            - 'frp.remote_port=1${HOST_PORT}'
+
+volumes:
+    vpn-control-data:
+
+networks:
+    remnawave-network:
+        driver: bridge
+        external: true

@@ -1,0 +1,67 @@
+/* Adapted from remnawave/frontend (AGPL-3.0) */
+html,
+body {
+    min-height: 100vh;
+
+    .mrt-table-head-sort-button {
+        border-radius: 0;
+        border: none;
+    }
+    .mrt-table-head-cell-filter-label-icon {
+        border-radius: 0;
+        border: none;
+    }
+
+    .mrt-table-head-cell-content {
+        align-items: flex-start !important;
+    }
+    .mrt-table-head-cell-content-actions {
+        align-self: flex-start !important;
+    }
+}
+
+[class*='MRT_TopToolbar-module_root-fullscreen'] {
+    margin-top: 116px !important;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(22, 27, 35, 0.6);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #0d9488 0%, #06b6d4 100%);
+    border-radius: 4px;
+    border: 1px solid rgba(22, 27, 35, 0.8);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #14b8a6 0%, #22d3ee 100%);
+}
+
+::-webkit-scrollbar-corner {
+    background: rgba(22, 27, 35, 0.6);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #0d9488 rgba(22, 27, 35, 0.6);
+}
+
+/* Pinned columns are opaque so scrolled cells don't show through. */
+.mantine-Table-tbody td[data-column-pinned] {
+    opacity: 1 !important;
+    background-color: var(--mantine-color-body) !important;
+}
+.mantine-Table-tbody tr:hover td[data-column-pinned] {
+    background-color: #1f252d !important;
+}
+.mantine-Table-thead th[data-column-pinned] {
+    opacity: 1 !important;
+    background-color: #1b2027 !important;
+}

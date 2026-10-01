@@ -1,0 +1,48 @@
+{
+  "name": "vpn-control-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource-variable/montserrat": "^5.2.8",
+    "@fontsource/fira-mono": "^5.3.0",
+    "@fontsource/unbounded": "^5.3.0",
+    "@kastov/mantine-react-table-open": "^9.0.12",
+    "@mantine/charts": "^9.6.3",
+    "@mantine/core": "^9.6.3",
+    "@mantine/dates": "^9.6.3",
+    "@mantine/form": "^9.6.3",
+    "@mantine/hooks": "^9.6.3",
+    "@mantine/modals": "^9.6.3",
+    "@mantine/notifications": "^9.6.3",
+    "@mantine/nprogress": "^9.6.3",
+    "@tabler/icons-react": "^3.48.0",
+    "@tanstack/react-query": "^5.104.0",
+    "clsx": "^2.1.1",
+    "dayjs": "^1.11.23",
+    "motion": "^13.5.0",
+    "react": "^19.2.8",
+    "react-country-flag": "^3.1.0",
+    "react-dom": "^19.2.8",
+    "react-icons": "^5.7.0",
+    "react-router": "^7.18.2",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "postcss": "^8.5.6",
+    "postcss-preset-mantine": "^1.18.0",
+    "postcss-simple-vars": "^7.0.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.2"
+  }
+}

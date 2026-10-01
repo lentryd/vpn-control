@@ -1,0 +1,82 @@
+version: "3"
+
+output: prefixed
+
+dotenv: [".env"]
+
+env:
+  CGO_ENABLED: 0
+
+tasks:
+  init:
+    desc: First-time setup — .env and frontend deps
+    cmds:
+      - test -f .env || cp .env.example .env
+      - task: web:install
+
+  dev:
+    desc: API (no embedded SPA) and the Vite dev server together
+    deps: [dev:api, dev:web]
+
+  dev:api:
+    desc: Run the API locally
+    cmds:
+      - go run . --no-web --debug
+
+  dev:web:
+    desc: Run the frontend dev server (proxies /api to :8080)
+    dir: web
+    cmds: [bun run dev]
+
+  ent:generate:
+    desc: Regenerate the Ent client after editing ent/schema/*.go
+    cmds:
+      - go generate ./ent/...
+
+  web:install:
+    dir: web
+    status:
+      - test -d node_modules
+    cmds: [bun install]
+
+  web:build:
+    dir: web
+    cmds:
+      - bun run build
+      - touch dist/.gitkeep
+
+  build:
+    desc: Build the binary (embeds the built frontend)
+    deps: [web:build]
+    cmds:
+      - go build -ldflags="-s -w" -trimpath -o bin/vpn-control .
+
+  test:
+    desc: Go tests and frontend typecheck
+    cmds:
+      - go test -cover ./...
+      - cd web && bun run typecheck
+
+  lint:
+    desc: Format, vet and tidy the Go module
+    cmds:
+      - go mod tidy
+      - go fmt ./...
+      - go vet ./...
+
+  import:
+    desc: "One-time spreadsheet import: task import -- '/path/Траты на VPN.xlsx'"
+    cmds:
+      - go run . import-xlsx {{.CLI_ARGS}}
+
+  docker:up:
+    desc: Build and start the container next to the panel
+    cmds:
+      - docker compose up -d --build
+
+  docker:seed:
+    desc: Put the locally imported database into the container volume and start it
+    cmds:
+      - docker compose create --build
+      - docker compose cp data/vpn-control.db vpn-control:/data/vpn-control.db
+      - docker compose up -d

@@ -1,0 +1,549 @@
+package billing
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"regexp"
+	"time"
+
+	"vpn-control/ent"
+	"vpn-control/ent/customer"
+	"vpn-control/ent/ledgerentry"
+	"vpn-control/ent/subscription"
+	"vpn-control/ent/subscriptionaddon"
+	"vpn-control/internal/audit"
+	"vpn-control/internal/remnawave"
+	"vpn-control/internal/rwsync"
+	"vpn-control/internal/settings"
+	"vpn-control/internal/store"
+)
+
+const (
+	KindSubscription = "subscription"
+	KindAddon        = "addon"
+)
+
+var (
+	ErrInsufficientBalance = errors.New("недостаточно средств на балансе")
+	ErrNotLinked           = errors.New("подписка не привязана к пользователю Remnawave")
+	usernameRe             = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,36}$`)
+)
+
+type Service struct {
+	db       *ent.Client
+	rw       *remnawave.Client
+	settings *settings.Store
+	now      func() time.Time
+}
+
+func New(db *ent.Client, rw *remnawave.Client, st *settings.Store) *Service {
+	return &Service{db: db, rw: rw, settings: st, now: time.Now}
+}
+
+// Balance is the sum of a customer's ledger entries (kopecks).
+func (s *Service) Balance(ctx context.Context, customerID int) (int64, error) {
+	var res []struct {
+		Sum int64 `json:"sum"`
+	}
+	err := s.db.LedgerEntry.Query().
+		Where(ledgerentry.CustomerID(customerID)).
+		Aggregate(ent.Sum(ledgerentry.FieldAmount)).
+		Scan(ctx, &res)
+	if err != nil || len(res) == 0 {
+		return 0, err
+	}
+	return res[0].Sum, nil
+}
+
+// Balances returns every customer's balance.
+func (s *Service) Balances(ctx context.Context) (map[int]int64, error) {
+	var rows []struct {
+		CustomerID int   `json:"customer_id"`
+		Sum        int64 `json:"sum"`
+	}
+	err := s.db.LedgerEntry.Query().
+		GroupBy(ledgerentry.FieldCustomerID).
+		Aggregate(ent.Sum(ledgerentry.FieldAmount)).
+		Scan(ctx, &rows)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[int]int64, len(rows))
+	for _, r := range rows {
+		out[r.CustomerID] = r.Sum
+	}
+	return out, nil
+}
+
+// EffectivePrice is the override if set, else the tariff's monthly price.
+func EffectivePrice(override *int64, t *ent.Tariff) int64 {
+	if override != nil {
+		return *override
+	}
+	if t != nil {
+		return t.MonthlyPrice
+	}
+	return 0
+}
+
+func periodsOf(t *ent.Tariff) []Period {
+	if t == nil {
+		return nil
+	}
+	out := make([]Period, 0, len(t.Edges.Periods))
+	for _, p := range t.Edges.Periods {
+		out = append(out, Period{Months: p.Months, Price: p.Price})
+	}
+	return out
+}
+
+// target is a resolved subscription or add-on we can extend.
+type target struct {
+	kind       string
+	id         int
+	customerID int
+	title      string
+	rwUserID   *int
+	monthly    int64
+	periods    []Period
+	expireAt   *time.Time
+}
+
+func (s *Service) loadTarget(ctx context.Context, kind string, id int) (*target, error) {
+	switch kind {
+	case KindSubscription:
+		sub, err := s.db.Subscription.Query().Where(subscription.ID(id)).
+			WithTariff(func(q *ent.TariffQuery) { q.WithPeriods() }).
+			WithRwUser().WithCustomer().
+			Only(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("subscription %d: %w", id, err)
+		}
+		return subTarget(sub), nil
+	case KindAddon:
+		sa, err := s.db.SubscriptionAddon.Query().Where(subscriptionaddon.ID(id)).
+			WithTariff(func(q *ent.TariffQuery) { q.WithPeriods() }).
+			WithRwUser().WithAddon().
+			WithSubscription(func(q *ent.SubscriptionQuery) { q.WithCustomer().WithRwUser() }).
+			Only(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("add-on %d: %w", id, err)
+		}
+		return addonTarget(sa), nil
+	}
+	return nil, fmt.Errorf("unknown kind %q", kind)
+}
+
+func subTarget(sub *ent.Subscription) *target {
+	t := &target{
+		kind:       KindSubscription,
+		id:         sub.ID,
+		customerID: sub.CustomerID,
+		rwUserID:   sub.RwUserID,
+		monthly:    EffectivePrice(sub.PriceOverride, sub.Edges.Tariff),
+		periods:    periodsOf(sub.Edges.Tariff),
+		title:      SubscriptionTitle(sub),
+	}
+	if sub.PriceOverride != nil {
+		t.periods = nil // a custom price has no period discounts
+	}
+	if u := sub.Edges.RwUser; u != nil {
+		t.expireAt = u.ExpireAt
+	}
+	return t
+}
+
+func addonTarget(sa *ent.SubscriptionAddon) *target {
+	sub := sa.Edges.Subscription
+	t := &target{
+		kind:       KindAddon,
+		id:         sa.ID,
+		customerID: sub.CustomerID,
+		rwUserID:   sa.RwUserID,
+		monthly:    EffectivePrice(sa.PriceOverride, sa.Edges.Tariff),
+		periods:    periodsOf(sa.Edges.Tariff),
+		title:      sa.Edges.Addon.Name + " · " + SubscriptionTitle(sub),
+	}
+	if sa.PriceOverride != nil {
+		t.periods = nil
+	}
+	if u := sa.Edges.RwUser; u != nil {
+		t.expireAt = u.ExpireAt
+	}
+	return t
+}
+
+// SubscriptionTitle is a human label: label, RW username, or "#id".
+func SubscriptionTitle(sub *ent.Subscription) string {
+	switch {
+	case sub.Label != "" && sub.Edges.RwUser != nil:
+		return sub.Label + " (" + sub.Edges.RwUser.Username + ")"
+	case sub.Label != "":
+		return sub.Label
+	case sub.Edges.RwUser != nil:
+		return sub.Edges.RwUser.Username
+	}
+	return fmt.Sprintf("#%d", sub.ID)
+}
+
+// planItems lists a customer's auto-extended, linked, paid items.
+func (s *Service) planItems(ctx context.Context, customerID int) ([]PlanItem, error) {
+	subs, err := s.db.Subscription.Query().
+		Where(subscription.CustomerID(customerID), subscription.AutoExtend(true), subscription.RwUserIDNotNil()).
+		WithTariff(func(q *ent.TariffQuery) { q.WithPeriods() }).
+		WithRwUser().WithCustomer().
+		WithAddons(func(q *ent.SubscriptionAddonQuery) {
+			q.Where(subscriptionaddon.AutoExtend(true), subscriptionaddon.RwUserIDNotNil()).
+				WithTariff(func(q *ent.TariffQuery) { q.WithPeriods() }).
+				WithRwUser().WithAddon()
+		}).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []PlanItem
+	for _, sub := range subs {
+		items = append(items, toPlanItem(subTarget(sub)))
+		var subExpire *time.Time
+		if sub.Edges.RwUser != nil {
+			subExpire = sub.Edges.RwUser.ExpireAt
+		}
+		for _, sa := range sub.Edges.Addons {
+			sa.Edges.Subscription = sub
+			it := toPlanItem(addonTarget(sa))
+			it.ParentID, it.ParentExpireAt = sub.ID, subExpire
+			items = append(items, it)
+		}
+	}
+	return items, nil
+}
+
+func toPlanItem(t *target) PlanItem {
+	return PlanItem{Kind: t.kind, ID: t.id, Title: t.title, Monthly: t.monthly, Periods: t.periods, ExpireAt: t.expireAt}
+}
+
+// Referral is what a payment accrues to the payer's referrer.
+type Referral struct {
+	ReferrerID   int     `json:"referrer_id"`
+	ReferrerName string  `json:"referrer_name"`
+	Percent      float64 `json:"percent"`
+	Amount       int64   `json:"amount"`
+}
+
+func (s *Service) referralFor(ctx context.Context, payer *ent.Customer, amount int64) (*Referral, error) {
+	if payer.ReferrerID == nil {
+		return nil, nil
+	}
+	ref, err := s.db.Customer.Get(ctx, *payer.ReferrerID)
+	if err != nil {
+		return nil, err
+	}
+	pct := s.settings.Float(ctx, settings.ReferralPercent)
+	if ref.ReferralPercent != nil {
+		pct = *ref.ReferralPercent
+	}
+	if pct <= 0 {
+		return nil, nil
+	}
+	return &Referral{ReferrerID: ref.ID, ReferrerName: ref.Name, Percent: pct, Amount: ReferralAmount(amount, pct)}, nil
+}
+
+// PaymentPreview is what recording a payment would do.
+type PaymentPreview struct {
+	BalanceBefore int64        `json:"balance_before"`
+	BalanceAfter  int64        `json:"balance_after_payment"`
+	Allocations   []Allocation `json:"allocations"`
+	Remainder     int64        `json:"remainder"`
+	Items         []PlanItem   `json:"items"`
+	Referral      *Referral    `json:"referral"`
+}
+
+func (s *Service) PreviewPayment(ctx context.Context, customerID int, amount int64, remainderToDays bool) (*PaymentPreview, error) {
+	c, err := s.db.Customer.Get(ctx, customerID)
+	if err != nil {
+		return nil, err
+	}
+	bal, err := s.Balance(ctx, customerID)
+	if err != nil {
+		return nil, err
+	}
+	items, err := s.planItems(ctx, customerID)
+	if err != nil {
+		return nil, err
+	}
+	alloc, rest := Plan(bal+amount, items, s.now(), remainderToDays)
+	ref, err := s.referralFor(ctx, c, amount)
+	if err != nil {
+		return nil, err
+	}
+	return &PaymentPreview{
+		BalanceBefore: bal, BalanceAfter: bal + amount,
+		Allocations: alloc, Remainder: rest, Items: items, Referral: ref,
+	}, nil
+}
+
+// PaymentInput records a payment and the extensions to buy with it.
+type PaymentInput struct {
+	CustomerID  int
+	Amount      int64
+	Date        time.Time
+	Method      string
+	Note        string
+	Allocations []AllocationInput
+}
+
+// AllocationInput is one (possibly admin-edited) allocation to apply.
+type AllocationInput struct {
+	Kind   string `json:"kind"`
+	ID     int    `json:"id"`
+	Months int    `json:"months"`
+	Days   int    `json:"days"`
+	Amount int64  `json:"amount"`
+}
+
+// ExtensionResult is the outcome of one extension.
+type ExtensionResult struct {
+	Kind   string     `json:"kind"`
+	ID     int        `json:"id"`
+	Title  string     `json:"title"`
+	Months int        `json:"months"`
+	Days   int        `json:"days"`
+	Amount int64      `json:"amount"`
+	From   *time.Time `json:"from,omitempty"`
+	To     *time.Time `json:"to,omitempty"`
+	OK     bool       `json:"ok"`
+	Error  string     `json:"error,omitempty"`
+}
+
+type PaymentResult struct {
+	Payment    *ent.Payment      `json:"payment"`
+	Extensions []ExtensionResult `json:"extensions"`
+	Balance    int64             `json:"balance"`
+	Referral   *Referral         `json:"referral"`
+}
+
+// CommitPayment stores the payment (+ledger, +referral accrual) and then
+// applies each allocation; a failed Remnawave call refunds that allocation's
+// charge and is reported, not fatal.
+func (s *Service) CommitPayment(ctx context.Context, in PaymentInput) (*PaymentResult, error) {
+	if in.Amount <= 0 {
+		return nil, errors.New("сумма должна быть больше нуля")
+	}
+	c, err := s.db.Customer.Get(ctx, in.CustomerID)
+	if err != nil {
+		return nil, err
+	}
+	if in.Date.IsZero() {
+		in.Date = s.now()
+	}
+	ref, err := s.referralFor(ctx, c, in.Amount)
+	if err != nil {
+		return nil, err
+	}
+
+	var p *ent.Payment
+	err = store.WithTx(ctx, s.db, func(tx *ent.Tx) error {
+		var err error
+		p, err = tx.Payment.Create().
+			SetCustomerID(c.ID).SetAmount(in.Amount).SetDate(in.Date).
+			SetMethod(in.Method).SetNote(in.Note).
+			Save(ctx)
+		if err != nil {
+			return err
+		}
+		if err := tx.LedgerEntry.Create().
+			SetCustomerID(c.ID).SetType(ledgerentry.TypePayment).SetAmount(in.Amount).
+			SetDate(in.Date).SetPaymentID(p.ID).SetNote(in.Note).
+			Exec(ctx); err != nil {
+			return err
+		}
+		if ref != nil && ref.Amount > 0 {
+			return tx.ReferralAccrual.Create().
+				SetReferrerID(ref.ReferrerID).SetRefereeID(c.ID).SetPaymentID(p.ID).
+				SetPercent(ref.Percent).SetAmount(ref.Amount).SetDate(in.Date).
+				Exec(ctx)
+		}
+		return nil
+	})
+	audit.Log(ctx, s.db, "payment.create", "customer", c.ID, map[string]any{"amount": in.Amount, "note": in.Note}, err)
+	if err != nil {
+		return nil, fmt.Errorf("save payment: %w", err)
+	}
+
+	res := &PaymentResult{Payment: p, Referral: ref}
+	for _, a := range in.Allocations {
+		if a.Months <= 0 && a.Days <= 0 {
+			continue
+		}
+		r := s.extend(ctx, ExtendInput{
+			Kind: a.Kind, ID: a.ID, Months: a.Months, Days: a.Days, Amount: a.Amount,
+			AllowDebt: true, PaymentID: &p.ID, CustomerID: c.ID,
+		})
+		res.Extensions = append(res.Extensions, r)
+	}
+	res.Balance, err = s.Balance(ctx, c.ID)
+	return res, err
+}
+
+// ExtendInput is a manual or payment-driven extension.
+type ExtendInput struct {
+	Kind      string
+	ID        int
+	Months    int
+	Days      int
+	Amount    int64
+	AllowDebt bool
+	PaymentID *int
+	// CustomerID, when set, must own the target (guards payment allocations).
+	CustomerID int
+}
+
+// Extend charges the balance and moves expireAt in Remnawave.
+func (s *Service) Extend(ctx context.Context, in ExtendInput) (*ExtensionResult, error) {
+	r := s.extend(ctx, in)
+	if !r.OK {
+		return &r, errors.New(r.Error)
+	}
+	return &r, nil
+}
+
+// QuoteExtend is the default price of extending a target by months+days.
+func (s *Service) QuoteExtend(ctx context.Context, kind string, id, months, days int) (int64, *time.Time, *time.Time, error) {
+	t, err := s.loadTarget(ctx, kind, id)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+	from := ExtendFrom(s.now(), t.expireAt)
+	to := from.AddDate(0, months, days)
+	return Cost(t.monthly, t.periods, months) + DaysCost(t.monthly, days), &from, &to, nil
+}
+
+func (s *Service) extend(ctx context.Context, in ExtendInput) ExtensionResult {
+	res := ExtensionResult{Kind: in.Kind, ID: in.ID, Months: in.Months, Days: in.Days, Amount: in.Amount}
+	fail := func(err error) ExtensionResult {
+		res.Error = err.Error()
+		return res
+	}
+	if in.Months < 0 || in.Days < 0 || in.Months+in.Days == 0 {
+		return fail(errors.New("укажите срок продления"))
+	}
+	if in.Amount < 0 {
+		return fail(errors.New("сумма не может быть отрицательной"))
+	}
+	t, err := s.loadTarget(ctx, in.Kind, in.ID)
+	if err != nil {
+		return fail(err)
+	}
+	res.Title = t.title
+	if in.CustomerID != 0 && t.customerID != in.CustomerID {
+		return fail(errors.New("позиция принадлежит другому клиенту"))
+	}
+	if t.rwUserID == nil {
+		return fail(ErrNotLinked)
+	}
+	if !in.AllowDebt {
+		bal, err := s.Balance(ctx, t.customerID)
+		if err != nil {
+			return fail(err)
+		}
+		if bal < in.Amount {
+			return fail(ErrInsufficientBalance)
+		}
+	}
+
+	// Fresh expiry from the panel: the cache may be minutes old.
+	user, err := s.rw.GetUser(ctx, *t.rwUserID)
+	if err != nil {
+		return fail(err)
+	}
+	from := ExtendFrom(s.now(), &user.ExpireAt)
+	to := from.AddDate(0, in.Months, in.Days)
+	res.From, res.To = &from, &to
+
+	ledgerID, err := s.charge(ctx, t.customerID, in.Amount, in.PaymentID,
+		fmt.Sprintf("Продление: %s, %s", t.title, durationLabel(in.Months, in.Days)))
+	if err != nil {
+		return fail(err)
+	}
+
+	upd := remnawave.UpdateUserRequest{ID: user.ID, ExpireAt: &to}
+	if user.Status == remnawave.StatusExpired || user.Status == remnawave.StatusDisabled {
+		upd.Status = remnawave.StatusActive
+	}
+	updated, rwErr := s.rw.UpdateUser(ctx, upd)
+	if rwErr == nil {
+		_ = rwsync.Upsert(ctx, s.db, updated)
+	} else if ledgerID != nil {
+		// Undo the charge: nothing was extended.
+		_ = s.db.LedgerEntry.DeleteOneID(*ledgerID).Exec(context.WithoutCancel(ctx))
+		ledgerID = nil
+	}
+	s.recordExtension(ctx, "extend", t, in.PaymentID, in.Months, in.Days, in.Amount, &from, &to, ledgerID, rwErr)
+	audit.Log(ctx, s.db, "extend", t.kind, t.id, map[string]any{"months": in.Months, "days": in.Days, "amount": in.Amount, "to": to}, rwErr)
+	if rwErr != nil {
+		return fail(rwErr)
+	}
+	res.OK = true
+	return res
+}
+
+func (s *Service) charge(ctx context.Context, customerID int, amount int64, paymentID *int, note string) (*int, error) {
+	if amount == 0 {
+		return nil, nil
+	}
+	e, err := s.db.LedgerEntry.Create().
+		SetCustomerID(customerID).SetType(ledgerentry.TypeCharge).SetAmount(-amount).
+		SetDate(s.now()).SetNillablePaymentID(paymentID).SetNote(note).
+		Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &e.ID, nil
+}
+
+func (s *Service) recordExtension(ctx context.Context, kind string, t *target, paymentID *int, months, days int, amount int64, from, to *time.Time, ledgerID *int, opErr error) {
+	q := s.db.Extension.Create().
+		SetKind(extensionKind(kind)).
+		SetCustomerID(t.customerID).
+		SetNillablePaymentID(paymentID).
+		SetMonths(months).SetDays(days).SetAmount(amount).
+		SetNillableFromAt(from).SetNillableToAt(to).
+		SetNillableLedgerEntryID(ledgerID).
+		SetActor(audit.Actor(ctx)).
+		SetStatus("ok")
+	if t.kind == KindSubscription {
+		q.SetSubscriptionID(t.id)
+	} else {
+		q.SetSubscriptionAddonID(t.id)
+	}
+	if opErr != nil {
+		q.SetStatus("failed").SetError(opErr.Error())
+	}
+	_ = q.Exec(context.WithoutCancel(ctx))
+}
+
+func durationLabel(months, days int) string {
+	switch {
+	case months > 0 && days > 0:
+		return fmt.Sprintf("%d мес. %d дн.", months, days)
+	case months > 0:
+		return fmt.Sprintf("%d мес.", months)
+	}
+	return fmt.Sprintf("%d дн.", days)
+}
+
+// Adjust adds a manual balance correction (positive or negative).
+func (s *Service) Adjust(ctx context.Context, customerID int, amount int64, note string) error {
+	if amount == 0 {
+		return errors.New("сумма не может быть нулевой")
+	}
+	if _, err := s.db.Customer.Query().Where(customer.ID(customerID)).Only(ctx); err != nil {
+		return err
+	}
+	err := s.db.LedgerEntry.Create().
+		SetCustomerID(customerID).SetType(ledgerentry.TypeAdjustment).SetAmount(amount).
+		SetDate(s.now()).SetNote(note).Exec(ctx)
+	audit.Log(ctx, s.db, "balance.adjust", "customer", customerID, map[string]any{"amount": amount, "note": note}, err)
+	return err
+}
