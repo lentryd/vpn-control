@@ -31,8 +31,8 @@ type Config struct {
 	RemnawaveAPIKey string
 
 	// RemnawaveMetricsURL is the panel's Prometheus endpoint
-	// (http://remnawave:3001/metrics) with METRICS_USER/METRICS_PASS — exact
-	// per-inbound counters. Without it they come rounded from the API.
+	// (http://remnawave:3001/metrics) with METRICS_USER/METRICS_PASS. It
+	// enables per-inbound metering; without it items can't pick an inbound.
 	RemnawaveMetricsURL  string
 	RemnawaveMetricsUser string
 	RemnawaveMetricsPass string

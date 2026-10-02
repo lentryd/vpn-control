@@ -19,17 +19,9 @@ type InboundSource interface {
 	InboundCounters(ctx context.Context) (remnawave.InboundCounters, error)
 }
 
-// apiInboundSource adapts the REST client (rounded values).
-type apiInboundSource struct{ rw *remnawave.Client }
-
-func (a apiInboundSource) InboundCounters(ctx context.Context) (remnawave.InboundCounters, error) {
-	return a.rw.InboundCountersFromAPI(ctx)
-}
-
 // InboundStatus describes the inbound traffic collector for the UI.
 type InboundStatus struct {
-	Source    string     `json:"source"` // "prometheus" | "api"
-	Precise   bool       `json:"precise"`
+	Enabled   bool       `json:"enabled"` // REMNAWAVE_METRICS_URL is set
 	LastPoll  *time.Time `json:"last_poll"`
 	LastError string     `json:"last_error,omitempty"`
 	Since     *time.Time `json:"since"` // first counter ever seen = start of history
@@ -37,24 +29,19 @@ type InboundStatus struct {
 
 type inboundCollector struct {
 	src     InboundSource
-	precise bool
 	mu      sync.Mutex
 	last    *time.Time
 	lastErr error
 }
 
-// UseMetricsScraper switches inbound counters to the panel's exact
-// Prometheus endpoint.
+// UseMetricsScraper enables per-inbound metering from the panel's
+// Prometheus endpoint. Without it items can't count a single inbound.
 func (s *Service) UseMetricsScraper(m *remnawave.MetricsScraper) {
-	s.inbound = &inboundCollector{src: m, precise: true}
+	s.inbound = &inboundCollector{src: m}
 }
 
-func (s *Service) collector() *inboundCollector {
-	if s.inbound == nil {
-		s.inbound = &inboundCollector{src: apiInboundSource{s.rw}}
-	}
-	return s.inbound
-}
+// InboundsEnabled reports whether per-inbound counters are collected.
+func (s *Service) InboundsEnabled() bool { return s.inbound != nil }
 
 // CounterDelta is how much a cumulative counter grew since the previous
 // reading: nothing on the first reading (no baseline), the full value after
@@ -73,7 +60,10 @@ func CounterDelta(prev float64, havePrev bool, cur float64) float64 {
 // PollInbounds reads the counters once and adds the growth to today's
 // per-inbound traffic.
 func (s *Service) PollInbounds(ctx context.Context) error {
-	c := s.collector()
+	c := s.inbound
+	if c == nil {
+		return nil
+	}
 	counters, err := c.src.InboundCounters(ctx)
 	now := time.Now().In(s.loc)
 	c.mu.Lock()
@@ -116,9 +106,11 @@ func (s *Service) PollInbounds(ctx context.Context) error {
 	return nil
 }
 
-// PollInboundsIfUsed polls only while an active item counts one inbound:
-// older panels have no nodes-metrics endpoint, and squads replace it.
+// PollInboundsIfUsed polls only while an active item counts one inbound.
 func (s *Service) PollInboundsIfUsed(ctx context.Context) error {
+	if !s.InboundsEnabled() {
+		return nil
+	}
 	used, err := s.db.ExpenseItem.Query().
 		Where(expenseitem.Active(true), expenseitem.RwInboundTagNEQ("")).Exist(ctx)
 	if err != nil || !used {
@@ -131,6 +123,9 @@ func (s *Service) PollInboundsIfUsed(ctx context.Context) error {
 // them every 30 s; a short interval also limits what's lost when the panel
 // restarts between two readings.
 func (s *Service) RunInboundPolling(ctx context.Context, interval time.Duration) {
+	if !s.InboundsEnabled() {
+		return
+	}
 	t := time.NewTicker(interval)
 	defer t.Stop()
 	for {
@@ -146,16 +141,16 @@ func (s *Service) RunInboundPolling(ctx context.Context, interval time.Duration)
 }
 
 func (s *Service) InboundStatus(ctx context.Context) InboundStatus {
-	c := s.collector()
+	c := s.inbound
+	if c == nil {
+		return InboundStatus{}
+	}
 	c.mu.Lock()
-	st := InboundStatus{Source: "api", Precise: c.precise, LastPoll: c.last}
+	st := InboundStatus{Enabled: true, LastPoll: c.last}
 	if c.lastErr != nil {
 		st.LastError = c.lastErr.Error()
 	}
 	c.mu.Unlock()
-	if c.precise {
-		st.Source = "prometheus"
-	}
 	if first, err := s.db.InboundTraffic.Query().Order(ent.Asc(inboundtraffic.FieldDate)).First(ctx); err == nil {
 		if d, err := time.ParseInLocation("2006-01-02", first.Date, s.loc); err == nil {
 			st.Since = &d

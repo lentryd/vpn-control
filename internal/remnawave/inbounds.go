@@ -12,8 +12,6 @@ import (
 	"time"
 )
 
-const pathNodesMetrics = "/api/system/stats/nodes-metrics"
-
 // InboundKey identifies one inbound of one node.
 type InboundKey struct {
 	NodeUUID string
@@ -23,60 +21,6 @@ type InboundKey struct {
 // InboundCounters are cumulative upload+download bytes per inbound since
 // the panel backend started (they reset when it restarts).
 type InboundCounters map[InboundKey]float64
-
-// InboundCountersFromAPI reads GET /api/system/stats/nodes-metrics. The
-// panel formats those numbers for humans ("1.23 GiB"), so they're only
-// accurate to two decimals of the unit — use MetricsScraper when possible.
-func (c *Client) InboundCountersFromAPI(ctx context.Context) (InboundCounters, error) {
-	out, err := call[struct {
-		Nodes []struct {
-			NodeUUID      string `json:"nodeUuid"`
-			InboundsStats []struct {
-				Tag      string `json:"tag"`
-				Upload   string `json:"upload"`
-				Download string `json:"download"`
-			} `json:"inboundsStats"`
-		} `json:"nodes"`
-	}](ctx, c, http.MethodGet, pathNodesMetrics, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("nodes metrics: %w", err)
-	}
-	res := InboundCounters{}
-	for _, n := range out.Nodes {
-		for _, in := range n.InboundsStats {
-			up, err1 := ParseIECBytes(in.Upload)
-			down, err2 := ParseIECBytes(in.Download)
-			if err1 != nil || err2 != nil {
-				return nil, fmt.Errorf("nodes metrics: bad value %q/%q", in.Upload, in.Download)
-			}
-			res[InboundKey{n.NodeUUID, in.Tag}] = up + down
-		}
-	}
-	return res, nil
-}
-
-var iecRe = regexp.MustCompile(`^\s*([0-9]+(?:[.,][0-9]+)?)\s*([KMGTPE]?i?B)?\s*$`)
-
-// ParseIECBytes parses the panel's human-readable sizes ("0", "512 B",
-// "1.23 GiB"); KB/MB/... are treated as binary like the panel does.
-func ParseIECBytes(s string) (float64, error) {
-	m := iecRe.FindStringSubmatch(s)
-	if m == nil {
-		return 0, fmt.Errorf("bad size %q", s)
-	}
-	v, err := strconv.ParseFloat(strings.ReplaceAll(m[1], ",", "."), 64)
-	if err != nil {
-		return 0, err
-	}
-	if m[2] == "" || m[2] == "B" {
-		return v, nil
-	}
-	pow := strings.IndexByte("KMGTPE", m[2][0]) + 1
-	for range pow {
-		v *= 1024
-	}
-	return v, nil
-}
 
 // MetricsScraper reads the panel's Prometheus endpoint (METRICS_PORT,
 // basic auth METRICS_USER/METRICS_PASS) for exact inbound counters.

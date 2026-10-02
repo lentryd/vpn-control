@@ -190,8 +190,7 @@ export interface RwNode {
 }
 
 export interface InboundStatus {
-    source: 'prometheus' | 'api'
-    precise: boolean
+    enabled: boolean
     last_poll: string | null
     last_error?: string
     since: string | null

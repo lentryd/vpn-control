@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -256,6 +257,25 @@ func (r *expenseItemRequest) normalize() {
 	if r.SharePercent <= 0 {
 		r.SharePercent = 100
 	}
+	if r.Pricing != "metered" {
+		r.RwInboundTag, r.RwSquadUUID = "", ""
+	}
+}
+
+// checkInbound allows one inbound only when its counters are collected:
+// it needs the node and replaces the squad split.
+func (h *Handlers) checkInbound(r *expenseItemRequest) error {
+	switch {
+	case r.RwInboundTag == "":
+		return nil
+	case !h.Expenses.InboundsEnabled():
+		return badRequest(errors.New("учёт по inbound недоступен: не задан REMNAWAVE_METRICS_URL"))
+	case r.RwNodeUUID == "":
+		return badRequest(errors.New("для inbound нужно выбрать ноду"))
+	case r.RwSquadUUID != "":
+		return badRequest(errors.New("выберите либо inbound, либо сквад"))
+	}
+	return nil
 }
 
 func (h *Handlers) CreateExpenseItem(c *fiber.Ctx) error {
@@ -264,6 +284,9 @@ func (h *Handlers) CreateExpenseItem(c *fiber.Ctx) error {
 		return err
 	}
 	r.normalize()
+	if err := h.checkInbound(&r); err != nil {
+		return err
+	}
 	it, err := h.DB.ExpenseItem.Create().
 		SetName(r.Name).SetProvider(r.Provider).SetRwProviderUUID(r.ProviderUUID).SetCurrency(r.Currency).
 		SetPricing(expenseitem.Pricing(r.Pricing)).SetAmount(money.FromMajor(r.Amount)).
@@ -289,6 +312,9 @@ func (h *Handlers) UpdateExpenseItem(c *fiber.Ctx) error {
 		return err
 	}
 	r.normalize()
+	if err := h.checkInbound(&r); err != nil {
+		return err
+	}
 	q := h.DB.ExpenseItem.UpdateOneID(id).
 		SetName(r.Name).SetProvider(r.Provider).SetRwProviderUUID(r.ProviderUUID).SetCurrency(r.Currency).
 		SetPricing(expenseitem.Pricing(r.Pricing)).SetAmount(money.FromMajor(r.Amount)).

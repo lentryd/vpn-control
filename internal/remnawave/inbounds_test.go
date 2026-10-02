@@ -5,19 +5,6 @@ import (
 	"testing"
 )
 
-func TestParseIECBytes(t *testing.T) {
-	cases := map[string]float64{"0": 0, "512 B": 512, "1.5 KiB": 1536, "2 GiB": 2 << 30, "1,25 MiB": 1.25 * (1 << 20)}
-	for in, want := range cases {
-		got, err := ParseIECBytes(in)
-		if err != nil || got != want {
-			t.Errorf("ParseIECBytes(%q) = %v, %v; want %v", in, got, err, want)
-		}
-	}
-	if _, err := ParseIECBytes("lots"); err == nil {
-		t.Error("want error")
-	}
-}
-
 func TestParsePrometheus(t *testing.T) {
 	src := `# HELP remnawave_node_inbound_upload_bytes Inbound upload bytes
 # TYPE remnawave_node_inbound_upload_bytes counter

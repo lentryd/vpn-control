@@ -43,10 +43,7 @@
 
 Посуточной истории по отдельному inbound в панели нет. Она держит только накопительные счётчики в памяти и сбрасывает их при перезапуске. Поэтому сервис сам снимает их каждые 2 минуты и складывает приросты по дням (сброс счётчика учитывается). История по inbound начинается с первого запуска сервиса.
 
-Откуда берутся счётчики:
-
-- **Prometheus панели — точно.** Задайте `REMNAWAVE_METRICS_URL=http://remnawave:3001/metrics` и `REMNAWAVE_METRICS_USER` / `REMNAWAVE_METRICS_PASS` — это `METRICS_USER` и `METRICS_PASS` из `.env` панели.
-- **API панели — запасной вариант.** Используется, если `REMNAWAVE_METRICS_URL` не задан (`/api/system/stats/nodes-metrics`, нужен scope `system:read`). Значения там округлены до двух знаков единицы (ГиБ/ТиБ).
+Счётчики берутся из Prometheus-эндпоинта панели. Задайте `REMNAWAVE_METRICS_URL=http://remnawave:3001/metrics` и `REMNAWAVE_METRICS_USER` / `REMNAWAVE_METRICS_PASS` — это `METRICS_USER` и `METRICS_PASS` из `.env` панели. Без них выбор inbound в статье расходов скрыт, и считать можно только по всей ноде или по скваду. Inbound и сквад в одной статье не сочетаются.
 
 «Кто нагружает» для inbound показывается по всей ноде: трафик пользователей по отдельному inbound панель не отдаёт.
 

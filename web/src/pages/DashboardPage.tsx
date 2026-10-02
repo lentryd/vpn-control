@@ -365,6 +365,11 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                 <Group component="span" gap="xs" mt={2}>
                     <NodeLabel fallback={m.node_name} size="xs" uuid={m.node_uuid} />
                     {m.squad_uuid && <SquadBadge size="sm" uuid={m.squad_uuid} />}
+                    {m.inbound_tag && (
+                        <Badge color="violet" size="sm" variant="soft">
+                            {m.inbound_tag}
+                        </Badge>
+                    )}
                 </Group>
             }
             icon={<PiCloudDuotone size={24} />}
@@ -451,7 +456,9 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                             subtitle={
                                 m.squad_uuid
                                     ? `участники сквада — ${fmtNum(m.squad_share_percent, 1)}% трафика ноды`
-                                    : 'все пользователи ноды'
+                                    : m.inbound_tag
+                                      ? 'все пользователи ноды, не только этого inbound'
+                                      : 'все пользователи ноды'
                             }
                             title="Кто нагружает"
                             titleOrder={6}
