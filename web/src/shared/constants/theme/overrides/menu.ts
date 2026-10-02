@@ -1,7 +1,8 @@
 // Adapted from remnawave/frontend (AGPL-3.0)
 import { Combobox, Menu } from '@mantine/core'
 
-const touch = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+// Some Android browsers report a fine pointer, so hover and width count too.
+const touch = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse), (hover: none), (max-width: 48em)').matches
 
 export default {
     Menu: Menu.extend({
@@ -32,8 +33,9 @@ export default {
             transitionProps: { transition: 'fade', duration: 200 },
             // On phones the on-screen keyboard resizes the viewport while
             // the dropdown is open: flipping above/below and hiding when
-            // the input is briefly "detached" made it flicker.
-            ...(touch && { middlewares: { flip: false, shift: true }, hideDetached: false })
+            // the input is briefly "detached" made it flicker, and shifting
+            // slid it sideways off the field.
+            ...(touch && { position: 'bottom', middlewares: { flip: false, shift: false }, hideDetached: false })
         }
     })
 }

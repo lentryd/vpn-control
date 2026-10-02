@@ -49,7 +49,6 @@ import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
 import { Page } from '@shared/ui/page'
 import { FormFooter, FormSection } from '@shared/ui/forms/form-section'
 import { DataTableCard } from '@shared/ui/table'
-import { useTouch } from '@shared/ui/forms/search-select'
 
 type Draft = Partial<Tariff> & { kind: 'base' | 'addon' }
 
@@ -310,7 +309,6 @@ function TariffTable({
 
 function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; onDone: () => void }) {
     const squads = useSquads()
-    const touch = useTouch()
     const form = useForm({
         initialValues: {
             kind: draft.kind,
@@ -519,7 +517,7 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                                         </Group>
                                     )
                                 }}
-                                searchable={!touch}
+                                searchable
                                 {...form.getInputProps('squad_uuids')}
                             />
                             {squads.error && <Alert color="red" variant="soft">{squads.error.message}</Alert>}
