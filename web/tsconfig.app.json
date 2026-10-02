@@ -16,7 +16,7 @@
     "verbatimModuleSyntax": false,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
-    "types": ["vite/client"],
+    "types": [],
     "paths": { "@/*": ["./src/*"], "@shared/*": ["./src/shared/*"] }
   },
   "include": ["src"]

@@ -40,7 +40,7 @@ Usage:
 
 func main() {
 	port := flag.String("port", "", "HTTP port override (defaults to $PORT or 8080)")
-	noWeb := flag.Bool("no-web", false, "Don't serve the embedded SPA (use with the Vite dev server)")
+	noWeb := flag.Bool("no-web", false, "Don't serve the embedded SPA (use with the Bun dev server)")
 	noSync := flag.Bool("no-sync", false, "Disable background Remnawave/traffic sync")
 	debug := flag.Bool("debug", false, "Enable debug logging")
 	showVersion := flag.Bool("version", false, "Print version and exit")

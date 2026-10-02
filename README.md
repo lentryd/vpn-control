@@ -124,7 +124,7 @@ A base tariff can **include add-ons**: pick their add-on tariffs on the tariff. 
 
 ```bash
 task init      # .env, frontend dependencies
-task dev       # API on :8080 and Vite on :5173 (proxies /api)
+task dev       # API on :8080 and the Bun dev server on :5173 (proxies /api)
 task test      # go test, frontend type check and locale key check
 task build     # bin/vpn-control with the embedded UI
 ```

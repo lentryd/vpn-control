@@ -15,7 +15,7 @@ tasks:
       - task: web:install
 
   dev:
-    desc: API (no embedded SPA) and the Vite dev server together
+    desc: API (no embedded SPA) and the Bun dev server together
     deps: [dev:api, dev:web]
 
   dev:api:

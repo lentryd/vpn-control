@@ -10,7 +10,8 @@ WORKDIR /src/web
 COPY web/package.json web/bun.lock ./
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun install --frozen-lockfile
-COPY web/index.html web/vite.config.ts web/postcss.config.cjs web/tsconfig*.json ./
+COPY web/index.html web/bunfig.toml web/postcss.config.cjs web/tsconfig*.json ./
+COPY web/scripts ./scripts
 COPY web/public ./public
 COPY web/src ./src
 RUN bun run build

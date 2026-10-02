@@ -124,7 +124,7 @@ curl -H "Authorization: Bearer vpc_…" "https://panel.example.com/control/api/v
 
 ```bash
 task init      # .env, зависимости фронта
-task dev       # API на :8080 и Vite на :5173 (проксирует /api)
+task dev       # API на :8080 и dev-сервер Bun на :5173 (проксирует /api)
 task test      # go test, проверка типов фронта и ключей локалей
 task build     # bin/vpn-control со встроенным интерфейсом
 ```

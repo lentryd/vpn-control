@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 
 	appmiddleware "vpn-control/internal/api/middleware"
@@ -143,6 +144,9 @@ func RegisterRoutes(app *fiber.App, deps *Deps) {
 			return c.Next()
 		})
 	}
+	// Registered after the API, so only the SPA files are compressed
+	// (brotli/gzip by Accept-Encoding): ~1.2 MB of JS turns into ~350 KB.
+	root.Use(compress.New())
 	root.Use(filesystem.New(filesystem.Config{
 		Root:         web.StaticFS,
 		PathPrefix:   "",

@@ -4,11 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json && node scripts/i18n-check.mjs",
-    "i18n:check": "node scripts/i18n-check.mjs",
-    "preview": "vite preview"
+    "dev": "bun scripts/dev.ts",
+    "build": "tsc -b && bun scripts/build.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && bun scripts/i18n-check.mjs",
+    "i18n:check": "bun scripts/i18n-check.mjs"
   },
   "dependencies": {
     "@fontsource-variable/montserrat": "^5.2.8",
@@ -40,14 +39,13 @@
     "recharts": "^3.10.1"
   },
   "devDependencies": {
+    "@types/bun": "^1.4.2",
     "@types/node": "^24",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.1.1",
     "postcss": "^8.5.6",
     "postcss-preset-mantine": "^1.18.0",
     "postcss-simple-vars": "^7.0.1",
-    "typescript": "~6.0.2",
-    "vite": "^8.3.2"
+    "typescript": "~6.0.2"
   }
 }

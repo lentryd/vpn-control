@@ -1,26 +1,29 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { lazy, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router'
 
 import { setUnauthorizedHandler } from '@/api/client'
 import { useMe, useSettings } from '@/api/hooks'
 import { setFormat } from '@/components/format'
-import { CustomerPage } from '@/pages/CustomerPage'
-import { CustomersPage } from '@/pages/CustomersPage'
-import { DashboardPage } from '@/pages/DashboardPage'
-import { ExpenseItemsPage } from '@/pages/ExpenseItemsPage'
-import { ExpensesPage } from '@/pages/ExpensesPage'
 import { LoginPage } from '@/pages/LoginPage'
-import { PaymentsPage } from '@/pages/PaymentsPage'
-import { ReferralsPage } from '@/pages/ReferralsPage'
-import { RwUsersPage } from '@/pages/RwUsersPage'
-import { SettingsPage } from '@/pages/SettingsPage'
-import { SubscriptionsPage } from '@/pages/SubscriptionsPage'
-import { TariffsPage } from '@/pages/TariffsPage'
 
 import { AuthLayout } from './layouts/auth'
 import { MainLayout } from './layouts/dashboard'
 import { LoadingScreen } from '@shared/ui/loading-screen'
+
+// Pages load on demand, each in its own chunk; the layout's <Suspense> shows
+// a progress bar meanwhile. The login page stays in the main bundle.
+const CustomerPage = lazy(() => import('@/pages/CustomerPage').then((m) => ({ default: m.CustomerPage })))
+const CustomersPage = lazy(() => import('@/pages/CustomersPage').then((m) => ({ default: m.CustomersPage })))
+const DashboardPage = lazy(() => import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })))
+const ExpenseItemsPage = lazy(() => import('@/pages/ExpenseItemsPage').then((m) => ({ default: m.ExpenseItemsPage })))
+const ExpensesPage = lazy(() => import('@/pages/ExpensesPage').then((m) => ({ default: m.ExpensesPage })))
+const PaymentsPage = lazy(() => import('@/pages/PaymentsPage').then((m) => ({ default: m.PaymentsPage })))
+const ReferralsPage = lazy(() => import('@/pages/ReferralsPage').then((m) => ({ default: m.ReferralsPage })))
+const RwUsersPage = lazy(() => import('@/pages/RwUsersPage').then((m) => ({ default: m.RwUsersPage })))
+const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const SubscriptionsPage = lazy(() => import('@/pages/SubscriptionsPage').then((m) => ({ default: m.SubscriptionsPage })))
+const TariffsPage = lazy(() => import('@/pages/TariffsPage').then((m) => ({ default: m.TariffsPage })))
 
 export function App() {
     const navigate = useNavigate()

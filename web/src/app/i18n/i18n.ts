@@ -15,7 +15,7 @@ i18n.use(initReactI18next)
     .init({
         fallbackLng: 'en',
         supportedLngs: LANGUAGES.map((l) => l.value),
-        debug: import.meta.env.DEV,
+        debug: process.env.NODE_ENV !== 'production',
         defaultNS: 'vpn-control',
         ns: ['vpn-control'],
         detection: {

@@ -17,7 +17,7 @@ import (
 
 type Deps struct {
 	Handlers *handlers.Handlers
-	// NoWeb disables serving the embedded SPA build (dev: Vite serves it).
+	// NoWeb disables serving the embedded SPA build (dev: the Bun dev server serves it).
 	NoWeb bool
 }
 
