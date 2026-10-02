@@ -359,13 +359,13 @@ function SnapshotsCard({ categories }: { categories: BackupCategory[] }) {
                 id: 'categories',
                 header: t('backup.col_data'),
                 enableSorting: false,
-                accessorFn: (r) => r.categories.length,
+                accessorFn: (r) => r.categories?.length ?? 0,
                 Cell: ({ row }) =>
-                    row.original.categories.length === categories.length ? (
+                    (row.original.categories?.length ?? 0) === categories.length ? (
                         <Text size="sm">{t('backup.everything')}</Text>
                     ) : (
                         <Text size="sm">
-                            {row.original.categories.map((k) => categories.find((c) => c.key === k)?.title ?? k).join(', ')}
+                            {(row.original.categories ?? []).map((k) => categories.find((c) => c.key === k)?.title ?? k).join(', ')}
                         </Text>
                     )
             }

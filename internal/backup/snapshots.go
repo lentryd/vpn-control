@@ -119,9 +119,12 @@ func (s *Snapshots) List() ([]Snapshot, error) {
 		if err != nil {
 			continue
 		}
-		sn := Snapshot{Name: e.Name(), Kind: kindOf(e.Name()), Size: fi.Size(), CreatedAt: fi.ModTime()}
+		sn := Snapshot{Name: e.Name(), Kind: kindOf(e.Name()), Size: fi.Size(), CreatedAt: fi.ModTime(), Categories: []string{}}
 		if m, err := readManifest(filepath.Join(s.dir, e.Name())); err == nil {
-			sn.CreatedAt, sn.AppVersion, sn.Categories = m.CreatedAt, m.AppVersion, m.Categories
+			sn.CreatedAt, sn.AppVersion = m.CreatedAt, m.AppVersion
+			if m.Categories != nil {
+				sn.Categories = m.Categories
+			}
 		}
 		out = append(out, sn)
 	}
