@@ -13,7 +13,8 @@ import {
     RingProgress,
     SimpleGrid,
     Stack,
-    Text
+    Text,
+    useMatches
 } from '@mantine/core'
 import dayjs from 'dayjs'
 import { motion } from 'motion/react'
@@ -85,6 +86,9 @@ const fadeIn = (index: number) => ({
 
 export function DashboardPage() {
     const { data, isPending, error } = useDashboard()
+    // the table takes two of three columns only where there are three; a
+    // span on the one-column phone grid adds an implicit column and skews it
+    const tableSpan = useMatches({ base: undefined, lg: 'span 2' })
     if (isPending) return <LoadingScreen height="60vh" />
     if (error || !data) return <Alert color="red">{error?.message}</Alert>
 
@@ -128,7 +132,7 @@ export function DashboardPage() {
             </SimpleGrid>
 
             <SimpleGrid cols={{ base: 1, lg: 3 }} mb="md" spacing="md">
-                <ExpiringTable data={data.expiring} style={{ gridColumn: 'span 2' }} />
+                <ExpiringTable data={data.expiring} style={{ gridColumn: tableSpan }} />
                 <Stack>
                     <Block icon={<PiTreeStructureDuotone size={24} />} title="Рефералка" description="Только учёт, без списаний">
                         <Group justify="space-between">
@@ -365,11 +369,6 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                 <Group component="span" gap="xs" mt={2}>
                     <NodeLabel fallback={m.node_name} size="xs" uuid={m.node_uuid} />
                     {m.squad_uuid && <SquadBadge size="sm" uuid={m.squad_uuid} />}
-                    {m.inbound_tag && (
-                        <Badge color="violet" size="sm" variant="soft">
-                            {m.inbound_tag}
-                        </Badge>
-                    )}
                 </Group>
             }
             icon={<PiCloudDuotone size={24} />}
@@ -456,9 +455,7 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                             subtitle={
                                 m.squad_uuid
                                     ? `участники сквада — ${fmtNum(m.squad_share_percent, 1)}% трафика ноды`
-                                    : m.inbound_tag
-                                      ? 'все пользователи ноды, не только этого inbound'
-                                      : 'все пользователи ноды'
+                                    : 'все пользователи ноды'
                             }
                             title="Кто нагружает"
                             titleOrder={6}

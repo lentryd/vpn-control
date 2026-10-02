@@ -10,7 +10,6 @@ import (
 	"vpn-control/ent/expense"
 	"vpn-control/ent/expenseitem"
 	"vpn-control/ent/extension"
-	"vpn-control/ent/inboundtraffic"
 	"vpn-control/ent/ledgerentry"
 	"vpn-control/ent/payment"
 	"vpn-control/ent/referralaccrual"
@@ -158,7 +157,7 @@ func init() {
 	// expenseitem.DefaultMinCharge holds the default value on creation for the min_charge field.
 	expenseitem.DefaultMinCharge = expenseitemDescMinCharge.Default.(int64)
 	// expenseitemDescActive is the schema descriptor for active field.
-	expenseitemDescActive := expenseitemFields[15].Descriptor()
+	expenseitemDescActive := expenseitemFields[14].Descriptor()
 	// expenseitem.DefaultActive holds the default value on creation for the active field.
 	expenseitem.DefaultActive = expenseitemDescActive.Default.(bool)
 	extensionMixin := schema.Extension{}.Mixin()
@@ -188,16 +187,6 @@ func init() {
 	extensionDescAmount := extensionFields[7].Descriptor()
 	// extension.DefaultAmount holds the default value on creation for the amount field.
 	extension.DefaultAmount = extensionDescAmount.Default.(int64)
-	inboundtrafficFields := schema.InboundTraffic{}.Fields()
-	_ = inboundtrafficFields
-	// inboundtrafficDescBytes is the schema descriptor for bytes field.
-	inboundtrafficDescBytes := inboundtrafficFields[3].Descriptor()
-	// inboundtraffic.DefaultBytes holds the default value on creation for the bytes field.
-	inboundtraffic.DefaultBytes = inboundtrafficDescBytes.Default.(int64)
-	// inboundtrafficDescUpdatedAt is the schema descriptor for updated_at field.
-	inboundtrafficDescUpdatedAt := inboundtrafficFields[4].Descriptor()
-	// inboundtraffic.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	inboundtraffic.DefaultUpdatedAt = inboundtrafficDescUpdatedAt.Default.(func() time.Time)
 	ledgerentryMixin := schema.LedgerEntry{}.Mixin()
 	ledgerentryMixinFields0 := ledgerentryMixin[0].Fields()
 	_ = ledgerentryMixinFields0

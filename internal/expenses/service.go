@@ -29,7 +29,6 @@ type Service struct {
 
 	mu       sync.Mutex
 	topCache map[string]topCacheEntry
-	inbound  *inboundCollector
 }
 
 type topCacheEntry struct {
@@ -339,7 +338,6 @@ type MeteredSummary struct {
 	Name          string       `json:"name"`
 	NodeUUID      string       `json:"node_uuid"`
 	NodeName      string       `json:"node_name"`
-	InboundTag    string       `json:"inbound_tag"`
 	SquadUUID     string       `json:"squad_uuid"`
 	SquadSharePct float64      `json:"squad_share_percent"`
 	Period        string       `json:"period"`
@@ -386,15 +384,9 @@ func (s *Service) MeteredSummary(ctx context.Context, it *ent.ExpenseItem, t tim
 		byDay[sn.Date] = sn.Bytes
 		nodeName = sn.NodeName
 	}
-	if it.RwInboundTag != "" {
-		byDay, err = s.inboundDaily(ctx, it.RwNodeUUID, it.RwInboundTag, start.Format("2006-01-02"), last.Format("2006-01-02"))
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	sum := &MeteredSummary{
-		ItemID: it.ID, Name: it.Name, NodeUUID: it.RwNodeUUID, NodeName: nodeName, InboundTag: it.RwInboundTag,
+		ItemID: it.ID, Name: it.Name, NodeUUID: it.RwNodeUUID, NodeName: nodeName,
 		SquadUUID: it.RwSquadUUID,
 		Period:    start.Format("2006-01"), Currency: it.Currency,
 		PricePerGB: it.PricePerGB, MinCharge: it.MinCharge,
@@ -403,7 +395,7 @@ func (s *Service) MeteredSummary(ctx context.Context, it *ent.ExpenseItem, t tim
 	// With a squad, the node's daily traffic is scaled by the squad's share
 	// of it over the month: the panel gives per-user totals, not per-day.
 	ratio := 1.0
-	if it.RwSquadUUID != "" && it.RwInboundTag == "" {
+	if it.RwSquadUUID != "" {
 		users, err := s.nodeUsers(ctx, it.RwNodeUUID, start, end)
 		if err != nil {
 			return nil, fmt.Errorf("трафик пользователей ноды: %w", err)

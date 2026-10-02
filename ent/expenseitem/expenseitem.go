@@ -42,8 +42,6 @@ const (
 	FieldMinCharge = "min_charge"
 	// FieldRwNodeUUID holds the string denoting the rw_node_uuid field in the database.
 	FieldRwNodeUUID = "rw_node_uuid"
-	// FieldRwInboundTag holds the string denoting the rw_inbound_tag field in the database.
-	FieldRwInboundTag = "rw_inbound_tag"
 	// FieldRwSquadUUID holds the string denoting the rw_squad_uuid field in the database.
 	FieldRwSquadUUID = "rw_squad_uuid"
 	// FieldNextDueDate holds the string denoting the next_due_date field in the database.
@@ -73,7 +71,6 @@ var Columns = []string{
 	FieldPricePerGB,
 	FieldMinCharge,
 	FieldRwNodeUUID,
-	FieldRwInboundTag,
 	FieldRwSquadUUID,
 	FieldNextDueDate,
 	FieldActive,
@@ -243,11 +240,6 @@ func ByMinCharge(opts ...sql.OrderTermOption) OrderOption {
 // ByRwNodeUUID orders the results by the rw_node_uuid field.
 func ByRwNodeUUID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRwNodeUUID, opts...).ToFunc()
-}
-
-// ByRwInboundTag orders the results by the rw_inbound_tag field.
-func ByRwInboundTag(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRwInboundTag, opts...).ToFunc()
 }
 
 // ByRwSquadUUID orders the results by the rw_squad_uuid field.

@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -175,7 +173,6 @@ type ExpenseItemView struct {
 	PricePerGB   float64    `json:"price_per_gb"`
 	MinCharge    float64    `json:"min_charge"`
 	RwNodeUUID   string     `json:"rw_node_uuid"`
-	RwInboundTag string     `json:"rw_inbound_tag"`
 	RwSquadUUID  string     `json:"rw_squad_uuid"`
 	NextDueDate  *time.Time `json:"next_due_date"`
 	Active       bool       `json:"active"`
@@ -190,7 +187,7 @@ func expenseItemView(it *ent.ExpenseItem) ExpenseItemView {
 		ID: it.ID, Name: it.Name, Provider: it.Provider, ProviderUUID: it.RwProviderUUID, Currency: it.Currency, Pricing: it.Pricing.String(),
 		Amount: money.ToMajor(it.Amount), Period: it.Period.String(), FeePercent: it.FeePercent,
 		SharePercent: it.SharePercent, PricePerGB: money.ToMajor(it.PricePerGB), MinCharge: money.ToMajor(it.MinCharge),
-		RwNodeUUID: it.RwNodeUUID, RwInboundTag: it.RwInboundTag, RwSquadUUID: it.RwSquadUUID, NextDueDate: it.NextDueDate, Active: it.Active, Notes: it.Notes,
+		RwNodeUUID: it.RwNodeUUID, RwSquadUUID: it.RwSquadUUID, NextDueDate: it.NextDueDate, Active: it.Active, Notes: it.Notes,
 	}
 }
 
@@ -236,7 +233,6 @@ type expenseItemRequest struct {
 	PricePerGB   float64 `json:"price_per_gb"`
 	MinCharge    float64 `json:"min_charge"`
 	RwNodeUUID   string  `json:"rw_node_uuid"`
-	RwInboundTag string  `json:"rw_inbound_tag"`
 	RwSquadUUID  string  `json:"rw_squad_uuid"`
 	NextDueDate  Date    `json:"next_due_date"`
 	Active       bool    `json:"active"`
@@ -258,24 +254,8 @@ func (r *expenseItemRequest) normalize() {
 		r.SharePercent = 100
 	}
 	if r.Pricing != "metered" {
-		r.RwInboundTag, r.RwSquadUUID = "", ""
+		r.RwSquadUUID = ""
 	}
-}
-
-// checkInbound allows one inbound only when its counters are collected:
-// it needs the node and replaces the squad split.
-func (h *Handlers) checkInbound(r *expenseItemRequest) error {
-	switch {
-	case r.RwInboundTag == "":
-		return nil
-	case !h.Expenses.InboundsEnabled():
-		return badRequest(errors.New("учёт по inbound недоступен: не задан REMNAWAVE_METRICS_URL"))
-	case r.RwNodeUUID == "":
-		return badRequest(errors.New("для inbound нужно выбрать ноду"))
-	case r.RwSquadUUID != "":
-		return badRequest(errors.New("выберите либо inbound, либо сквад"))
-	}
-	return nil
 }
 
 func (h *Handlers) CreateExpenseItem(c *fiber.Ctx) error {
@@ -284,15 +264,12 @@ func (h *Handlers) CreateExpenseItem(c *fiber.Ctx) error {
 		return err
 	}
 	r.normalize()
-	if err := h.checkInbound(&r); err != nil {
-		return err
-	}
 	it, err := h.DB.ExpenseItem.Create().
 		SetName(r.Name).SetProvider(r.Provider).SetRwProviderUUID(r.ProviderUUID).SetCurrency(r.Currency).
 		SetPricing(expenseitem.Pricing(r.Pricing)).SetAmount(money.FromMajor(r.Amount)).
 		SetPeriod(expenseitem.Period(r.Period)).SetFeePercent(r.FeePercent).SetSharePercent(r.SharePercent).
 		SetPricePerGB(money.FromMajor(r.PricePerGB)).SetMinCharge(money.FromMajor(r.MinCharge)).
-		SetRwNodeUUID(r.RwNodeUUID).SetRwInboundTag(r.RwInboundTag).SetRwSquadUUID(r.RwSquadUUID).SetNillableNextDueDate(r.NextDueDate.Ptr()).
+		SetRwNodeUUID(r.RwNodeUUID).SetRwSquadUUID(r.RwSquadUUID).SetNillableNextDueDate(r.NextDueDate.Ptr()).
 		SetActive(r.Active).SetNotes(r.Notes).
 		Save(c.UserContext())
 	if err != nil {
@@ -312,15 +289,12 @@ func (h *Handlers) UpdateExpenseItem(c *fiber.Ctx) error {
 		return err
 	}
 	r.normalize()
-	if err := h.checkInbound(&r); err != nil {
-		return err
-	}
 	q := h.DB.ExpenseItem.UpdateOneID(id).
 		SetName(r.Name).SetProvider(r.Provider).SetRwProviderUUID(r.ProviderUUID).SetCurrency(r.Currency).
 		SetPricing(expenseitem.Pricing(r.Pricing)).SetAmount(money.FromMajor(r.Amount)).
 		SetPeriod(expenseitem.Period(r.Period)).SetFeePercent(r.FeePercent).SetSharePercent(r.SharePercent).
 		SetPricePerGB(money.FromMajor(r.PricePerGB)).SetMinCharge(money.FromMajor(r.MinCharge)).
-		SetRwNodeUUID(r.RwNodeUUID).SetRwInboundTag(r.RwInboundTag).SetRwSquadUUID(r.RwSquadUUID).SetActive(r.Active).SetNotes(r.Notes)
+		SetRwNodeUUID(r.RwNodeUUID).SetRwSquadUUID(r.RwSquadUUID).SetActive(r.Active).SetNotes(r.Notes)
 	if d := r.NextDueDate.Ptr(); d != nil {
 		q.SetNextDueDate(*d)
 	} else {
@@ -387,7 +361,7 @@ func meteredView(s *expenses.MeteredSummary) fiber.Map {
 		})
 	}
 	return fiber.Map{
-		"item_id": s.ItemID, "name": s.Name, "node_uuid": s.NodeUUID, "node_name": s.NodeName, "inbound_tag": s.InboundTag,
+		"item_id": s.ItemID, "name": s.Name, "node_uuid": s.NodeUUID, "node_name": s.NodeName,
 		"squad_uuid": s.SquadUUID, "squad_share_percent": s.SquadSharePct,
 		"period": s.Period, "currency": s.Currency,
 		"price_per_gb": money.ToMajor(s.PricePerGB), "min_charge": money.ToMajor(s.MinCharge),
@@ -425,16 +399,7 @@ func (h *Handlers) SyncTraffic(c *fiber.Ctx) error {
 	if err := h.Expenses.SyncTraffic(c.UserContext(), start, now); err != nil {
 		return badRequest(err)
 	}
-	if err := h.Expenses.PollInboundsIfUsed(c.UserContext()); err != nil {
-		return badRequest(fmt.Errorf("счётчики inbound: %w", err))
-	}
 	return c.SendStatus(fiber.StatusNoContent)
-}
-
-// InboundStatus tells the UI where inbound counters come from and since
-// when per-inbound history exists.
-func (h *Handlers) InboundStatus(c *fiber.Ctx) error {
-	return c.JSON(h.Expenses.InboundStatus(c.UserContext()))
 }
 
 // FxRate: GET /fx/rate?currency=EUR&date=2026-10-01.

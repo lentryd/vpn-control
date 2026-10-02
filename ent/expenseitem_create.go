@@ -210,20 +210,6 @@ func (_c *ExpenseItemCreate) SetNillableRwNodeUUID(v *string) *ExpenseItemCreate
 	return _c
 }
 
-// SetRwInboundTag sets the "rw_inbound_tag" field.
-func (_c *ExpenseItemCreate) SetRwInboundTag(v string) *ExpenseItemCreate {
-	_c.mutation.SetRwInboundTag(v)
-	return _c
-}
-
-// SetNillableRwInboundTag sets the "rw_inbound_tag" field if the given value is not nil.
-func (_c *ExpenseItemCreate) SetNillableRwInboundTag(v *string) *ExpenseItemCreate {
-	if v != nil {
-		_c.SetRwInboundTag(*v)
-	}
-	return _c
-}
-
 // SetRwSquadUUID sets the "rw_squad_uuid" field.
 func (_c *ExpenseItemCreate) SetRwSquadUUID(v string) *ExpenseItemCreate {
 	_c.mutation.SetRwSquadUUID(v)
@@ -497,10 +483,6 @@ func (_c *ExpenseItemCreate) createSpec() (*ExpenseItem, *sqlgraph.CreateSpec) {
 		_spec.SetField(expenseitem.FieldRwNodeUUID, field.TypeString, value)
 		_node.RwNodeUUID = value
 	}
-	if value, ok := _c.mutation.RwInboundTag(); ok {
-		_spec.SetField(expenseitem.FieldRwInboundTag, field.TypeString, value)
-		_node.RwInboundTag = value
-	}
 	if value, ok := _c.mutation.RwSquadUUID(); ok {
 		_spec.SetField(expenseitem.FieldRwSquadUUID, field.TypeString, value)
 		_node.RwSquadUUID = value
@@ -770,24 +752,6 @@ func (u *ExpenseItemUpsert) UpdateRwNodeUUID() *ExpenseItemUpsert {
 // ClearRwNodeUUID clears the value of the "rw_node_uuid" field.
 func (u *ExpenseItemUpsert) ClearRwNodeUUID() *ExpenseItemUpsert {
 	u.SetNull(expenseitem.FieldRwNodeUUID)
-	return u
-}
-
-// SetRwInboundTag sets the "rw_inbound_tag" field.
-func (u *ExpenseItemUpsert) SetRwInboundTag(v string) *ExpenseItemUpsert {
-	u.Set(expenseitem.FieldRwInboundTag, v)
-	return u
-}
-
-// UpdateRwInboundTag sets the "rw_inbound_tag" field to the value that was provided on create.
-func (u *ExpenseItemUpsert) UpdateRwInboundTag() *ExpenseItemUpsert {
-	u.SetExcluded(expenseitem.FieldRwInboundTag)
-	return u
-}
-
-// ClearRwInboundTag clears the value of the "rw_inbound_tag" field.
-func (u *ExpenseItemUpsert) ClearRwInboundTag() *ExpenseItemUpsert {
-	u.SetNull(expenseitem.FieldRwInboundTag)
 	return u
 }
 
@@ -1137,27 +1101,6 @@ func (u *ExpenseItemUpsertOne) UpdateRwNodeUUID() *ExpenseItemUpsertOne {
 func (u *ExpenseItemUpsertOne) ClearRwNodeUUID() *ExpenseItemUpsertOne {
 	return u.Update(func(s *ExpenseItemUpsert) {
 		s.ClearRwNodeUUID()
-	})
-}
-
-// SetRwInboundTag sets the "rw_inbound_tag" field.
-func (u *ExpenseItemUpsertOne) SetRwInboundTag(v string) *ExpenseItemUpsertOne {
-	return u.Update(func(s *ExpenseItemUpsert) {
-		s.SetRwInboundTag(v)
-	})
-}
-
-// UpdateRwInboundTag sets the "rw_inbound_tag" field to the value that was provided on create.
-func (u *ExpenseItemUpsertOne) UpdateRwInboundTag() *ExpenseItemUpsertOne {
-	return u.Update(func(s *ExpenseItemUpsert) {
-		s.UpdateRwInboundTag()
-	})
-}
-
-// ClearRwInboundTag clears the value of the "rw_inbound_tag" field.
-func (u *ExpenseItemUpsertOne) ClearRwInboundTag() *ExpenseItemUpsertOne {
-	return u.Update(func(s *ExpenseItemUpsert) {
-		s.ClearRwInboundTag()
 	})
 }
 
@@ -1684,27 +1627,6 @@ func (u *ExpenseItemUpsertBulk) UpdateRwNodeUUID() *ExpenseItemUpsertBulk {
 func (u *ExpenseItemUpsertBulk) ClearRwNodeUUID() *ExpenseItemUpsertBulk {
 	return u.Update(func(s *ExpenseItemUpsert) {
 		s.ClearRwNodeUUID()
-	})
-}
-
-// SetRwInboundTag sets the "rw_inbound_tag" field.
-func (u *ExpenseItemUpsertBulk) SetRwInboundTag(v string) *ExpenseItemUpsertBulk {
-	return u.Update(func(s *ExpenseItemUpsert) {
-		s.SetRwInboundTag(v)
-	})
-}
-
-// UpdateRwInboundTag sets the "rw_inbound_tag" field to the value that was provided on create.
-func (u *ExpenseItemUpsertBulk) UpdateRwInboundTag() *ExpenseItemUpsertBulk {
-	return u.Update(func(s *ExpenseItemUpsert) {
-		s.UpdateRwInboundTag()
-	})
-}
-
-// ClearRwInboundTag clears the value of the "rw_inbound_tag" field.
-func (u *ExpenseItemUpsertBulk) ClearRwInboundTag() *ExpenseItemUpsertBulk {
-	return u.Update(func(s *ExpenseItemUpsert) {
-		s.ClearRwInboundTag()
 	})
 }
 

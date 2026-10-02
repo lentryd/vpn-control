@@ -26,10 +26,6 @@ type Tx struct {
 	Extension *ExtensionClient
 	// FxRate is the client for interacting with the FxRate builders.
 	FxRate *FxRateClient
-	// InboundCounter is the client for interacting with the InboundCounter builders.
-	InboundCounter *InboundCounterClient
-	// InboundTraffic is the client for interacting with the InboundTraffic builders.
-	InboundTraffic *InboundTrafficClient
 	// LedgerEntry is the client for interacting with the LedgerEntry builders.
 	LedgerEntry *LedgerEntryClient
 	// Payment is the client for interacting with the Payment builders.
@@ -188,8 +184,6 @@ func (tx *Tx) init() {
 	tx.ExpenseItem = NewExpenseItemClient(tx.config)
 	tx.Extension = NewExtensionClient(tx.config)
 	tx.FxRate = NewFxRateClient(tx.config)
-	tx.InboundCounter = NewInboundCounterClient(tx.config)
-	tx.InboundTraffic = NewInboundTrafficClient(tx.config)
 	tx.LedgerEntry = NewLedgerEntryClient(tx.config)
 	tx.Payment = NewPaymentClient(tx.config)
 	tx.ReferralAccrual = NewReferralAccrualClient(tx.config)

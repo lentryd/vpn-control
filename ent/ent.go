@@ -15,8 +15,6 @@ import (
 	"vpn-control/ent/expenseitem"
 	"vpn-control/ent/extension"
 	"vpn-control/ent/fxrate"
-	"vpn-control/ent/inboundcounter"
-	"vpn-control/ent/inboundtraffic"
 	"vpn-control/ent/ledgerentry"
 	"vpn-control/ent/payment"
 	"vpn-control/ent/referralaccrual"
@@ -98,8 +96,6 @@ func checkColumn(t, c string) error {
 			expenseitem.Table:       expenseitem.ValidColumn,
 			extension.Table:         extension.ValidColumn,
 			fxrate.Table:            fxrate.ValidColumn,
-			inboundcounter.Table:    inboundcounter.ValidColumn,
-			inboundtraffic.Table:    inboundtraffic.ValidColumn,
 			ledgerentry.Table:       ledgerentry.ValidColumn,
 			payment.Table:           payment.ValidColumn,
 			referralaccrual.Table:   referralaccrual.ValidColumn,

@@ -65,17 +65,6 @@ type Node struct {
 	IsDisabled       bool   `json:"isDisabled"`
 	TrafficUsedBytes *int64 `json:"trafficUsedBytes"`
 	UsersOnline      int    `json:"usersOnline"`
-	ConfigProfile    struct {
-		ActiveInbounds []NodeInbound `json:"activeInbounds"`
-	} `json:"configProfile"`
-}
-
-// NodeInbound is an inbound of the node's active config profile.
-type NodeInbound struct {
-	UUID string `json:"uuid"`
-	Tag  string `json:"tag"`
-	Type string `json:"type"`
-	Port *int   `json:"port"`
 }
 
 func (c *Client) Nodes(ctx context.Context) ([]Node, error) {

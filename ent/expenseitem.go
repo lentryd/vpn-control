@@ -45,8 +45,6 @@ type ExpenseItem struct {
 	MinCharge int64 `json:"min_charge,omitempty"`
 	// RwNodeUUID holds the value of the "rw_node_uuid" field.
 	RwNodeUUID string `json:"rw_node_uuid,omitempty"`
-	// RwInboundTag holds the value of the "rw_inbound_tag" field.
-	RwInboundTag string `json:"rw_inbound_tag,omitempty"`
 	// RwSquadUUID holds the value of the "rw_squad_uuid" field.
 	RwSquadUUID string `json:"rw_squad_uuid,omitempty"`
 	// NextDueDate holds the value of the "next_due_date" field.
@@ -69,7 +67,7 @@ func (*ExpenseItem) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case expenseitem.FieldID, expenseitem.FieldAmount, expenseitem.FieldPricePerGB, expenseitem.FieldMinCharge:
 			values[i] = new(sql.NullInt64)
-		case expenseitem.FieldName, expenseitem.FieldProvider, expenseitem.FieldRwProviderUUID, expenseitem.FieldCurrency, expenseitem.FieldPricing, expenseitem.FieldPeriod, expenseitem.FieldRwNodeUUID, expenseitem.FieldRwInboundTag, expenseitem.FieldRwSquadUUID, expenseitem.FieldNotes:
+		case expenseitem.FieldName, expenseitem.FieldProvider, expenseitem.FieldRwProviderUUID, expenseitem.FieldCurrency, expenseitem.FieldPricing, expenseitem.FieldPeriod, expenseitem.FieldRwNodeUUID, expenseitem.FieldRwSquadUUID, expenseitem.FieldNotes:
 			values[i] = new(sql.NullString)
 		case expenseitem.FieldCreatedAt, expenseitem.FieldUpdatedAt, expenseitem.FieldNextDueDate:
 			values[i] = new(sql.NullTime)
@@ -178,12 +176,6 @@ func (_m *ExpenseItem) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.RwNodeUUID = value.String
 			}
-		case expenseitem.FieldRwInboundTag:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field rw_inbound_tag", values[i])
-			} else if value.Valid {
-				_m.RwInboundTag = value.String
-			}
 		case expenseitem.FieldRwSquadUUID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field rw_squad_uuid", values[i])
@@ -286,9 +278,6 @@ func (_m *ExpenseItem) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("rw_node_uuid=")
 	builder.WriteString(_m.RwNodeUUID)
-	builder.WriteString(", ")
-	builder.WriteString("rw_inbound_tag=")
-	builder.WriteString(_m.RwInboundTag)
 	builder.WriteString(", ")
 	builder.WriteString("rw_squad_uuid=")
 	builder.WriteString(_m.RwSquadUUID)

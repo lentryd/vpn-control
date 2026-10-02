@@ -114,11 +114,6 @@ func RwNodeUUID(v string) predicate.ExpenseItem {
 	return predicate.ExpenseItem(sql.FieldEQ(FieldRwNodeUUID, v))
 }
 
-// RwInboundTag applies equality check predicate on the "rw_inbound_tag" field. It's identical to RwInboundTagEQ.
-func RwInboundTag(v string) predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldEQ(FieldRwInboundTag, v))
-}
-
 // RwSquadUUID applies equality check predicate on the "rw_squad_uuid" field. It's identical to RwSquadUUIDEQ.
 func RwSquadUUID(v string) predicate.ExpenseItem {
 	return predicate.ExpenseItem(sql.FieldEQ(FieldRwSquadUUID, v))
@@ -812,81 +807,6 @@ func RwNodeUUIDEqualFold(v string) predicate.ExpenseItem {
 // RwNodeUUIDContainsFold applies the ContainsFold predicate on the "rw_node_uuid" field.
 func RwNodeUUIDContainsFold(v string) predicate.ExpenseItem {
 	return predicate.ExpenseItem(sql.FieldContainsFold(FieldRwNodeUUID, v))
-}
-
-// RwInboundTagEQ applies the EQ predicate on the "rw_inbound_tag" field.
-func RwInboundTagEQ(v string) predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldEQ(FieldRwInboundTag, v))
-}
-
-// RwInboundTagNEQ applies the NEQ predicate on the "rw_inbound_tag" field.
-func RwInboundTagNEQ(v string) predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldNEQ(FieldRwInboundTag, v))
-}
-
-// RwInboundTagIn applies the In predicate on the "rw_inbound_tag" field.
-func RwInboundTagIn(vs ...string) predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldIn(FieldRwInboundTag, vs...))
-}
-
-// RwInboundTagNotIn applies the NotIn predicate on the "rw_inbound_tag" field.
-func RwInboundTagNotIn(vs ...string) predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldNotIn(FieldRwInboundTag, vs...))
-}
-
-// RwInboundTagGT applies the GT predicate on the "rw_inbound_tag" field.
-func RwInboundTagGT(v string) predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldGT(FieldRwInboundTag, v))
-}
-
-// RwInboundTagGTE applies the GTE predicate on the "rw_inbound_tag" field.
-func RwInboundTagGTE(v string) predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldGTE(FieldRwInboundTag, v))
-}
-
-// RwInboundTagLT applies the LT predicate on the "rw_inbound_tag" field.
-func RwInboundTagLT(v string) predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldLT(FieldRwInboundTag, v))
-}
-
-// RwInboundTagLTE applies the LTE predicate on the "rw_inbound_tag" field.
-func RwInboundTagLTE(v string) predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldLTE(FieldRwInboundTag, v))
-}
-
-// RwInboundTagContains applies the Contains predicate on the "rw_inbound_tag" field.
-func RwInboundTagContains(v string) predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldContains(FieldRwInboundTag, v))
-}
-
-// RwInboundTagHasPrefix applies the HasPrefix predicate on the "rw_inbound_tag" field.
-func RwInboundTagHasPrefix(v string) predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldHasPrefix(FieldRwInboundTag, v))
-}
-
-// RwInboundTagHasSuffix applies the HasSuffix predicate on the "rw_inbound_tag" field.
-func RwInboundTagHasSuffix(v string) predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldHasSuffix(FieldRwInboundTag, v))
-}
-
-// RwInboundTagIsNil applies the IsNil predicate on the "rw_inbound_tag" field.
-func RwInboundTagIsNil() predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldIsNull(FieldRwInboundTag))
-}
-
-// RwInboundTagNotNil applies the NotNil predicate on the "rw_inbound_tag" field.
-func RwInboundTagNotNil() predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldNotNull(FieldRwInboundTag))
-}
-
-// RwInboundTagEqualFold applies the EqualFold predicate on the "rw_inbound_tag" field.
-func RwInboundTagEqualFold(v string) predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldEqualFold(FieldRwInboundTag, v))
-}
-
-// RwInboundTagContainsFold applies the ContainsFold predicate on the "rw_inbound_tag" field.
-func RwInboundTagContainsFold(v string) predicate.ExpenseItem {
-	return predicate.ExpenseItem(sql.FieldContainsFold(FieldRwInboundTag, v))
 }
 
 // RwSquadUUIDEQ applies the EQ predicate on the "rw_squad_uuid" field.

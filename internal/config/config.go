@@ -30,13 +30,6 @@ type Config struct {
 	// caddy-with-auth.
 	RemnawaveAPIKey string
 
-	// RemnawaveMetricsURL is the panel's Prometheus endpoint
-	// (http://remnawave:3001/metrics) with METRICS_USER/METRICS_PASS. It
-	// enables per-inbound metering; without it items can't pick an inbound.
-	RemnawaveMetricsURL  string
-	RemnawaveMetricsUser string
-	RemnawaveMetricsPass string
-
 	// AddonsConfig is subpage's addons.yml, shared read-only.
 	AddonsConfig string
 
@@ -78,10 +71,6 @@ func Load() (*Config, error) {
 		RemnawaveURL:    strings.TrimSuffix(getenv("REMNAWAVE_URL"), "/"),
 		RemnawaveToken:  getenv("REMNAWAVE_TOKEN"),
 		RemnawaveAPIKey: getenv("REMNAWAVE_API_KEY"),
-
-		RemnawaveMetricsURL:  getenv("REMNAWAVE_METRICS_URL"),
-		RemnawaveMetricsUser: getenv("REMNAWAVE_METRICS_USER"),
-		RemnawaveMetricsPass: getenv("REMNAWAVE_METRICS_PASS"),
 
 		AddonsConfig: envOrDefault("ADDONS_CONFIG", "./addons.yml"),
 

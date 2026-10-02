@@ -18,8 +18,6 @@ import (
 	"vpn-control/ent/expenseitem"
 	"vpn-control/ent/extension"
 	"vpn-control/ent/fxrate"
-	"vpn-control/ent/inboundcounter"
-	"vpn-control/ent/inboundtraffic"
 	"vpn-control/ent/ledgerentry"
 	"vpn-control/ent/payment"
 	"vpn-control/ent/referralaccrual"
@@ -56,10 +54,6 @@ type Client struct {
 	Extension *ExtensionClient
 	// FxRate is the client for interacting with the FxRate builders.
 	FxRate *FxRateClient
-	// InboundCounter is the client for interacting with the InboundCounter builders.
-	InboundCounter *InboundCounterClient
-	// InboundTraffic is the client for interacting with the InboundTraffic builders.
-	InboundTraffic *InboundTrafficClient
 	// LedgerEntry is the client for interacting with the LedgerEntry builders.
 	LedgerEntry *LedgerEntryClient
 	// Payment is the client for interacting with the Payment builders.
@@ -98,8 +92,6 @@ func (c *Client) init() {
 	c.ExpenseItem = NewExpenseItemClient(c.config)
 	c.Extension = NewExtensionClient(c.config)
 	c.FxRate = NewFxRateClient(c.config)
-	c.InboundCounter = NewInboundCounterClient(c.config)
-	c.InboundTraffic = NewInboundTrafficClient(c.config)
 	c.LedgerEntry = NewLedgerEntryClient(c.config)
 	c.Payment = NewPaymentClient(c.config)
 	c.ReferralAccrual = NewReferralAccrualClient(c.config)
@@ -209,8 +201,6 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ExpenseItem:       NewExpenseItemClient(cfg),
 		Extension:         NewExtensionClient(cfg),
 		FxRate:            NewFxRateClient(cfg),
-		InboundCounter:    NewInboundCounterClient(cfg),
-		InboundTraffic:    NewInboundTrafficClient(cfg),
 		LedgerEntry:       NewLedgerEntryClient(cfg),
 		Payment:           NewPaymentClient(cfg),
 		ReferralAccrual:   NewReferralAccrualClient(cfg),
@@ -247,8 +237,6 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ExpenseItem:       NewExpenseItemClient(cfg),
 		Extension:         NewExtensionClient(cfg),
 		FxRate:            NewFxRateClient(cfg),
-		InboundCounter:    NewInboundCounterClient(cfg),
-		InboundTraffic:    NewInboundTrafficClient(cfg),
 		LedgerEntry:       NewLedgerEntryClient(cfg),
 		Payment:           NewPaymentClient(cfg),
 		ReferralAccrual:   NewReferralAccrualClient(cfg),
@@ -289,9 +277,9 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.Addon, c.AuditLog, c.Customer, c.Expense, c.ExpenseItem, c.Extension,
-		c.FxRate, c.InboundCounter, c.InboundTraffic, c.LedgerEntry, c.Payment,
-		c.ReferralAccrual, c.RwUser, c.Setting, c.Subscription, c.SubscriptionAddon,
-		c.Tariff, c.TariffPeriod, c.TrafficSnapshot,
+		c.FxRate, c.LedgerEntry, c.Payment, c.ReferralAccrual, c.RwUser, c.Setting,
+		c.Subscription, c.SubscriptionAddon, c.Tariff, c.TariffPeriod,
+		c.TrafficSnapshot,
 	} {
 		n.Use(hooks...)
 	}
@@ -302,9 +290,9 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.Addon, c.AuditLog, c.Customer, c.Expense, c.ExpenseItem, c.Extension,
-		c.FxRate, c.InboundCounter, c.InboundTraffic, c.LedgerEntry, c.Payment,
-		c.ReferralAccrual, c.RwUser, c.Setting, c.Subscription, c.SubscriptionAddon,
-		c.Tariff, c.TariffPeriod, c.TrafficSnapshot,
+		c.FxRate, c.LedgerEntry, c.Payment, c.ReferralAccrual, c.RwUser, c.Setting,
+		c.Subscription, c.SubscriptionAddon, c.Tariff, c.TariffPeriod,
+		c.TrafficSnapshot,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -327,10 +315,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Extension.mutate(ctx, m)
 	case *FxRateMutation:
 		return c.FxRate.mutate(ctx, m)
-	case *InboundCounterMutation:
-		return c.InboundCounter.mutate(ctx, m)
-	case *InboundTrafficMutation:
-		return c.InboundTraffic.mutate(ctx, m)
 	case *LedgerEntryMutation:
 		return c.LedgerEntry.mutate(ctx, m)
 	case *PaymentMutation:
@@ -1396,272 +1380,6 @@ func (c *FxRateClient) mutate(ctx context.Context, m *FxRateMutation) (Value, er
 		return (&FxRateDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown FxRate mutation op: %q", m.Op())
-	}
-}
-
-// InboundCounterClient is a client for the InboundCounter schema.
-type InboundCounterClient struct {
-	config
-}
-
-// NewInboundCounterClient returns a client for the InboundCounter from the given config.
-func NewInboundCounterClient(c config) *InboundCounterClient {
-	return &InboundCounterClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `inboundcounter.Hooks(f(g(h())))`.
-func (c *InboundCounterClient) Use(hooks ...Hook) {
-	c.hooks.InboundCounter = append(c.hooks.InboundCounter, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `inboundcounter.Intercept(f(g(h())))`.
-func (c *InboundCounterClient) Intercept(interceptors ...Interceptor) {
-	c.inters.InboundCounter = append(c.inters.InboundCounter, interceptors...)
-}
-
-// Create returns a builder for creating a InboundCounter entity.
-func (c *InboundCounterClient) Create() *InboundCounterCreate {
-	mutation := newInboundCounterMutation(c.config, OpCreate)
-	return &InboundCounterCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of InboundCounter entities.
-func (c *InboundCounterClient) CreateBulk(builders ...*InboundCounterCreate) *InboundCounterCreateBulk {
-	return &InboundCounterCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *InboundCounterClient) MapCreateBulk(slice any, setFunc func(*InboundCounterCreate, int)) *InboundCounterCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &InboundCounterCreateBulk{err: fmt.Errorf("calling to InboundCounterClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*InboundCounterCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &InboundCounterCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for InboundCounter.
-func (c *InboundCounterClient) Update() *InboundCounterUpdate {
-	mutation := newInboundCounterMutation(c.config, OpUpdate)
-	return &InboundCounterUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *InboundCounterClient) UpdateOne(_m *InboundCounter) *InboundCounterUpdateOne {
-	mutation := newInboundCounterMutation(c.config, OpUpdateOne, withInboundCounter(_m))
-	return &InboundCounterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *InboundCounterClient) UpdateOneID(id int) *InboundCounterUpdateOne {
-	mutation := newInboundCounterMutation(c.config, OpUpdateOne, withInboundCounterID(id))
-	return &InboundCounterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for InboundCounter.
-func (c *InboundCounterClient) Delete() *InboundCounterDelete {
-	mutation := newInboundCounterMutation(c.config, OpDelete)
-	return &InboundCounterDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *InboundCounterClient) DeleteOne(_m *InboundCounter) *InboundCounterDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *InboundCounterClient) DeleteOneID(id int) *InboundCounterDeleteOne {
-	builder := c.Delete().Where(inboundcounter.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &InboundCounterDeleteOne{builder}
-}
-
-// Query returns a query builder for InboundCounter.
-func (c *InboundCounterClient) Query() *InboundCounterQuery {
-	return &InboundCounterQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeInboundCounter},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a InboundCounter entity by its id.
-func (c *InboundCounterClient) Get(ctx context.Context, id int) (*InboundCounter, error) {
-	return c.Query().Where(inboundcounter.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *InboundCounterClient) GetX(ctx context.Context, id int) *InboundCounter {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *InboundCounterClient) Hooks() []Hook {
-	return c.hooks.InboundCounter
-}
-
-// Interceptors returns the client interceptors.
-func (c *InboundCounterClient) Interceptors() []Interceptor {
-	return c.inters.InboundCounter
-}
-
-func (c *InboundCounterClient) mutate(ctx context.Context, m *InboundCounterMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&InboundCounterCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&InboundCounterUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&InboundCounterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&InboundCounterDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown InboundCounter mutation op: %q", m.Op())
-	}
-}
-
-// InboundTrafficClient is a client for the InboundTraffic schema.
-type InboundTrafficClient struct {
-	config
-}
-
-// NewInboundTrafficClient returns a client for the InboundTraffic from the given config.
-func NewInboundTrafficClient(c config) *InboundTrafficClient {
-	return &InboundTrafficClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `inboundtraffic.Hooks(f(g(h())))`.
-func (c *InboundTrafficClient) Use(hooks ...Hook) {
-	c.hooks.InboundTraffic = append(c.hooks.InboundTraffic, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `inboundtraffic.Intercept(f(g(h())))`.
-func (c *InboundTrafficClient) Intercept(interceptors ...Interceptor) {
-	c.inters.InboundTraffic = append(c.inters.InboundTraffic, interceptors...)
-}
-
-// Create returns a builder for creating a InboundTraffic entity.
-func (c *InboundTrafficClient) Create() *InboundTrafficCreate {
-	mutation := newInboundTrafficMutation(c.config, OpCreate)
-	return &InboundTrafficCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of InboundTraffic entities.
-func (c *InboundTrafficClient) CreateBulk(builders ...*InboundTrafficCreate) *InboundTrafficCreateBulk {
-	return &InboundTrafficCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *InboundTrafficClient) MapCreateBulk(slice any, setFunc func(*InboundTrafficCreate, int)) *InboundTrafficCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &InboundTrafficCreateBulk{err: fmt.Errorf("calling to InboundTrafficClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*InboundTrafficCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &InboundTrafficCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for InboundTraffic.
-func (c *InboundTrafficClient) Update() *InboundTrafficUpdate {
-	mutation := newInboundTrafficMutation(c.config, OpUpdate)
-	return &InboundTrafficUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *InboundTrafficClient) UpdateOne(_m *InboundTraffic) *InboundTrafficUpdateOne {
-	mutation := newInboundTrafficMutation(c.config, OpUpdateOne, withInboundTraffic(_m))
-	return &InboundTrafficUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *InboundTrafficClient) UpdateOneID(id int) *InboundTrafficUpdateOne {
-	mutation := newInboundTrafficMutation(c.config, OpUpdateOne, withInboundTrafficID(id))
-	return &InboundTrafficUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for InboundTraffic.
-func (c *InboundTrafficClient) Delete() *InboundTrafficDelete {
-	mutation := newInboundTrafficMutation(c.config, OpDelete)
-	return &InboundTrafficDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *InboundTrafficClient) DeleteOne(_m *InboundTraffic) *InboundTrafficDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *InboundTrafficClient) DeleteOneID(id int) *InboundTrafficDeleteOne {
-	builder := c.Delete().Where(inboundtraffic.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &InboundTrafficDeleteOne{builder}
-}
-
-// Query returns a query builder for InboundTraffic.
-func (c *InboundTrafficClient) Query() *InboundTrafficQuery {
-	return &InboundTrafficQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeInboundTraffic},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a InboundTraffic entity by its id.
-func (c *InboundTrafficClient) Get(ctx context.Context, id int) (*InboundTraffic, error) {
-	return c.Query().Where(inboundtraffic.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *InboundTrafficClient) GetX(ctx context.Context, id int) *InboundTraffic {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *InboundTrafficClient) Hooks() []Hook {
-	return c.hooks.InboundTraffic
-}
-
-// Interceptors returns the client interceptors.
-func (c *InboundTrafficClient) Interceptors() []Interceptor {
-	return c.inters.InboundTraffic
-}
-
-func (c *InboundTrafficClient) mutate(ctx context.Context, m *InboundTrafficMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&InboundTrafficCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&InboundTrafficUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&InboundTrafficUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&InboundTrafficDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown InboundTraffic mutation op: %q", m.Op())
 	}
 }
 
@@ -3302,15 +3020,13 @@ func (c *TrafficSnapshotClient) mutate(ctx context.Context, m *TrafficSnapshotMu
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Addon, AuditLog, Customer, Expense, ExpenseItem, Extension, FxRate,
-		InboundCounter, InboundTraffic, LedgerEntry, Payment, ReferralAccrual, RwUser,
-		Setting, Subscription, SubscriptionAddon, Tariff, TariffPeriod,
-		TrafficSnapshot []ent.Hook
+		Addon, AuditLog, Customer, Expense, ExpenseItem, Extension, FxRate, LedgerEntry,
+		Payment, ReferralAccrual, RwUser, Setting, Subscription, SubscriptionAddon,
+		Tariff, TariffPeriod, TrafficSnapshot []ent.Hook
 	}
 	inters struct {
-		Addon, AuditLog, Customer, Expense, ExpenseItem, Extension, FxRate,
-		InboundCounter, InboundTraffic, LedgerEntry, Payment, ReferralAccrual, RwUser,
-		Setting, Subscription, SubscriptionAddon, Tariff, TariffPeriod,
-		TrafficSnapshot []ent.Interceptor
+		Addon, AuditLog, Customer, Expense, ExpenseItem, Extension, FxRate, LedgerEntry,
+		Payment, ReferralAccrual, RwUser, Setting, Subscription, SubscriptionAddon,
+		Tariff, TariffPeriod, TrafficSnapshot []ent.Interceptor
 	}
 )

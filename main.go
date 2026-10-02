@@ -91,14 +91,10 @@ func main() {
 	fxs := fx.New(db)
 	syncSvc := rwsync.New(db, rw, cfg.AddonsConfig)
 	expSvc := expenses.New(db, rw, fxs, cfg.Location)
-	if cfg.RemnawaveMetricsURL != "" {
-		expSvc.UseMetricsScraper(remnawave.NewMetricsScraper(cfg.RemnawaveMetricsURL, cfg.RemnawaveMetricsUser, cfg.RemnawaveMetricsPass))
-	}
 
 	if !*noSync {
 		go syncSvc.Run(ctx, cfg.SyncInterval)
 		go expSvc.RunTrafficSync(ctx, time.Hour)
-		go expSvc.RunInboundPolling(ctx, 2*time.Minute)
 	} else if err := syncSvc.SyncAddons(ctx); err != nil {
 		slog.Warn("addons sync failed", "error", err)
 	}

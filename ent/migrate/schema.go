@@ -113,7 +113,6 @@ var (
 		{Name: "price_per_gb", Type: field.TypeInt64, Default: 0},
 		{Name: "min_charge", Type: field.TypeInt64, Default: 0},
 		{Name: "rw_node_uuid", Type: field.TypeString, Nullable: true},
-		{Name: "rw_inbound_tag", Type: field.TypeString, Nullable: true},
 		{Name: "rw_squad_uuid", Type: field.TypeString, Nullable: true},
 		{Name: "next_due_date", Type: field.TypeTime, Nullable: true},
 		{Name: "active", Type: field.TypeBool, Default: true},
@@ -168,49 +167,6 @@ var (
 				Name:    "fxrate_date_currency",
 				Unique:  true,
 				Columns: []*schema.Column{FxRatesColumns[1], FxRatesColumns[2]},
-			},
-		},
-	}
-	// InboundCountersColumns holds the columns for the "inbound_counters" table.
-	InboundCountersColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "node_uuid", Type: field.TypeString},
-		{Name: "tag", Type: field.TypeString},
-		{Name: "value", Type: field.TypeFloat64},
-		{Name: "observed_at", Type: field.TypeTime},
-	}
-	// InboundCountersTable holds the schema information for the "inbound_counters" table.
-	InboundCountersTable = &schema.Table{
-		Name:       "inbound_counters",
-		Columns:    InboundCountersColumns,
-		PrimaryKey: []*schema.Column{InboundCountersColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "inboundcounter_node_uuid_tag",
-				Unique:  true,
-				Columns: []*schema.Column{InboundCountersColumns[1], InboundCountersColumns[2]},
-			},
-		},
-	}
-	// InboundTrafficsColumns holds the columns for the "inbound_traffics" table.
-	InboundTrafficsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "date", Type: field.TypeString},
-		{Name: "node_uuid", Type: field.TypeString},
-		{Name: "tag", Type: field.TypeString},
-		{Name: "bytes", Type: field.TypeInt64, Default: 0},
-		{Name: "updated_at", Type: field.TypeTime},
-	}
-	// InboundTrafficsTable holds the schema information for the "inbound_traffics" table.
-	InboundTrafficsTable = &schema.Table{
-		Name:       "inbound_traffics",
-		Columns:    InboundTrafficsColumns,
-		PrimaryKey: []*schema.Column{InboundTrafficsColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "inboundtraffic_date_node_uuid_tag",
-				Unique:  true,
-				Columns: []*schema.Column{InboundTrafficsColumns[1], InboundTrafficsColumns[2], InboundTrafficsColumns[3]},
 			},
 		},
 	}
@@ -498,8 +454,6 @@ var (
 		ExpenseItemsTable,
 		ExtensionsTable,
 		FxRatesTable,
-		InboundCountersTable,
-		InboundTrafficsTable,
 		LedgerEntriesTable,
 		PaymentsTable,
 		ReferralAccrualsTable,

@@ -10,7 +10,6 @@ import type {
     Dashboard,
     Expense,
     ExpenseItem,
-    InboundStatus,
     MeteredSummary,
     Payment,
     ProviderTotals,
@@ -42,8 +41,7 @@ export const qk = {
     referralTree: ['referrals', 'tree'],
     accruals: ['referrals', 'accruals'],
     settings: ['settings'],
-    audit: ['audit'],
-    inboundStatus: ['traffic', 'inbounds']
+    audit: ['audit']
 }
 
 export const useMe = () =>
@@ -83,8 +81,6 @@ export const useReferralTree = () =>
 export const useAccruals = () => useQuery({ queryKey: qk.accruals, queryFn: () => api.get<Accrual[]>('referrals/accruals') })
 export const useSettings = () =>
     useQuery({ queryKey: qk.settings, queryFn: () => api.get<Record<string, string>>('settings') })
-export const useInboundStatus = () =>
-    useQuery({ queryKey: qk.inboundStatus, queryFn: () => api.get<InboundStatus>('traffic/inbounds') })
 export const useAudit = () => useQuery({ queryKey: qk.audit, queryFn: () => api.get<AuditRow[]>('audit') })
 
 // useInvalidateAll refreshes every query after a mutation: data here is

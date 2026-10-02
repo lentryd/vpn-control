@@ -48,22 +48,3 @@ func TestForecast(t *testing.T) {
 		t.Errorf("day one = %v GB", GB(got))
 	}
 }
-
-func TestCounterDelta(t *testing.T) {
-	cases := []struct {
-		prev     float64
-		havePrev bool
-		cur      float64
-		want     float64
-	}{
-		{0, false, 500, 0},    // first reading is only a baseline
-		{100, true, 250, 150}, // normal growth
-		{900, true, 40, 40},   // panel restarted: counter began from zero
-		{300, true, 300, 0},
-	}
-	for _, c := range cases {
-		if got := CounterDelta(c.prev, c.havePrev, c.cur); got != c.want {
-			t.Errorf("CounterDelta(%v,%v,%v) = %v, want %v", c.prev, c.havePrev, c.cur, got, c.want)
-		}
-	}
-}

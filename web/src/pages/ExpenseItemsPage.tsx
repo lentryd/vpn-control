@@ -46,16 +46,7 @@ import {
 import { TbCloudDataConnection, TbDots, TbServer2 } from 'react-icons/tb'
 
 import { api } from '@/api/client'
-import {
-    useApiMutation,
-    useExpenseItems,
-    useInboundStatus,
-    useInfra,
-    useInvalidateAll,
-    useMetered,
-    useNodes,
-    useSettings
-} from '@/api/hooks'
+import { useApiMutation, useExpenseItems, useInfra, useInvalidateAll, useMetered, useNodes, useSettings } from '@/api/hooks'
 import type { ExpenseItem } from '@/api/types'
 import { expiryColor } from '@/components/badges'
 import { fmtCurrency, fmtDate, fmtMoney, fmtNum } from '@/components/format'
@@ -497,7 +488,6 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
     const billing = usePanelBilling()
     const settings = useSettings()
     const itemsQ = useExpenseItems()
-    const inbounds = useInboundStatus()
     const form = useForm({
         initialValues: {
             name: item.name ?? '',
@@ -513,7 +503,6 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
             min_charge: item.min_charge ?? 0,
             rw_node_uuid: item.rw_node_uuid || null,
             rw_squad_uuid: item.rw_squad_uuid || null,
-            rw_inbound_tag: item.rw_inbound_tag || null,
             next_due_date: item.next_due_date ? dayjs(item.next_due_date).format('YYYY-MM-DD') : null,
             active: item.active ?? true,
             notes: item.notes ?? ''
@@ -521,22 +510,15 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
         validate: { name: (v) => (v.trim() ? null : 'Введите название') }
     })
     const m = useApiMutation((v: typeof form.values) => {
-        const body = { ...v, rw_node_uuid: v.rw_node_uuid ?? '', rw_squad_uuid: v.rw_squad_uuid ?? '', rw_inbound_tag: v.rw_inbound_tag ?? '' }
+        const body = { ...v, rw_node_uuid: v.rw_node_uuid ?? '', rw_squad_uuid: v.rw_squad_uuid ?? '' }
         return item.id ? api.put(`expense-items/${item.id}`, body) : api.post('expense-items', body)
     })
     const v = form.values
     const knownProviders = useMemo(() => [...new Set((itemsQ.data?.items ?? []).map((i) => i.provider).filter(Boolean))], [itemsQ.data])
     const panelBilling = billing(v.rw_node_uuid)
-    // a saved tag stays selectable even if the node no longer serves it
-    const inboundTags = useMemo(() => {
-        const node = nodes.data?.find((n) => n.uuid === v.rw_node_uuid)
-        const tags = (node?.configProfile.activeInbounds ?? []).map((i) => i.tag)
-        return v.rw_inbound_tag && !tags.includes(v.rw_inbound_tag) ? [v.rw_inbound_tag, ...tags] : tags
-    }, [nodes.data, v.rw_node_uuid, v.rw_inbound_tag])
 
     const pickNode = (val: string | null) => {
         form.setFieldValue('rw_node_uuid', val)
-        if (val !== v.rw_node_uuid) form.setFieldValue('rw_inbound_tag', null)
         // the panel already knows who hosts this node: take its provider
         const b = billing(val)
         const p = b && infra.data?.providers.find((x) => x.uuid === b.providerUuid)
@@ -685,29 +667,8 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
                             placeholder="Вся нода"
                             clearable
                             allowDeselect
-                            disabled={!!v.rw_inbound_tag}
                             {...form.getInputProps('rw_squad_uuid')}
                         />
-                        {(inbounds.data?.enabled || v.rw_inbound_tag) && (
-                            <Select
-                                label="Inbound"
-                                description={
-                                    inbounds.data?.enabled
-                                        ? `Только трафик этого inbound — по счётчикам Prometheus панели. История с ${
-                                              inbounds.data.since ? fmtDate(inbounds.data.since) : 'первого опроса'
-                                          }`
-                                        : 'Метрики панели отключены (REMNAWAVE_METRICS_URL): уберите inbound, чтобы сохранить статью'
-                                }
-                                placeholder={v.rw_node_uuid ? 'Все inbound' : 'Сначала выберите ноду'}
-                                leftSection={<TbCloudDataConnection size={16} />}
-                                data={inboundTags}
-                                clearable
-                                allowDeselect
-                                disabled={!v.rw_node_uuid || !!v.rw_squad_uuid}
-                                error={inbounds.data?.last_error}
-                                {...form.getInputProps('rw_inbound_tag')}
-                            />
-                        )}
                     </FormSection>
                 )}
 

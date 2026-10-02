@@ -140,9 +140,6 @@ func (ExpenseItem) Fields() []ent.Field {
 		field.Int64("price_per_gb").Default(0),
 		field.Int64("min_charge").Default(0),
 		field.String("rw_node_uuid").Optional(),
-		// RwInboundTag narrows metered traffic to one inbound of the node;
-		// empty means the whole node.
-		field.String("rw_inbound_tag").Optional(),
 		// RwSquadUUID narrows metered traffic to the users of one internal
 		// squad: the node's traffic is split by their share of it.
 		field.String("rw_squad_uuid").Optional(),
@@ -249,44 +246,4 @@ func (AuditLog) Fields() []ent.Field {
 		field.Bool("ok").Default(true),
 		field.String("error").Optional(),
 	}
-}
-
-// InboundCounter is the last seen value of a node inbound's cumulative
-// traffic counter (the panel keeps these only in memory and resets them on
-// restart), used to turn counter readings into per-day traffic.
-type InboundCounter struct {
-	ent.Schema
-}
-
-func (InboundCounter) Fields() []ent.Field {
-	return []ent.Field{
-		field.String("node_uuid"),
-		field.String("tag"),
-		field.Float("value"),
-		field.Time("observed_at"),
-	}
-}
-
-func (InboundCounter) Indexes() []ent.Index {
-	return []ent.Index{index.Fields("node_uuid", "tag").Unique()}
-}
-
-// InboundTraffic is one inbound's traffic (upload + download) for one day,
-// accumulated from counter deltas.
-type InboundTraffic struct {
-	ent.Schema
-}
-
-func (InboundTraffic) Fields() []ent.Field {
-	return []ent.Field{
-		field.String("date"),
-		field.String("node_uuid"),
-		field.String("tag"),
-		field.Int64("bytes").Default(0),
-		field.Time("updated_at").Default(time.Now),
-	}
-}
-
-func (InboundTraffic) Indexes() []ent.Index {
-	return []ent.Index{index.Fields("date", "node_uuid", "tag").Unique()}
 }

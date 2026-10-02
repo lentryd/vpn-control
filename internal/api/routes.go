@@ -88,7 +88,6 @@ func RegisterRoutes(app *fiber.App, deps *Deps) {
 	a.Get("/expense-items/:id/metered", h.MeteredSummary)
 	a.Post("/expense-items/:id/close-period", h.ClosePeriod)
 	a.Post("/traffic/sync", h.SyncTraffic)
-	a.Get("/traffic/inbounds", h.InboundStatus)
 
 	a.Get("/fx/rate", h.FxRate)
 	a.Get("/settings", h.GetSettings)

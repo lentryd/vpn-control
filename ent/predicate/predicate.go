@@ -27,12 +27,6 @@ type Extension func(*sql.Selector)
 // FxRate is the predicate function for fxrate builders.
 type FxRate func(*sql.Selector)
 
-// InboundCounter is the predicate function for inboundcounter builders.
-type InboundCounter func(*sql.Selector)
-
-// InboundTraffic is the predicate function for inboundtraffic builders.
-type InboundTraffic func(*sql.Selector)
-
 // LedgerEntry is the predicate function for ledgerentry builders.
 type LedgerEntry func(*sql.Selector)
 

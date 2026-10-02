@@ -49,7 +49,7 @@ var Categories = []Category{
 	{Key: "payments", Title: "Платежи и баланс", Description: "Платежи, движения баланса, реферальные начисления, продления", Tables: []string{"payments", "ledger_entries", "referral_accruals", "extensions"}, DependsOn: []string{"customers"}},
 	{Key: "expenses", Title: "Расходы", Description: "Статьи расходов и журнал расходов", Tables: []string{"expense_items", "expenses"}},
 	{Key: "settings", Title: "Настройки", Description: "Параметры приложения", Tables: []string{"settings"}},
-	{Key: "stats", Title: "Курсы и трафик", Description: "Кэш курсов валют и статистика трафика", Tables: []string{"fx_rates", "traffic_snapshots", "inbound_counters", "inbound_traffics"}},
+	{Key: "stats", Title: "Курсы и трафик", Description: "Кэш курсов валют и статистика трафика", Tables: []string{"fx_rates", "traffic_snapshots"}},
 	{Key: "audit", Title: "Журнал действий", Description: "История действий в админке", Tables: []string{"audit_logs"}},
 }
 

@@ -255,26 +255,6 @@ func (_u *ExpenseItemUpdate) ClearRwNodeUUID() *ExpenseItemUpdate {
 	return _u
 }
 
-// SetRwInboundTag sets the "rw_inbound_tag" field.
-func (_u *ExpenseItemUpdate) SetRwInboundTag(v string) *ExpenseItemUpdate {
-	_u.mutation.SetRwInboundTag(v)
-	return _u
-}
-
-// SetNillableRwInboundTag sets the "rw_inbound_tag" field if the given value is not nil.
-func (_u *ExpenseItemUpdate) SetNillableRwInboundTag(v *string) *ExpenseItemUpdate {
-	if v != nil {
-		_u.SetRwInboundTag(*v)
-	}
-	return _u
-}
-
-// ClearRwInboundTag clears the value of the "rw_inbound_tag" field.
-func (_u *ExpenseItemUpdate) ClearRwInboundTag() *ExpenseItemUpdate {
-	_u.mutation.ClearRwInboundTag()
-	return _u
-}
-
 // SetRwSquadUUID sets the "rw_squad_uuid" field.
 func (_u *ExpenseItemUpdate) SetRwSquadUUID(v string) *ExpenseItemUpdate {
 	_u.mutation.SetRwSquadUUID(v)
@@ -484,12 +464,6 @@ func (_u *ExpenseItemUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	}
 	if _u.mutation.RwNodeUUIDCleared() {
 		_spec.ClearField(expenseitem.FieldRwNodeUUID, field.TypeString)
-	}
-	if value, ok := _u.mutation.RwInboundTag(); ok {
-		_spec.SetField(expenseitem.FieldRwInboundTag, field.TypeString, value)
-	}
-	if _u.mutation.RwInboundTagCleared() {
-		_spec.ClearField(expenseitem.FieldRwInboundTag, field.TypeString)
 	}
 	if value, ok := _u.mutation.RwSquadUUID(); ok {
 		_spec.SetField(expenseitem.FieldRwSquadUUID, field.TypeString, value)
@@ -759,26 +733,6 @@ func (_u *ExpenseItemUpdateOne) ClearRwNodeUUID() *ExpenseItemUpdateOne {
 	return _u
 }
 
-// SetRwInboundTag sets the "rw_inbound_tag" field.
-func (_u *ExpenseItemUpdateOne) SetRwInboundTag(v string) *ExpenseItemUpdateOne {
-	_u.mutation.SetRwInboundTag(v)
-	return _u
-}
-
-// SetNillableRwInboundTag sets the "rw_inbound_tag" field if the given value is not nil.
-func (_u *ExpenseItemUpdateOne) SetNillableRwInboundTag(v *string) *ExpenseItemUpdateOne {
-	if v != nil {
-		_u.SetRwInboundTag(*v)
-	}
-	return _u
-}
-
-// ClearRwInboundTag clears the value of the "rw_inbound_tag" field.
-func (_u *ExpenseItemUpdateOne) ClearRwInboundTag() *ExpenseItemUpdateOne {
-	_u.mutation.ClearRwInboundTag()
-	return _u
-}
-
 // SetRwSquadUUID sets the "rw_squad_uuid" field.
 func (_u *ExpenseItemUpdateOne) SetRwSquadUUID(v string) *ExpenseItemUpdateOne {
 	_u.mutation.SetRwSquadUUID(v)
@@ -1018,12 +972,6 @@ func (_u *ExpenseItemUpdateOne) sqlSave(ctx context.Context) (_node *ExpenseItem
 	}
 	if _u.mutation.RwNodeUUIDCleared() {
 		_spec.ClearField(expenseitem.FieldRwNodeUUID, field.TypeString)
-	}
-	if value, ok := _u.mutation.RwInboundTag(); ok {
-		_spec.SetField(expenseitem.FieldRwInboundTag, field.TypeString, value)
-	}
-	if _u.mutation.RwInboundTagCleared() {
-		_spec.ClearField(expenseitem.FieldRwInboundTag, field.TypeString)
 	}
 	if value, ok := _u.mutation.RwSquadUUID(); ok {
 		_spec.SetField(expenseitem.FieldRwSquadUUID, field.TypeString, value)

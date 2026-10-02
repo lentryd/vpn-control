@@ -50,7 +50,31 @@ func OpenDB(ctx context.Context, path string) (*ent.Client, *sql.DB, error) {
 		_ = client.Close()
 		return nil, nil, fmt.Errorf("run schema migration: %w", err)
 	}
+	if err := dropRemoved(ctx, db); err != nil {
+		_ = client.Close()
+		return nil, nil, fmt.Errorf("drop removed schema: %w", err)
+	}
 	return client, db, nil
+}
+
+// dropRemoved deletes what the schema no longer has: auto-migration only
+// adds. Per-inbound metering was replaced by squads.
+func dropRemoved(ctx context.Context, db *sql.DB) error {
+	for _, t := range []string{"inbound_counters", "inbound_traffics"} {
+		if _, err := db.ExecContext(ctx, "DROP TABLE IF EXISTS "+t); err != nil {
+			return err
+		}
+	}
+	var n int
+	if err := db.QueryRowContext(ctx,
+		"SELECT count(*) FROM pragma_table_info('expense_items') WHERE name = 'rw_inbound_tag'").Scan(&n); err != nil {
+		return err
+	}
+	if n > 0 {
+		_, err := db.ExecContext(ctx, "ALTER TABLE expense_items DROP COLUMN rw_inbound_tag")
+		return err
+	}
+	return nil
 }
 
 // WithTx runs fn in a transaction, rolling back on error or panic.

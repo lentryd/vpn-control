@@ -92,30 +92,6 @@ func (f FxRateFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FxRateMutation", m)
 }
 
-// The InboundCounterFunc type is an adapter to allow the use of ordinary
-// function as InboundCounter mutator.
-type InboundCounterFunc func(context.Context, *ent.InboundCounterMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f InboundCounterFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.InboundCounterMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.InboundCounterMutation", m)
-}
-
-// The InboundTrafficFunc type is an adapter to allow the use of ordinary
-// function as InboundTraffic mutator.
-type InboundTrafficFunc func(context.Context, *ent.InboundTrafficMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f InboundTrafficFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.InboundTrafficMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.InboundTrafficMutation", m)
-}
-
 // The LedgerEntryFunc type is an adapter to allow the use of ordinary
 // function as LedgerEntry mutator.
 type LedgerEntryFunc func(context.Context, *ent.LedgerEntryMutation) (ent.Value, error)

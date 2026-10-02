@@ -186,14 +186,6 @@ export interface RwNode {
     isConnected: boolean
     isDisabled: boolean
     usersOnline: number
-    configProfile: { activeInbounds: { uuid: string; tag: string; type: string; port: number | null }[] | null }
-}
-
-export interface InboundStatus {
-    enabled: boolean
-    last_poll: string | null
-    last_error?: string
-    since: string | null
 }
 
 export interface Expense {
@@ -242,7 +234,6 @@ export interface ExpenseItem {
     price_per_gb: number
     min_charge: number
     rw_node_uuid: string
-    rw_inbound_tag: string
     rw_squad_uuid: string
     next_due_date: string | null
     active: boolean
@@ -269,7 +260,6 @@ export interface MeteredSummary {
     name: string
     node_uuid: string
     node_name: string
-    inbound_tag: string
     squad_uuid: string
     squad_share_percent: number
     period: string
