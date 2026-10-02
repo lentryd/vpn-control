@@ -37,6 +37,8 @@ type SubscriptionAddon struct {
 	PriceOverride *int64 `json:"price_override,omitempty"`
 	// AutoExtend holds the value of the "auto_extend" field.
 	AutoExtend bool `json:"auto_extend,omitempty"`
+	// Included holds the value of the "included" field.
+	Included bool `json:"included,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubscriptionAddonQuery when eager-loading is set.
 	Edges        SubscriptionAddonEdges `json:"edges"`
@@ -107,7 +109,7 @@ func (*SubscriptionAddon) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case subscriptionaddon.FieldAutoExtend:
+		case subscriptionaddon.FieldAutoExtend, subscriptionaddon.FieldIncluded:
 			values[i] = new(sql.NullBool)
 		case subscriptionaddon.FieldID, subscriptionaddon.FieldSubscriptionID, subscriptionaddon.FieldAddonID, subscriptionaddon.FieldTariffID, subscriptionaddon.FieldRwUserID, subscriptionaddon.FieldPriceOverride:
 			values[i] = new(sql.NullInt64)
@@ -184,6 +186,12 @@ func (_m *SubscriptionAddon) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field auto_extend", values[i])
 			} else if value.Valid {
 				_m.AutoExtend = value.Bool
+			}
+		case subscriptionaddon.FieldIncluded:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field included", values[i])
+			} else if value.Valid {
+				_m.Included = value.Bool
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -270,6 +278,9 @@ func (_m *SubscriptionAddon) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("auto_extend=")
 	builder.WriteString(fmt.Sprintf("%v", _m.AutoExtend))
+	builder.WriteString(", ")
+	builder.WriteString("included=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Included))
 	builder.WriteByte(')')
 	return builder.String()
 }

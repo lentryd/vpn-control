@@ -115,6 +115,9 @@ func (s *Service) ProvisionSubscription(ctx context.Context, in ProvisionInput) 
 		return nil, err
 	}
 	s.recordExtension(ctx, "connect", &target{kind: KindSubscription, id: sub.ID, customerID: c.ID}, nil, in.Months, in.Days, in.Amount, &now, &to, ledgerID, nil)
+	if err := s.applyIncluded(ctx, sub.ID, nil); err != nil {
+		return sub, fmt.Errorf("подписка создана, но аддоны из тарифа подключились не все: %w", err)
+	}
 	return sub, nil
 }
 
@@ -195,7 +198,6 @@ func (s *Service) ConnectAddon(ctx context.Context, in ConnectAddonInput) (*ent.
 		return nil, err
 	}
 
-	username := a.Prefix + sub.Edges.RwUser.Username + a.Suffix
 	now := s.now()
 	if in.Until != nil && !in.Until.After(now) {
 		return nil, errors.New("дата окончания уже прошла")
@@ -204,41 +206,11 @@ func (s *Service) ConnectAddon(ctx context.Context, in ConnectAddonInput) (*ent.
 	if in.Until != nil {
 		to = *in.Until
 	}
-
-	var u *remnawave.User
-	existing, err := s.rw.GetUserByUsername(ctx, username)
-	switch {
-	case err == nil:
-		// Adopt a user created by hand: extend from its expiry and apply
-		// the tariff parameters.
-		if in.Until == nil {
-			from := ExtendFrom(now, &existing.ExpireAt)
-			to = from.AddDate(0, in.Months, in.Days)
-		} else if existing.ExpireAt.After(to) {
-			to = existing.ExpireAt
-		}
-		upd := remnawave.UpdateUserRequest{ID: existing.ID, ExpireAt: &to, Status: remnawave.StatusActive}
-		applyTariffToUpdate(t, &upd)
-		u, err = s.rw.UpdateUser(ctx, upd)
-		audit.Log(ctx, s.db, "rw.adopt_addon_user", "subscription", sub.ID, upd, err)
-	case remnawave.IsNotFound(err):
-		var req remnawave.CreateUserRequest
-		req, err = createRequest(t, username, to, descriptionFor(sub.Edges.Customer.Name, a.Name))
-		if err != nil {
-			return nil, err
-		}
-		u, err = s.rw.CreateUser(ctx, req)
-		audit.Log(ctx, s.db, "rw.create_addon_user", "subscription", sub.ID, req, err)
+	extendBy := &term{in.Months, in.Days}
+	if in.Until != nil {
+		extendBy = nil
 	}
-	if err != nil {
-		return nil, err
-	}
-	if err := rwsync.Upsert(ctx, s.db, u); err != nil {
-		return nil, err
-	}
-	sa, err := s.db.SubscriptionAddon.Create().
-		SetSubscriptionID(sub.ID).SetAddonID(a.ID).SetTariffID(t.ID).SetRwUserID(u.ID).
-		Save(ctx)
+	sa, to, err := s.connectAddonUser(ctx, sub, t, to, extendBy, false)
 	if err != nil {
 		return nil, err
 	}
@@ -251,12 +223,61 @@ func (s *Service) ConnectAddon(ctx context.Context, in ConnectAddonInput) (*ent.
 	return sa, nil
 }
 
+// term is a duration in months and days.
+type term struct{ months, days int }
+
+// connectAddonUser creates the add-on user prefix+<username>+suffix with the
+// add-on tariff's parameters until to, or adopts one made by hand (then
+// extendBy, if set, extends it from its own expiry instead), and links it
+// to the subscription. sub needs its RwUser and Customer edges.
+func (s *Service) connectAddonUser(ctx context.Context, sub *ent.Subscription, t *ent.Tariff, to time.Time, extendBy *term, included bool) (*ent.SubscriptionAddon, time.Time, error) {
+	a := t.Edges.Addon
+	username := a.Prefix + sub.Edges.RwUser.Username + a.Suffix
+	var u *remnawave.User
+	existing, err := s.rw.GetUserByUsername(ctx, username)
+	switch {
+	case err == nil:
+		// Adopt a user created by hand: apply the tariff parameters, and
+		// never shorten what it already has.
+		if extendBy != nil {
+			to = ExtendFrom(s.now(), &existing.ExpireAt).AddDate(0, extendBy.months, extendBy.days)
+		} else if existing.ExpireAt.After(to) && !included {
+			to = existing.ExpireAt
+		}
+		upd := remnawave.UpdateUserRequest{ID: existing.ID, ExpireAt: &to, Status: remnawave.StatusActive}
+		applyTariffToUpdate(t, &upd)
+		u, err = s.rw.UpdateUser(ctx, upd)
+		audit.Log(ctx, s.db, "rw.adopt_addon_user", "subscription", sub.ID, upd, err)
+	case remnawave.IsNotFound(err):
+		var req remnawave.CreateUserRequest
+		req, err = createRequest(t, username, to, descriptionFor(sub.Edges.Customer.Name, a.Name))
+		if err != nil {
+			return nil, to, err
+		}
+		u, err = s.rw.CreateUser(ctx, req)
+		audit.Log(ctx, s.db, "rw.create_addon_user", "subscription", sub.ID, req, err)
+	}
+	if err != nil {
+		return nil, to, err
+	}
+	if err := rwsync.Upsert(ctx, s.db, u); err != nil {
+		return nil, to, err
+	}
+	sa, err := s.db.SubscriptionAddon.Create().
+		SetSubscriptionID(sub.ID).SetAddonID(a.ID).SetTariffID(t.ID).SetRwUserID(u.ID).SetIncluded(included).
+		Save(ctx)
+	return sa, to, err
+}
+
 // TariffQuote is the prorated surcharge of a tariff switch.
 type TariffQuote struct {
 	OldMonthly int64      `json:"old_monthly"`
 	NewMonthly int64      `json:"new_monthly"`
 	ExpireAt   *time.Time `json:"expire_at"`
-	Surcharge  int64      `json:"surcharge"`
+	// Surcharge includes the credit for paid add-ons that become included.
+	Surcharge int64 `json:"surcharge"`
+	// Addons is what the switch does to included add-ons (subscriptions).
+	Addons []AddonChange `json:"addons"`
 }
 
 // QuoteTariffChange prices switching kind/id to tariffID for the time left.
@@ -269,12 +290,31 @@ func (s *Service) QuoteTariffChange(ctx context.Context, kind string, id, tariff
 	if err != nil {
 		return nil, err
 	}
-	return &TariffQuote{
+	if cur.included {
+		return nil, ErrIncluded
+	}
+	q := &TariffQuote{
 		OldMonthly: cur.monthly,
 		NewMonthly: t.MonthlyPrice,
 		ExpireAt:   cur.expireAt,
 		Surcharge:  ProrateSurcharge(cur.monthly, t.MonthlyPrice, s.now(), cur.expireAt),
-	}, nil
+		Addons:     []AddonChange{},
+	}
+	if kind == KindSubscription && t.Kind == tariff.KindBase {
+		sub, err := s.loadSubForIncluded(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		changes, err := s.includedChanges(ctx, sub, t.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, ch := range changes {
+			q.Surcharge -= ch.Credit
+		}
+		q.Addons = append(q.Addons, changes...)
+	}
+	return q, nil
 }
 
 // ChangeTariffInput switches a subscription/add-on to another tariff.
@@ -286,6 +326,9 @@ type ChangeTariffInput struct {
 	Surcharge int64
 	// ClearOverride drops the price override so the new tariff's price applies.
 	ClearOverride bool
+	// RemovedAddons says, per subscription add-on the new tariff no longer
+	// includes, RemoveDisable (default) or RemoveKeepPaid.
+	RemovedAddons map[int]string
 }
 
 // ChangeTariff relinks the tariff, pushes its parameters to the panel when
@@ -298,6 +341,9 @@ func (s *Service) ChangeTariff(ctx context.Context, in ChangeTariffInput) error 
 	t, err := s.tariff(ctx, in.TariffID)
 	if err != nil {
 		return err
+	}
+	if cur.included {
+		return ErrIncluded
 	}
 	switch in.Kind {
 	case KindSubscription:
@@ -350,6 +396,11 @@ func (s *Service) ChangeTariff(ctx context.Context, in ChangeTariffInput) error 
 	if rwErr != nil {
 		return fmt.Errorf("тариф сменён, но параметры в панели не обновились: %w", rwErr)
 	}
+	if in.Kind == KindSubscription {
+		if err := s.applyIncluded(ctx, in.ID, in.RemovedAddons); err != nil {
+			return fmt.Errorf("тариф сменён, но аддоны из тарифа обновились не все: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -372,5 +423,11 @@ func (s *Service) SetEnabled(ctx context.Context, kind string, id int, enabled b
 	if err != nil {
 		return err
 	}
-	return rwsync.Upsert(ctx, s.db, u)
+	if err := rwsync.Upsert(ctx, s.db, u); err != nil {
+		return err
+	}
+	if kind == KindSubscription {
+		return s.setIncludedEnabled(ctx, id, enabled)
+	}
+	return nil
 }

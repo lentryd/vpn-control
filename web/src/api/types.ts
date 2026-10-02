@@ -40,6 +40,8 @@ export interface AddonItem {
     price_override: number | null
     price: number
     auto_extend: boolean
+    // included add-ons come with the subscription's tariff: free, extended with it
+    included: boolean
     rw_user: RwUser | null
 }
 
@@ -159,9 +161,28 @@ export interface Tariff {
     hwid_limit: number | null
     squad_uuids: string[]
     periods: Period[]
+    included_addon_tariff_ids: number[]
     subscribers: number
     overridden: number
     mrr: number
+}
+
+// AddonChange is what a tariff switch does to an included add-on.
+export interface AddonChange {
+    subscription_addon_id: number | null
+    addon_id: number
+    addon_name: string
+    tariff_name: string
+    action: 'connect' | 'include' | 'remove'
+    credit: number
+}
+
+export interface TariffQuote {
+    old_monthly: number
+    new_monthly: number
+    expire_at: string | null
+    surcharge: number
+    addons: AddonChange[]
 }
 
 export interface Addon {

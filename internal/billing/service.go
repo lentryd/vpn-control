@@ -28,6 +28,7 @@ var (
 	ErrInsufficientBalance = errors.New("недостаточно средств на балансе")
 	ErrNotLinked           = errors.New("подписка не привязана к пользователю Remnawave")
 	ErrUnlimited           = errors.New("безлимитная подписка (срок до 2099) — продлевать не нужно")
+	ErrIncluded            = errors.New("аддон входит в тариф подписки и продлевается вместе с ней")
 	usernameRe             = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,36}$`)
 )
 
@@ -88,6 +89,15 @@ func EffectivePrice(override *int64, t *ent.Tariff) int64 {
 	return 0
 }
 
+// AddonPrice is an add-on's monthly price: nothing when it's included in
+// the subscription's tariff.
+func AddonPrice(sa *ent.SubscriptionAddon) int64 {
+	if sa.Included {
+		return 0
+	}
+	return EffectivePrice(sa.PriceOverride, sa.Edges.Tariff)
+}
+
 func periodsOf(t *ent.Tariff) []Period {
 	if t == nil {
 		return nil
@@ -109,6 +119,8 @@ type target struct {
 	monthly    int64
 	periods    []Period
 	expireAt   *time.Time
+	// included add-ons come with the subscription's tariff
+	included bool
 }
 
 func (s *Service) loadTarget(ctx context.Context, kind string, id int) (*target, error) {
@@ -162,11 +174,12 @@ func addonTarget(sa *ent.SubscriptionAddon) *target {
 		id:         sa.ID,
 		customerID: sub.CustomerID,
 		rwUserID:   sa.RwUserID,
-		monthly:    EffectivePrice(sa.PriceOverride, sa.Edges.Tariff),
+		monthly:    AddonPrice(sa),
 		periods:    periodsOf(sa.Edges.Tariff),
 		title:      sa.Edges.Addon.Name + " · " + SubscriptionTitle(sub),
+		included:   sa.Included,
 	}
-	if sa.PriceOverride != nil {
+	if sa.PriceOverride != nil || sa.Included {
 		t.periods = nil
 	}
 	if u := sa.Edges.RwUser; u != nil {
@@ -214,6 +227,9 @@ func (s *Service) planItems(ctx context.Context, customerID int) ([]PlanItem, er
 			subExpire = sub.Edges.RwUser.ExpireAt
 		}
 		for _, sa := range sub.Edges.Addons {
+			if sa.Included {
+				continue // extended with the subscription
+			}
 			sa.Edges.Subscription = sub
 			it := toPlanItem(addonTarget(sa))
 			if Unlimited(it.ExpireAt) {
@@ -473,6 +489,9 @@ func (s *Service) extend(ctx context.Context, in ExtendInput) ExtensionResult {
 	if Unlimited(t.expireAt) {
 		return fail(ErrUnlimited)
 	}
+	if t.included {
+		return fail(ErrIncluded)
+	}
 	if !in.AllowDebt {
 		bal, err := s.Balance(ctx, t.customerID)
 		if err != nil {
@@ -511,6 +530,9 @@ func (s *Service) extend(ctx context.Context, in ExtendInput) ExtensionResult {
 		ledgerID = nil
 	}
 	s.recordExtension(ctx, "extend", t, in.PaymentID, in.Months, in.Days, in.Amount, &from, &to, ledgerID, rwErr)
+	if rwErr == nil && t.kind == KindSubscription {
+		s.followSubscription(ctx, t.id, to)
+	}
 	audit.Log(ctx, s.db, "extend", t.kind, t.id, map[string]any{"months": in.Months, "days": in.Days, "amount": in.Amount, "to": to}, rwErr)
 	if rwErr != nil {
 		return fail(rwErr)

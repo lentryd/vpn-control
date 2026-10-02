@@ -44,7 +44,7 @@ type Category struct {
 // Categories covers every table of the schema exactly once (see the test).
 var Categories = []Category{
 	{Key: "customers", Title: "Клиенты", Description: "Клиенты и реферальные связи", Tables: []string{"customers"}},
-	{Key: "tariffs", Title: "Тарифы и аддоны", Description: "Тарифы, цены за периоды, аддоны", Tables: []string{"addons", "tariffs", "tariff_periods"}},
+	{Key: "tariffs", Title: "Тарифы и аддоны", Description: "Тарифы, цены за периоды, аддоны, аддоны в тарифах", Tables: []string{"addons", "tariffs", "tariff_periods", "tariff_included_addons"}},
 	{Key: "subscriptions", Title: "Подписки", Description: "Подписки, подключённые аддоны и кэш пользователей Remnawave", Tables: []string{"rw_users", "subscriptions", "subscription_addons"}, DependsOn: []string{"customers", "tariffs"}},
 	{Key: "payments", Title: "Платежи и баланс", Description: "Платежи, движения баланса, реферальные начисления, продления", Tables: []string{"payments", "ledger_entries", "referral_accruals", "extensions"}, DependsOn: []string{"customers"}},
 	{Key: "expenses", Title: "Расходы", Description: "Статьи расходов и журнал расходов", Tables: []string{"expense_items", "expenses"}},

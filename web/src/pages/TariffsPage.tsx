@@ -193,6 +193,11 @@ function TariffTable({
                             <Text c="dimmed" fw={600} size="xs" truncate="end">
                                 {row.original.description || (row.original.active ? 'активен' : 'скрыт')}
                             </Text>
+                            {row.original.included_addon_tariff_ids?.length > 0 && (
+                                <Badge color="grape" leftSection={<PiPuzzlePieceDuotone size={12} />} mt={2} size="xs" variant="soft">
+                                    + аддонов: {row.original.included_addon_tariff_ids.length}
+                                </Badge>
+                            )}
                         </Box>
                     </Group>
                 )
@@ -309,6 +314,8 @@ function TariffTable({
 
 function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; onDone: () => void }) {
     const squads = useSquads()
+    const tariffs = useTariffs()
+    const addonTariffs = (tariffs.data ?? []).filter((t) => t.kind === 'addon')
     const form = useForm({
         initialValues: {
             kind: draft.kind,
@@ -324,11 +331,18 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
             hwid_limit: draft.hwid_limit ?? ('' as number | ''),
             squad_uuids: draft.squad_uuids ?? [],
             periods: (draft.periods ?? []).map((p) => ({ ...p, days: p.days ?? 0 })),
+            included: (draft.included_addon_tariff_ids ?? []).map(String),
+            // what to do with current subscribers when included add-ons change
+            sync_included: 'skip' as 'skip' | 'disable' | 'keep_paid',
             price_change: 'keep'
         },
         validate: {
             name: (v) => (v.trim() ? null : 'Введите название'),
-            addon_id: (v, vals) => (vals.kind === 'addon' && !v ? 'Выберите аддон' : null)
+            addon_id: (v, vals) => (vals.kind === 'addon' && !v ? 'Выберите аддон' : null),
+            included: (v) => {
+                const ids = v.map((id) => addonTariffs.find((t) => String(t.id) === id)?.addon_id)
+                return new Set(ids).size === ids.length ? null : 'Один аддон — один тариф'
+            }
         }
     })
     const priceChanged = !!draft.id && form.values.monthly_price !== draft.monthly_price && (draft.subscribers ?? 0) > 0
@@ -348,10 +362,20 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
             hwid_limit: v.hwid_limit === '' ? null : Number(v.hwid_limit),
             squad_uuids: v.squad_uuids,
             periods: v.periods.filter((p) => p.months + p.days > 0 && !(p.months === 1 && !p.days)),
+            included_addon_tariff_ids: v.kind === 'base' ? v.included.map(Number) : [],
             price_change: v.price_change
         }
-        return draft.id ? api.put(`tariffs/${draft.id}`, body) : api.post('tariffs', body)
+        if (!draft.id) return api.post('tariffs', body)
+        return api.put(`tariffs/${draft.id}`, body).then(() =>
+            includedChanged && v.sync_included !== 'skip'
+                ? api.post(`tariffs/${draft.id}/sync-included`, { removed: v.sync_included })
+                : undefined
+        )
     })
+    const includedChanged =
+        !!draft.id &&
+        (draft.subscribers ?? 0) > 0 &&
+        [...form.values.included].sort().join() !== (draft.included_addon_tariff_ids ?? []).map(String).sort().join()
 
     return (
         <form
@@ -390,6 +414,31 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                     </SimpleGrid>
                     <TextInput label="Название" leftSection={<PiTextAa size={16} />} required {...form.getInputProps('name')} />
                     <Textarea label="Описание" autosize minRows={2} {...form.getInputProps('description')} />
+                    {form.values.kind === 'base' && (
+                        <MultiSelect
+                            label="Включённые аддоны"
+                            description="Подключаются бесплатно и продлеваются вместе с подпиской; параметры — из тарифа аддона. Уже оформленные подписки получат их при следующей смене тарифа"
+                            leftSection={<PiPuzzlePieceDuotone size={16} />}
+                            placeholder={addonTariffs.length ? 'Без аддонов' : 'Нет тарифов аддонов'}
+                            data={addonTariffs.map((t) => ({ value: String(t.id), label: `${t.addon_name} · ${t.name}` }))}
+                            clearable
+                            {...form.getInputProps('included')}
+                        />
+                    )}
+                    {includedChanged && (
+                        <Select
+                            label="Текущие подписчики"
+                            description={`У тарифа ${draft.subscribers} подписок`}
+                            leftSection={<PiPuzzlePieceDuotone size={16} />}
+                            data={[
+                                { value: 'skip', label: 'Не трогать — изменится при смене тарифа' },
+                                { value: 'disable', label: 'Применить, убранные аддоны отключить' },
+                                { value: 'keep_paid', label: 'Применить, убранные аддоны оставить платными' }
+                            ]}
+                            allowDeselect={false}
+                            {...form.getInputProps('sync_included')}
+                        />
+                    )}
                     <SimpleGrid cols={{ base: 1, xs: 2 }}>
                         <NumberInput
                             label="Цена в месяц"

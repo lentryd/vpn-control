@@ -47,16 +47,18 @@ func rwUserView(u *ent.RwUser) *RwUserView {
 }
 
 type AddonView struct {
-	ID             int         `json:"id"`
-	SubscriptionID int         `json:"subscription_id"`
-	AddonID        int         `json:"addon_id"`
-	AddonName      string      `json:"addon_name"`
-	TariffID       *int        `json:"tariff_id"`
-	TariffName     string      `json:"tariff_name"`
-	PriceOverride  *float64    `json:"price_override"`
-	Price          float64     `json:"price"`
-	AutoExtend     bool        `json:"auto_extend"`
-	RwUser         *RwUserView `json:"rw_user"`
+	ID             int      `json:"id"`
+	SubscriptionID int      `json:"subscription_id"`
+	AddonID        int      `json:"addon_id"`
+	AddonName      string   `json:"addon_name"`
+	TariffID       *int     `json:"tariff_id"`
+	TariffName     string   `json:"tariff_name"`
+	PriceOverride  *float64 `json:"price_override"`
+	Price          float64  `json:"price"`
+	AutoExtend     bool     `json:"auto_extend"`
+	// Included add-ons come with the subscription's tariff (price 0).
+	Included bool        `json:"included"`
+	RwUser   *RwUserView `json:"rw_user"`
 }
 
 type SubscriptionView struct {
@@ -89,8 +91,8 @@ func addonView(sa *ent.SubscriptionAddon) AddonView {
 	v := AddonView{
 		ID: sa.ID, SubscriptionID: sa.SubscriptionID, AddonID: sa.AddonID, TariffID: sa.TariffID,
 		PriceOverride: money.ToMajorPtr(sa.PriceOverride),
-		Price:         money.ToMajor(billing.EffectivePrice(sa.PriceOverride, sa.Edges.Tariff)),
-		AutoExtend:    sa.AutoExtend, RwUser: rwUserView(sa.Edges.RwUser),
+		Price:         money.ToMajor(billing.AddonPrice(sa)),
+		AutoExtend:    sa.AutoExtend, Included: sa.Included, RwUser: rwUserView(sa.Edges.RwUser),
 	}
 	if sa.Edges.Addon != nil {
 		v.AddonName = sa.Edges.Addon.Name

@@ -82,7 +82,9 @@ func (h *Handlers) Dashboard(c *fiber.Ctx) error {
 			if a.RwUser != nil && live(a.RwUser) {
 				activeAddons++
 			}
-			add("addon", a.ID, a.AddonName+" · "+s.Title, s, a.RwUser, a.Price)
+			if !a.Included { // included add-ons expire with their subscription
+				add("addon", a.ID, a.AddonName+" · "+s.Title, s, a.RwUser, a.Price)
+			}
 		}
 	}
 	sort.Slice(expiring, func(i, j int) bool { return expiring[i].ExpireAt.Before(*expiring[j].ExpireAt) })

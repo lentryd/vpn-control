@@ -17,6 +17,7 @@ import (
 	"vpn-control/ent/addon"
 	"vpn-control/ent/rwuser"
 	"vpn-control/ent/subscriptionaddon"
+	"vpn-control/ent/tariff"
 	"vpn-control/internal/addons"
 	"vpn-control/internal/remnawave"
 )
@@ -158,9 +159,21 @@ func (s *Service) linkAddonUsers(ctx context.Context) error {
 			if exists {
 				continue
 			}
-			if err := s.db.SubscriptionAddon.Create().
-				SetSubscriptionID(sub.ID).SetAddonID(a.ID).SetRwUserID(u.ID).
-				Exec(ctx); err != nil {
+			q := s.db.SubscriptionAddon.Create().
+				SetSubscriptionID(sub.ID).SetAddonID(a.ID).SetRwUserID(u.ID)
+			// The subscription's tariff may include this add-on.
+			if sub.TariffID != nil {
+				inc, err := s.db.Tariff.Query().
+					Where(tariff.AddonID(a.ID), tariff.HasIncludedInWith(tariff.ID(*sub.TariffID))).
+					First(ctx)
+				if err != nil && !ent.IsNotFound(err) {
+					return err
+				}
+				if inc != nil {
+					q.SetIncluded(true).SetTariffID(inc.ID)
+				}
+			}
+			if err := q.Exec(ctx); err != nil {
 				return err
 			}
 			slog.Info("linked add-on user", "username", u.Username, "subscription", sub.ID, "addon", a.Name)

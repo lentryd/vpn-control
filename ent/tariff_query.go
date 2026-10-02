@@ -31,6 +31,8 @@ type TariffQuery struct {
 	withPeriods            *TariffPeriodQuery
 	withSubscriptions      *SubscriptionQuery
 	withSubscriptionAddons *SubscriptionAddonQuery
+	withIncludedIn         *TariffQuery
+	withIncludedAddons     *TariffQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -148,6 +150,50 @@ func (_q *TariffQuery) QuerySubscriptionAddons() *SubscriptionAddonQuery {
 			sqlgraph.From(tariff.Table, tariff.FieldID, selector),
 			sqlgraph.To(subscriptionaddon.Table, subscriptionaddon.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, tariff.SubscriptionAddonsTable, tariff.SubscriptionAddonsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryIncludedIn chains the current query on the "included_in" edge.
+func (_q *TariffQuery) QueryIncludedIn() *TariffQuery {
+	query := (&TariffClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(tariff.Table, tariff.FieldID, selector),
+			sqlgraph.To(tariff.Table, tariff.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, tariff.IncludedInTable, tariff.IncludedInPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryIncludedAddons chains the current query on the "included_addons" edge.
+func (_q *TariffQuery) QueryIncludedAddons() *TariffQuery {
+	query := (&TariffClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(tariff.Table, tariff.FieldID, selector),
+			sqlgraph.To(tariff.Table, tariff.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, tariff.IncludedAddonsTable, tariff.IncludedAddonsPrimaryKey...),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -351,6 +397,8 @@ func (_q *TariffQuery) Clone() *TariffQuery {
 		withPeriods:            _q.withPeriods.Clone(),
 		withSubscriptions:      _q.withSubscriptions.Clone(),
 		withSubscriptionAddons: _q.withSubscriptionAddons.Clone(),
+		withIncludedIn:         _q.withIncludedIn.Clone(),
+		withIncludedAddons:     _q.withIncludedAddons.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -398,6 +446,28 @@ func (_q *TariffQuery) WithSubscriptionAddons(opts ...func(*SubscriptionAddonQue
 		opt(query)
 	}
 	_q.withSubscriptionAddons = query
+	return _q
+}
+
+// WithIncludedIn tells the query-builder to eager-load the nodes that are connected to
+// the "included_in" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TariffQuery) WithIncludedIn(opts ...func(*TariffQuery)) *TariffQuery {
+	query := (&TariffClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withIncludedIn = query
+	return _q
+}
+
+// WithIncludedAddons tells the query-builder to eager-load the nodes that are connected to
+// the "included_addons" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TariffQuery) WithIncludedAddons(opts ...func(*TariffQuery)) *TariffQuery {
+	query := (&TariffClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withIncludedAddons = query
 	return _q
 }
 
@@ -479,11 +549,13 @@ func (_q *TariffQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Tarif
 	var (
 		nodes       = []*Tariff{}
 		_spec       = _q.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [6]bool{
 			_q.withAddon != nil,
 			_q.withPeriods != nil,
 			_q.withSubscriptions != nil,
 			_q.withSubscriptionAddons != nil,
+			_q.withIncludedIn != nil,
+			_q.withIncludedAddons != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -530,6 +602,20 @@ func (_q *TariffQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Tarif
 			func(n *Tariff, e *SubscriptionAddon) {
 				n.Edges.SubscriptionAddons = append(n.Edges.SubscriptionAddons, e)
 			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withIncludedIn; query != nil {
+		if err := _q.loadIncludedIn(ctx, query, nodes,
+			func(n *Tariff) { n.Edges.IncludedIn = []*Tariff{} },
+			func(n *Tariff, e *Tariff) { n.Edges.IncludedIn = append(n.Edges.IncludedIn, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withIncludedAddons; query != nil {
+		if err := _q.loadIncludedAddons(ctx, query, nodes,
+			func(n *Tariff) { n.Edges.IncludedAddons = []*Tariff{} },
+			func(n *Tariff, e *Tariff) { n.Edges.IncludedAddons = append(n.Edges.IncludedAddons, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -661,6 +747,128 @@ func (_q *TariffQuery) loadSubscriptionAddons(ctx context.Context, query *Subscr
 			return fmt.Errorf(`unexpected referenced foreign-key "tariff_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
+	}
+	return nil
+}
+func (_q *TariffQuery) loadIncludedIn(ctx context.Context, query *TariffQuery, nodes []*Tariff, init func(*Tariff), assign func(*Tariff, *Tariff)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*Tariff)
+	nids := make(map[int]map[*Tariff]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(tariff.IncludedInTable)
+		s.Join(joinT).On(s.C(tariff.FieldID), joinT.C(tariff.IncludedInPrimaryKey[0]))
+		s.Where(sql.InValues(joinT.C(tariff.IncludedInPrimaryKey[1]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(tariff.IncludedInPrimaryKey[1]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(sql.NullInt64)}, values...), nil
+			}
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := int(values[0].(*sql.NullInt64).Int64)
+				inValue := int(values[1].(*sql.NullInt64).Int64)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*Tariff]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
+			}
+		})
+	})
+	neighbors, err := withInterceptors[[]*Tariff](ctx, query, qr, query.inters)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "included_in" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
+}
+func (_q *TariffQuery) loadIncludedAddons(ctx context.Context, query *TariffQuery, nodes []*Tariff, init func(*Tariff), assign func(*Tariff, *Tariff)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*Tariff)
+	nids := make(map[int]map[*Tariff]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(tariff.IncludedAddonsTable)
+		s.Join(joinT).On(s.C(tariff.FieldID), joinT.C(tariff.IncludedAddonsPrimaryKey[1]))
+		s.Where(sql.InValues(joinT.C(tariff.IncludedAddonsPrimaryKey[0]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(tariff.IncludedAddonsPrimaryKey[0]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(sql.NullInt64)}, values...), nil
+			}
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := int(values[0].(*sql.NullInt64).Int64)
+				inValue := int(values[1].(*sql.NullInt64).Int64)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*Tariff]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
+			}
+		})
+	})
+	neighbors, err := withInterceptors[[]*Tariff](ctx, query, qr, query.inters)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "included_addons" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
 	}
 	return nil
 }

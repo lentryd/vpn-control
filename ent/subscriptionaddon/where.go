@@ -95,6 +95,11 @@ func AutoExtend(v bool) predicate.SubscriptionAddon {
 	return predicate.SubscriptionAddon(sql.FieldEQ(FieldAutoExtend, v))
 }
 
+// Included applies equality check predicate on the "included" field. It's identical to IncludedEQ.
+func Included(v bool) predicate.SubscriptionAddon {
+	return predicate.SubscriptionAddon(sql.FieldEQ(FieldIncluded, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.SubscriptionAddon {
 	return predicate.SubscriptionAddon(sql.FieldEQ(FieldCreatedAt, v))
@@ -333,6 +338,16 @@ func AutoExtendEQ(v bool) predicate.SubscriptionAddon {
 // AutoExtendNEQ applies the NEQ predicate on the "auto_extend" field.
 func AutoExtendNEQ(v bool) predicate.SubscriptionAddon {
 	return predicate.SubscriptionAddon(sql.FieldNEQ(FieldAutoExtend, v))
+}
+
+// IncludedEQ applies the EQ predicate on the "included" field.
+func IncludedEQ(v bool) predicate.SubscriptionAddon {
+	return predicate.SubscriptionAddon(sql.FieldEQ(FieldIncluded, v))
+}
+
+// IncludedNEQ applies the NEQ predicate on the "included" field.
+func IncludedNEQ(v bool) predicate.SubscriptionAddon {
+	return predicate.SubscriptionAddon(sql.FieldNEQ(FieldIncluded, v))
 }
 
 // HasSubscription applies the HasEdge predicate on the "subscription" edge.

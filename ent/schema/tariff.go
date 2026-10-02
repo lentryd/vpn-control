@@ -7,6 +7,9 @@ import (
 )
 
 // Tariff is a price plan, either for base subscriptions or for one add-on.
+// A base tariff may include add-ons: their add-on tariffs' Remnawave
+// parameters apply, they cost nothing extra and follow the subscription's
+// term.
 // When ManageRw is set its Remnawave parameters are pushed to the user on
 // creation and on tariff change.
 type Tariff struct {
@@ -39,6 +42,7 @@ func (Tariff) Edges() []ent.Edge {
 		edge.To("periods", TariffPeriod.Type),
 		edge.To("subscriptions", Subscription.Type),
 		edge.To("subscription_addons", SubscriptionAddon.Type),
+		edge.To("included_addons", Tariff.Type).From("included_in"),
 	}
 }
 

@@ -1,4 +1,4 @@
-import { Alert, Group, Indicator, NumberInput, Paper, Select, type SelectProps, SimpleGrid, Stack, Switch, Text, TextInput } from '@mantine/core'
+import { Alert, Badge, Group, Indicator, NumberInput, Paper, SegmentedControl, Select, type SelectProps, SimpleGrid, Stack, Switch, Text, TextInput } from '@mantine/core'
 import { TbUser } from 'react-icons/tb'
 import {
     PiArrowsClockwise,
@@ -24,7 +24,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { api } from '@/api/client'
 import { useApiMutation, useCustomers, useRwUsers, useTariffs } from '@/api/hooks'
-import type { RwUserRow, Subscription, Tariff } from '@/api/types'
+import type { RwUserRow, Subscription, Tariff, TariffQuote } from '@/api/types'
 import { expiryColor, StatusBadge } from '@/components/badges'
 import { daysLeft, fmtBytes, fmtDate, fmtMoney, isUnlimited, currencySymbol } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
@@ -484,20 +484,33 @@ function ChangeTariffForm({
     const [target, setTarget] = useState<string | null>(null)
     const [surcharge, setSurcharge] = useState(0)
     const [clearOverride, setClearOverride] = useState(true)
+    // removed: subscription add-on id → 'disable' | 'keep_paid'
+    const [removed, setRemoved] = useState<Record<number, string>>({})
     const quote = useQuery({
         queryKey: ['tariff-quote', kind, id, target],
         enabled: !!target,
-        queryFn: () =>
-            api.get<{ old_monthly: number; new_monthly: number; expire_at: string | null; surcharge: number }>(
-                `items/${kind}/${id}/tariff-quote?tariff_id=${target}`
-            )
+        queryFn: () => api.get<TariffQuote>(`items/${kind}/${id}/tariff-quote?tariff_id=${target}`)
     })
     useEffect(() => {
-        if (quote.data) setSurcharge(Math.max(0, quote.data.surcharge))
+        if (!quote.data) return
+        // a downgrade isn't refunded, the unused paid time of add-ons that
+        // become included is
+        const credits = quote.data.addons.reduce((s, a) => s + a.credit, 0)
+        setSurcharge(Math.max(0, quote.data.surcharge + credits) - credits)
+        setRemoved({})
     }, [quote.data])
     const t = options.find((x) => String(x.id) === target)
     const m = useApiMutation(() =>
-        api.post(`items/${kind}/${id}/tariff`, { tariff_id: Number(target), surcharge, clear_override: clearOverride })
+        api.post(`items/${kind}/${id}/tariff`, {
+            tariff_id: Number(target),
+            surcharge,
+            clear_override: clearOverride,
+            removed_addons: Object.fromEntries(
+                (quote.data?.addons ?? [])
+                    .filter((a) => a.action === 'remove' && a.subscription_addon_id)
+                    .map((a) => [a.subscription_addon_id, removed[a.subscription_addon_id!] ?? 'disable'])
+            )
+        })
     )
     return (
         <>
@@ -541,6 +554,45 @@ function ChangeTariffForm({
                                     </Group>
                                 </Stack>
                             </Paper>
+                        )}
+                        {!!quote.data?.addons.length && (
+                            <Stack gap="xs">
+                                <Text fw={500} size="sm">
+                                    Аддоны из тарифа
+                                </Text>
+                                {quote.data.addons.map((a) => (
+                                    <Paper key={`${a.action}-${a.addon_id}`} p="xs" radius="md" withBorder>
+                                        <Group gap="xs" justify="space-between" wrap="nowrap">
+                                            <Stack gap={0} miw={0}>
+                                                <Text fw={500} size="sm" truncate="end">
+                                                    {a.addon_name}
+                                                </Text>
+                                                <Text c="dimmed" size="xs">
+                                                    {a.action === 'connect' && `подключится бесплатно до конца подписки (${a.tariff_name})`}
+                                                    {a.action === 'include' &&
+                                                        `станет включённым${a.credit > 0 ? `, вернём ${fmtMoney(a.credit, 2)} за оплаченный остаток` : ''}`}
+                                                    {a.action === 'remove' && 'больше не входит в тариф'}
+                                                </Text>
+                                            </Stack>
+                                            {a.action === 'remove' ? (
+                                                <SegmentedControl
+                                                    size="xs"
+                                                    data={[
+                                                        { value: 'disable', label: 'Отключить' },
+                                                        { value: 'keep_paid', label: 'Оставить платным' }
+                                                    ]}
+                                                    value={removed[a.subscription_addon_id!] ?? 'disable'}
+                                                    onChange={(v) => setRemoved((r) => ({ ...r, [a.subscription_addon_id!]: v }))}
+                                                />
+                                            ) : (
+                                                <Badge color={a.action === 'connect' ? 'teal' : 'grape'} variant="soft">
+                                                    {a.action === 'connect' ? 'новый' : 'в тариф'}
+                                                </Badge>
+                                            )}
+                                        </Group>
+                                    </Paper>
+                                ))}
+                            </Stack>
                         )}
                         {t && (
                             <Text c="dimmed" size="xs">

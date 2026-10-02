@@ -240,6 +240,36 @@ func (_c *TariffCreate) AddSubscriptionAddons(v ...*SubscriptionAddon) *TariffCr
 	return _c.AddSubscriptionAddonIDs(ids...)
 }
 
+// AddIncludedInIDs adds the "included_in" edge to the Tariff entity by IDs.
+func (_c *TariffCreate) AddIncludedInIDs(ids ...int) *TariffCreate {
+	_c.mutation.AddIncludedInIDs(ids...)
+	return _c
+}
+
+// AddIncludedIn adds the "included_in" edges to the Tariff entity.
+func (_c *TariffCreate) AddIncludedIn(v ...*Tariff) *TariffCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddIncludedInIDs(ids...)
+}
+
+// AddIncludedAddonIDs adds the "included_addons" edge to the Tariff entity by IDs.
+func (_c *TariffCreate) AddIncludedAddonIDs(ids ...int) *TariffCreate {
+	_c.mutation.AddIncludedAddonIDs(ids...)
+	return _c
+}
+
+// AddIncludedAddons adds the "included_addons" edges to the Tariff entity.
+func (_c *TariffCreate) AddIncludedAddons(v ...*Tariff) *TariffCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddIncludedAddonIDs(ids...)
+}
+
 // Mutation returns the TariffMutation object of the builder.
 func (_c *TariffCreate) Mutation() *TariffMutation {
 	return _c.mutation
@@ -489,6 +519,38 @@ func (_c *TariffCreate) createSpec() (*Tariff, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.IncludedInIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tariff.IncludedInTable,
+			Columns: tariff.IncludedInPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tariff.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.IncludedAddonsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   tariff.IncludedAddonsTable,
+			Columns: tariff.IncludedAddonsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tariff.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

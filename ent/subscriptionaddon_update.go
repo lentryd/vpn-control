@@ -147,6 +147,20 @@ func (_u *SubscriptionAddonUpdate) SetNillableAutoExtend(v *bool) *SubscriptionA
 	return _u
 }
 
+// SetIncluded sets the "included" field.
+func (_u *SubscriptionAddonUpdate) SetIncluded(v bool) *SubscriptionAddonUpdate {
+	_u.mutation.SetIncluded(v)
+	return _u
+}
+
+// SetNillableIncluded sets the "included" field if the given value is not nil.
+func (_u *SubscriptionAddonUpdate) SetNillableIncluded(v *bool) *SubscriptionAddonUpdate {
+	if v != nil {
+		_u.SetIncluded(*v)
+	}
+	return _u
+}
+
 // SetSubscription sets the "subscription" edge to the Subscription entity.
 func (_u *SubscriptionAddonUpdate) SetSubscription(v *Subscription) *SubscriptionAddonUpdate {
 	return _u.SetSubscriptionID(v.ID)
@@ -269,6 +283,9 @@ func (_u *SubscriptionAddonUpdate) sqlSave(ctx context.Context) (_node int, err 
 	}
 	if value, ok := _u.mutation.AutoExtend(); ok {
 		_spec.SetField(subscriptionaddon.FieldAutoExtend, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Included(); ok {
+		_spec.SetField(subscriptionaddon.FieldIncluded, field.TypeBool, value)
 	}
 	if _u.mutation.SubscriptionCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -521,6 +538,20 @@ func (_u *SubscriptionAddonUpdateOne) SetNillableAutoExtend(v *bool) *Subscripti
 	return _u
 }
 
+// SetIncluded sets the "included" field.
+func (_u *SubscriptionAddonUpdateOne) SetIncluded(v bool) *SubscriptionAddonUpdateOne {
+	_u.mutation.SetIncluded(v)
+	return _u
+}
+
+// SetNillableIncluded sets the "included" field if the given value is not nil.
+func (_u *SubscriptionAddonUpdateOne) SetNillableIncluded(v *bool) *SubscriptionAddonUpdateOne {
+	if v != nil {
+		_u.SetIncluded(*v)
+	}
+	return _u
+}
+
 // SetSubscription sets the "subscription" edge to the Subscription entity.
 func (_u *SubscriptionAddonUpdateOne) SetSubscription(v *Subscription) *SubscriptionAddonUpdateOne {
 	return _u.SetSubscriptionID(v.ID)
@@ -673,6 +704,9 @@ func (_u *SubscriptionAddonUpdateOne) sqlSave(ctx context.Context) (_node *Subsc
 	}
 	if value, ok := _u.mutation.AutoExtend(); ok {
 		_spec.SetField(subscriptionaddon.FieldAutoExtend, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Included(); ok {
+		_spec.SetField(subscriptionaddon.FieldIncluded, field.TypeBool, value)
 	}
 	if _u.mutation.SubscriptionCleared() {
 		edge := &sqlgraph.EdgeSpec{

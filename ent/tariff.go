@@ -63,9 +63,13 @@ type TariffEdges struct {
 	Subscriptions []*Subscription `json:"subscriptions,omitempty"`
 	// SubscriptionAddons holds the value of the subscription_addons edge.
 	SubscriptionAddons []*SubscriptionAddon `json:"subscription_addons,omitempty"`
+	// IncludedIn holds the value of the included_in edge.
+	IncludedIn []*Tariff `json:"included_in,omitempty"`
+	// IncludedAddons holds the value of the included_addons edge.
+	IncludedAddons []*Tariff `json:"included_addons,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [6]bool
 }
 
 // AddonOrErr returns the Addon value or an error if the edge
@@ -104,6 +108,24 @@ func (e TariffEdges) SubscriptionAddonsOrErr() ([]*SubscriptionAddon, error) {
 		return e.SubscriptionAddons, nil
 	}
 	return nil, &NotLoadedError{edge: "subscription_addons"}
+}
+
+// IncludedInOrErr returns the IncludedIn value or an error if the edge
+// was not loaded in eager-loading.
+func (e TariffEdges) IncludedInOrErr() ([]*Tariff, error) {
+	if e.loadedTypes[4] {
+		return e.IncludedIn, nil
+	}
+	return nil, &NotLoadedError{edge: "included_in"}
+}
+
+// IncludedAddonsOrErr returns the IncludedAddons value or an error if the edge
+// was not loaded in eager-loading.
+func (e TariffEdges) IncludedAddonsOrErr() ([]*Tariff, error) {
+	if e.loadedTypes[5] {
+		return e.IncludedAddons, nil
+	}
+	return nil, &NotLoadedError{edge: "included_addons"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -261,6 +283,16 @@ func (_m *Tariff) QuerySubscriptions() *SubscriptionQuery {
 // QuerySubscriptionAddons queries the "subscription_addons" edge of the Tariff entity.
 func (_m *Tariff) QuerySubscriptionAddons() *SubscriptionAddonQuery {
 	return NewTariffClient(_m.config).QuerySubscriptionAddons(_m)
+}
+
+// QueryIncludedIn queries the "included_in" edge of the Tariff entity.
+func (_m *Tariff) QueryIncludedIn() *TariffQuery {
+	return NewTariffClient(_m.config).QueryIncludedIn(_m)
+}
+
+// QueryIncludedAddons queries the "included_addons" edge of the Tariff entity.
+func (_m *Tariff) QueryIncludedAddons() *TariffQuery {
+	return NewTariffClient(_m.config).QueryIncludedAddons(_m)
 }
 
 // Update returns a builder for updating this Tariff.

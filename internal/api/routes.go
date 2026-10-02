@@ -66,6 +66,7 @@ func RegisterRoutes(app *fiber.App, deps *Deps) {
 	a.Post("/tariffs", h.CreateTariff)
 	a.Put("/tariffs/:id", h.UpdateTariff)
 	a.Delete("/tariffs/:id", h.DeleteTariff)
+	a.Post("/tariffs/:id/sync-included", h.SyncIncluded)
 	a.Get("/addons", h.ListAddons)
 
 	a.Get("/rw/users", h.ListRwUsers)

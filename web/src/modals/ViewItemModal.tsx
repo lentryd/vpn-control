@@ -495,15 +495,23 @@ function AddonEditor({ addon, sub, close }: { addon: AddonItem; sub: Subscriptio
                             icon={PiTagDuotone}
                             title="Цена и продление"
                         >
-                            <NumberInput
-                                decimalScale={2}
-                                description={tariff ? `Пусто — цена тарифа, ${fmtMoney(tariff.monthly_price)}` : 'Пусто — цена тарифа'}
-                                label={`Индивидуальная цена, ${currencySymbol()}/мес`}
-                                leftSection={<CurrencyIcon size={16} />}
-                                min={0}
-                                {...form.getInputProps('price_override')}
-                            />
-                            <SwitchAutoExtend {...form.getInputProps('auto_extend', { type: 'checkbox' })} />
+                            {addon.included ? (
+                                <Text c="dimmed" size="sm">
+                                    Аддон входит в тариф подписки: бесплатный, продлевается, включается и отключается вместе с ней.
+                                </Text>
+                            ) : (
+                                <>
+                                    <NumberInput
+                                        decimalScale={2}
+                                        description={tariff ? `Пусто — цена тарифа, ${fmtMoney(tariff.monthly_price)}` : 'Пусто — цена тарифа'}
+                                        label={`Индивидуальная цена, ${currencySymbol()}/мес`}
+                                        leftSection={<CurrencyIcon size={16} />}
+                                        min={0}
+                                        {...form.getInputProps('price_override')}
+                                    />
+                                    <SwitchAutoExtend {...form.getInputProps('auto_extend', { type: 'checkbox' })} />
+                                </>
+                            )}
                         </FormSection>
                         <IdentityCard icon={PiHexagonDuotone} rw={sub.rw_user} title={`Основная подписка: ${sub.title}`} />
                     </>
@@ -513,20 +521,22 @@ function AddonEditor({ addon, sub, close }: { addon: AddonItem; sub: Subscriptio
                 <MoreMenu>
                     <AddonMenuItems addon={addon} inView onUnlinked={close} subTitle={sub.title} />
                 </MoreMenu>
-                <Button
-                    color="indigo"
-                    leftSection={<PiArrowsLeftRight size={16} />}
-                    onClick={() =>
-                        openChangeTariffModal({ kind: 'addon', id: addon.id, title, tariffId: addon.tariff_id, addonId: addon.addon_id })
-                    }
-                    size="md"
-                    variant="soft"
-                >
-                    Сменить тариф
-                </Button>
+                {!addon.included && (
+                    <Button
+                        color="indigo"
+                        leftSection={<PiArrowsLeftRight size={16} />}
+                        onClick={() =>
+                            openChangeTariffModal({ kind: 'addon', id: addon.id, title, tariffId: addon.tariff_id, addonId: addon.addon_id })
+                        }
+                        size="md"
+                        variant="soft"
+                    >
+                        Сменить тариф
+                    </Button>
+                )}
                 <Button
                     color="teal"
-                    disabled={!addon.rw_user || addon.rw_user.unlimited}
+                    disabled={!addon.rw_user || addon.rw_user.unlimited || addon.included}
                     leftSection={<PiCalendarPlus size={16} />}
                     onClick={() => openExtendModal({ kind: 'addon', id: addon.id, title })}
                     size="md"

@@ -122,6 +122,20 @@ func (_c *SubscriptionAddonCreate) SetNillableAutoExtend(v *bool) *SubscriptionA
 	return _c
 }
 
+// SetIncluded sets the "included" field.
+func (_c *SubscriptionAddonCreate) SetIncluded(v bool) *SubscriptionAddonCreate {
+	_c.mutation.SetIncluded(v)
+	return _c
+}
+
+// SetNillableIncluded sets the "included" field if the given value is not nil.
+func (_c *SubscriptionAddonCreate) SetNillableIncluded(v *bool) *SubscriptionAddonCreate {
+	if v != nil {
+		_c.SetIncluded(*v)
+	}
+	return _c
+}
+
 // SetSubscription sets the "subscription" edge to the Subscription entity.
 func (_c *SubscriptionAddonCreate) SetSubscription(v *Subscription) *SubscriptionAddonCreate {
 	return _c.SetSubscriptionID(v.ID)
@@ -189,6 +203,10 @@ func (_c *SubscriptionAddonCreate) defaults() {
 		v := subscriptionaddon.DefaultAutoExtend
 		_c.mutation.SetAutoExtend(v)
 	}
+	if _, ok := _c.mutation.Included(); !ok {
+		v := subscriptionaddon.DefaultIncluded
+		_c.mutation.SetIncluded(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -207,6 +225,9 @@ func (_c *SubscriptionAddonCreate) check() error {
 	}
 	if _, ok := _c.mutation.AutoExtend(); !ok {
 		return &ValidationError{Name: "auto_extend", err: errors.New(`ent: missing required field "SubscriptionAddon.auto_extend"`)}
+	}
+	if _, ok := _c.mutation.Included(); !ok {
+		return &ValidationError{Name: "included", err: errors.New(`ent: missing required field "SubscriptionAddon.included"`)}
 	}
 	if len(_c.mutation.SubscriptionIDs()) == 0 {
 		return &ValidationError{Name: "subscription", err: errors.New(`ent: missing required edge "SubscriptionAddon.subscription"`)}
@@ -256,6 +277,10 @@ func (_c *SubscriptionAddonCreate) createSpec() (*SubscriptionAddon, *sqlgraph.C
 	if value, ok := _c.mutation.AutoExtend(); ok {
 		_spec.SetField(subscriptionaddon.FieldAutoExtend, field.TypeBool, value)
 		_node.AutoExtend = value
+	}
+	if value, ok := _c.mutation.Included(); ok {
+		_spec.SetField(subscriptionaddon.FieldIncluded, field.TypeBool, value)
+		_node.Included = value
 	}
 	if nodes := _c.mutation.SubscriptionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -485,6 +510,18 @@ func (u *SubscriptionAddonUpsert) UpdateAutoExtend() *SubscriptionAddonUpsert {
 	return u
 }
 
+// SetIncluded sets the "included" field.
+func (u *SubscriptionAddonUpsert) SetIncluded(v bool) *SubscriptionAddonUpsert {
+	u.Set(subscriptionaddon.FieldIncluded, v)
+	return u
+}
+
+// UpdateIncluded sets the "included" field to the value that was provided on create.
+func (u *SubscriptionAddonUpsert) UpdateIncluded() *SubscriptionAddonUpsert {
+	u.SetExcluded(subscriptionaddon.FieldIncluded)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -653,6 +690,20 @@ func (u *SubscriptionAddonUpsertOne) SetAutoExtend(v bool) *SubscriptionAddonUps
 func (u *SubscriptionAddonUpsertOne) UpdateAutoExtend() *SubscriptionAddonUpsertOne {
 	return u.Update(func(s *SubscriptionAddonUpsert) {
 		s.UpdateAutoExtend()
+	})
+}
+
+// SetIncluded sets the "included" field.
+func (u *SubscriptionAddonUpsertOne) SetIncluded(v bool) *SubscriptionAddonUpsertOne {
+	return u.Update(func(s *SubscriptionAddonUpsert) {
+		s.SetIncluded(v)
+	})
+}
+
+// UpdateIncluded sets the "included" field to the value that was provided on create.
+func (u *SubscriptionAddonUpsertOne) UpdateIncluded() *SubscriptionAddonUpsertOne {
+	return u.Update(func(s *SubscriptionAddonUpsert) {
+		s.UpdateIncluded()
 	})
 }
 
@@ -990,6 +1041,20 @@ func (u *SubscriptionAddonUpsertBulk) SetAutoExtend(v bool) *SubscriptionAddonUp
 func (u *SubscriptionAddonUpsertBulk) UpdateAutoExtend() *SubscriptionAddonUpsertBulk {
 	return u.Update(func(s *SubscriptionAddonUpsert) {
 		s.UpdateAutoExtend()
+	})
+}
+
+// SetIncluded sets the "included" field.
+func (u *SubscriptionAddonUpsertBulk) SetIncluded(v bool) *SubscriptionAddonUpsertBulk {
+	return u.Update(func(s *SubscriptionAddonUpsert) {
+		s.SetIncluded(v)
+	})
+}
+
+// UpdateIncluded sets the "included" field to the value that was provided on create.
+func (u *SubscriptionAddonUpsertBulk) UpdateIncluded() *SubscriptionAddonUpsertBulk {
+	return u.Update(func(s *SubscriptionAddonUpsert) {
+		s.UpdateIncluded()
 	})
 }
 

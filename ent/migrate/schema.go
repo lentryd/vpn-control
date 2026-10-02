@@ -338,6 +338,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "price_override", Type: field.TypeInt64, Nullable: true},
 		{Name: "auto_extend", Type: field.TypeBool, Default: true},
+		{Name: "included", Type: field.TypeBool, Default: false},
 		{Name: "addon_id", Type: field.TypeInt},
 		{Name: "rw_user_id", Type: field.TypeInt, Unique: true, Nullable: true},
 		{Name: "subscription_id", Type: field.TypeInt},
@@ -351,25 +352,25 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscription_addons_addons_subscription_addons",
-				Columns:    []*schema.Column{SubscriptionAddonsColumns[5]},
+				Columns:    []*schema.Column{SubscriptionAddonsColumns[6]},
 				RefColumns: []*schema.Column{AddonsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "subscription_addons_rw_users_subscription_addon",
-				Columns:    []*schema.Column{SubscriptionAddonsColumns[6]},
+				Columns:    []*schema.Column{SubscriptionAddonsColumns[7]},
 				RefColumns: []*schema.Column{RwUsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "subscription_addons_subscriptions_addons",
-				Columns:    []*schema.Column{SubscriptionAddonsColumns[7]},
+				Columns:    []*schema.Column{SubscriptionAddonsColumns[8]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "subscription_addons_tariffs_subscription_addons",
-				Columns:    []*schema.Column{SubscriptionAddonsColumns[8]},
+				Columns:    []*schema.Column{SubscriptionAddonsColumns[9]},
 				RefColumns: []*schema.Column{TariffsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -451,6 +452,31 @@ var (
 			},
 		},
 	}
+	// TariffIncludedAddonsColumns holds the columns for the "tariff_included_addons" table.
+	TariffIncludedAddonsColumns = []*schema.Column{
+		{Name: "tariff_id", Type: field.TypeInt},
+		{Name: "included_in_id", Type: field.TypeInt},
+	}
+	// TariffIncludedAddonsTable holds the schema information for the "tariff_included_addons" table.
+	TariffIncludedAddonsTable = &schema.Table{
+		Name:       "tariff_included_addons",
+		Columns:    TariffIncludedAddonsColumns,
+		PrimaryKey: []*schema.Column{TariffIncludedAddonsColumns[0], TariffIncludedAddonsColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "tariff_included_addons_tariff_id",
+				Columns:    []*schema.Column{TariffIncludedAddonsColumns[0]},
+				RefColumns: []*schema.Column{TariffsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "tariff_included_addons_included_in_id",
+				Columns:    []*schema.Column{TariffIncludedAddonsColumns[1]},
+				RefColumns: []*schema.Column{TariffsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AddonsTable,
@@ -470,6 +496,7 @@ var (
 		TariffsTable,
 		TariffPeriodsTable,
 		TrafficSnapshotsTable,
+		TariffIncludedAddonsTable,
 	}
 )
 
@@ -487,4 +514,6 @@ func init() {
 	SubscriptionAddonsTable.ForeignKeys[3].RefTable = TariffsTable
 	TariffsTable.ForeignKeys[0].RefTable = AddonsTable
 	TariffPeriodsTable.ForeignKeys[0].RefTable = TariffsTable
+	TariffIncludedAddonsTable.ForeignKeys[0].RefTable = TariffsTable
+	TariffIncludedAddonsTable.ForeignKeys[1].RefTable = TariffsTable
 }

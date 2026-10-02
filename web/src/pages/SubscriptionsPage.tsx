@@ -92,7 +92,7 @@ export function SubscriptionsPage() {
                         badge={
                             row.original.kind === 'addon' && (
                                 <Badge size="xs" color="grape" variant="soft">
-                                    аддон
+                                    {row.original.addon?.included ? 'аддон · в тарифе' : 'аддон'}
                                 </Badge>
                             )
                         }

@@ -307,6 +307,36 @@ func (_u *TariffUpdate) AddSubscriptionAddons(v ...*SubscriptionAddon) *TariffUp
 	return _u.AddSubscriptionAddonIDs(ids...)
 }
 
+// AddIncludedInIDs adds the "included_in" edge to the Tariff entity by IDs.
+func (_u *TariffUpdate) AddIncludedInIDs(ids ...int) *TariffUpdate {
+	_u.mutation.AddIncludedInIDs(ids...)
+	return _u
+}
+
+// AddIncludedIn adds the "included_in" edges to the Tariff entity.
+func (_u *TariffUpdate) AddIncludedIn(v ...*Tariff) *TariffUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddIncludedInIDs(ids...)
+}
+
+// AddIncludedAddonIDs adds the "included_addons" edge to the Tariff entity by IDs.
+func (_u *TariffUpdate) AddIncludedAddonIDs(ids ...int) *TariffUpdate {
+	_u.mutation.AddIncludedAddonIDs(ids...)
+	return _u
+}
+
+// AddIncludedAddons adds the "included_addons" edges to the Tariff entity.
+func (_u *TariffUpdate) AddIncludedAddons(v ...*Tariff) *TariffUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddIncludedAddonIDs(ids...)
+}
+
 // Mutation returns the TariffMutation object of the builder.
 func (_u *TariffUpdate) Mutation() *TariffMutation {
 	return _u.mutation
@@ -379,6 +409,48 @@ func (_u *TariffUpdate) RemoveSubscriptionAddons(v ...*SubscriptionAddon) *Tarif
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveSubscriptionAddonIDs(ids...)
+}
+
+// ClearIncludedIn clears all "included_in" edges to the Tariff entity.
+func (_u *TariffUpdate) ClearIncludedIn() *TariffUpdate {
+	_u.mutation.ClearIncludedIn()
+	return _u
+}
+
+// RemoveIncludedInIDs removes the "included_in" edge to Tariff entities by IDs.
+func (_u *TariffUpdate) RemoveIncludedInIDs(ids ...int) *TariffUpdate {
+	_u.mutation.RemoveIncludedInIDs(ids...)
+	return _u
+}
+
+// RemoveIncludedIn removes "included_in" edges to Tariff entities.
+func (_u *TariffUpdate) RemoveIncludedIn(v ...*Tariff) *TariffUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveIncludedInIDs(ids...)
+}
+
+// ClearIncludedAddons clears all "included_addons" edges to the Tariff entity.
+func (_u *TariffUpdate) ClearIncludedAddons() *TariffUpdate {
+	_u.mutation.ClearIncludedAddons()
+	return _u
+}
+
+// RemoveIncludedAddonIDs removes the "included_addons" edge to Tariff entities by IDs.
+func (_u *TariffUpdate) RemoveIncludedAddonIDs(ids ...int) *TariffUpdate {
+	_u.mutation.RemoveIncludedAddonIDs(ids...)
+	return _u
+}
+
+// RemoveIncludedAddons removes "included_addons" edges to Tariff entities.
+func (_u *TariffUpdate) RemoveIncludedAddons(v ...*Tariff) *TariffUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveIncludedAddonIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -668,6 +740,96 @@ func (_u *TariffUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.IncludedInCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tariff.IncludedInTable,
+			Columns: tariff.IncludedInPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tariff.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedIncludedInIDs(); len(nodes) > 0 && !_u.mutation.IncludedInCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tariff.IncludedInTable,
+			Columns: tariff.IncludedInPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tariff.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.IncludedInIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tariff.IncludedInTable,
+			Columns: tariff.IncludedInPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tariff.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.IncludedAddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   tariff.IncludedAddonsTable,
+			Columns: tariff.IncludedAddonsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tariff.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedIncludedAddonsIDs(); len(nodes) > 0 && !_u.mutation.IncludedAddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   tariff.IncludedAddonsTable,
+			Columns: tariff.IncludedAddonsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tariff.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.IncludedAddonsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   tariff.IncludedAddonsTable,
+			Columns: tariff.IncludedAddonsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tariff.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -969,6 +1131,36 @@ func (_u *TariffUpdateOne) AddSubscriptionAddons(v ...*SubscriptionAddon) *Tarif
 	return _u.AddSubscriptionAddonIDs(ids...)
 }
 
+// AddIncludedInIDs adds the "included_in" edge to the Tariff entity by IDs.
+func (_u *TariffUpdateOne) AddIncludedInIDs(ids ...int) *TariffUpdateOne {
+	_u.mutation.AddIncludedInIDs(ids...)
+	return _u
+}
+
+// AddIncludedIn adds the "included_in" edges to the Tariff entity.
+func (_u *TariffUpdateOne) AddIncludedIn(v ...*Tariff) *TariffUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddIncludedInIDs(ids...)
+}
+
+// AddIncludedAddonIDs adds the "included_addons" edge to the Tariff entity by IDs.
+func (_u *TariffUpdateOne) AddIncludedAddonIDs(ids ...int) *TariffUpdateOne {
+	_u.mutation.AddIncludedAddonIDs(ids...)
+	return _u
+}
+
+// AddIncludedAddons adds the "included_addons" edges to the Tariff entity.
+func (_u *TariffUpdateOne) AddIncludedAddons(v ...*Tariff) *TariffUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddIncludedAddonIDs(ids...)
+}
+
 // Mutation returns the TariffMutation object of the builder.
 func (_u *TariffUpdateOne) Mutation() *TariffMutation {
 	return _u.mutation
@@ -1041,6 +1233,48 @@ func (_u *TariffUpdateOne) RemoveSubscriptionAddons(v ...*SubscriptionAddon) *Ta
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveSubscriptionAddonIDs(ids...)
+}
+
+// ClearIncludedIn clears all "included_in" edges to the Tariff entity.
+func (_u *TariffUpdateOne) ClearIncludedIn() *TariffUpdateOne {
+	_u.mutation.ClearIncludedIn()
+	return _u
+}
+
+// RemoveIncludedInIDs removes the "included_in" edge to Tariff entities by IDs.
+func (_u *TariffUpdateOne) RemoveIncludedInIDs(ids ...int) *TariffUpdateOne {
+	_u.mutation.RemoveIncludedInIDs(ids...)
+	return _u
+}
+
+// RemoveIncludedIn removes "included_in" edges to Tariff entities.
+func (_u *TariffUpdateOne) RemoveIncludedIn(v ...*Tariff) *TariffUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveIncludedInIDs(ids...)
+}
+
+// ClearIncludedAddons clears all "included_addons" edges to the Tariff entity.
+func (_u *TariffUpdateOne) ClearIncludedAddons() *TariffUpdateOne {
+	_u.mutation.ClearIncludedAddons()
+	return _u
+}
+
+// RemoveIncludedAddonIDs removes the "included_addons" edge to Tariff entities by IDs.
+func (_u *TariffUpdateOne) RemoveIncludedAddonIDs(ids ...int) *TariffUpdateOne {
+	_u.mutation.RemoveIncludedAddonIDs(ids...)
+	return _u
+}
+
+// RemoveIncludedAddons removes "included_addons" edges to Tariff entities.
+func (_u *TariffUpdateOne) RemoveIncludedAddons(v ...*Tariff) *TariffUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveIncludedAddonIDs(ids...)
 }
 
 // Where appends a list predicates to the TariffUpdate builder.
@@ -1360,6 +1594,96 @@ func (_u *TariffUpdateOne) sqlSave(ctx context.Context) (_node *Tariff, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionaddon.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.IncludedInCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tariff.IncludedInTable,
+			Columns: tariff.IncludedInPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tariff.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedIncludedInIDs(); len(nodes) > 0 && !_u.mutation.IncludedInCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tariff.IncludedInTable,
+			Columns: tariff.IncludedInPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tariff.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.IncludedInIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   tariff.IncludedInTable,
+			Columns: tariff.IncludedInPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tariff.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.IncludedAddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   tariff.IncludedAddonsTable,
+			Columns: tariff.IncludedAddonsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tariff.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedIncludedAddonsIDs(); len(nodes) > 0 && !_u.mutation.IncludedAddonsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   tariff.IncludedAddonsTable,
+			Columns: tariff.IncludedAddonsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tariff.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.IncludedAddonsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   tariff.IncludedAddonsTable,
+			Columns: tariff.IncludedAddonsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tariff.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

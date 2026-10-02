@@ -2710,6 +2710,38 @@ func (c *TariffClient) QuerySubscriptionAddons(_m *Tariff) *SubscriptionAddonQue
 	return query
 }
 
+// QueryIncludedIn queries the included_in edge of a Tariff.
+func (c *TariffClient) QueryIncludedIn(_m *Tariff) *TariffQuery {
+	query := (&TariffClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(tariff.Table, tariff.FieldID, id),
+			sqlgraph.To(tariff.Table, tariff.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, tariff.IncludedInTable, tariff.IncludedInPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryIncludedAddons queries the included_addons edge of a Tariff.
+func (c *TariffClient) QueryIncludedAddons(_m *Tariff) *TariffQuery {
+	query := (&TariffClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(tariff.Table, tariff.FieldID, id),
+			sqlgraph.To(tariff.Table, tariff.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, tariff.IncludedAddonsTable, tariff.IncludedAddonsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *TariffClient) Hooks() []Hook {
 	return c.hooks.Tariff

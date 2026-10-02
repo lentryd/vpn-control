@@ -51,6 +51,9 @@ func (SubscriptionAddon) Fields() []ent.Field {
 		field.Int("rw_user_id").Optional().Nillable().Unique(),
 		field.Int64("price_override").Optional().Nillable(),
 		field.Bool("auto_extend").Default(true),
+		// Included add-ons come with the subscription's tariff: free, and
+		// extended, enabled and disabled together with the subscription.
+		field.Bool("included").Default(false),
 	}
 }
 

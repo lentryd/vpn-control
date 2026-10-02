@@ -30,6 +30,8 @@ const (
 	FieldPriceOverride = "price_override"
 	// FieldAutoExtend holds the string denoting the auto_extend field in the database.
 	FieldAutoExtend = "auto_extend"
+	// FieldIncluded holds the string denoting the included field in the database.
+	FieldIncluded = "included"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
 	EdgeSubscription = "subscription"
 	// EdgeAddon holds the string denoting the addon edge name in mutations.
@@ -81,6 +83,7 @@ var Columns = []string{
 	FieldRwUserID,
 	FieldPriceOverride,
 	FieldAutoExtend,
+	FieldIncluded,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -102,6 +105,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultAutoExtend holds the default value on creation for the "auto_extend" field.
 	DefaultAutoExtend bool
+	// DefaultIncluded holds the default value on creation for the "included" field.
+	DefaultIncluded bool
 )
 
 // OrderOption defines the ordering options for the SubscriptionAddon queries.
@@ -150,6 +155,11 @@ func ByPriceOverride(opts ...sql.OrderTermOption) OrderOption {
 // ByAutoExtend orders the results by the auto_extend field.
 func ByAutoExtend(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAutoExtend, opts...).ToFunc()
+}
+
+// ByIncluded orders the results by the included field.
+func ByIncluded(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIncluded, opts...).ToFunc()
 }
 
 // BySubscriptionField orders the results by subscription field.

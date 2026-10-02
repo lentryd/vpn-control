@@ -742,6 +742,52 @@ func HasSubscriptionAddonsWith(preds ...predicate.SubscriptionAddon) predicate.T
 	})
 }
 
+// HasIncludedIn applies the HasEdge predicate on the "included_in" edge.
+func HasIncludedIn() predicate.Tariff {
+	return predicate.Tariff(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, IncludedInTable, IncludedInPrimaryKey...),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasIncludedInWith applies the HasEdge predicate on the "included_in" edge with a given conditions (other predicates).
+func HasIncludedInWith(preds ...predicate.Tariff) predicate.Tariff {
+	return predicate.Tariff(func(s *sql.Selector) {
+		step := newIncludedInStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasIncludedAddons applies the HasEdge predicate on the "included_addons" edge.
+func HasIncludedAddons() predicate.Tariff {
+	return predicate.Tariff(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, IncludedAddonsTable, IncludedAddonsPrimaryKey...),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasIncludedAddonsWith applies the HasEdge predicate on the "included_addons" edge with a given conditions (other predicates).
+func HasIncludedAddonsWith(preds ...predicate.Tariff) predicate.Tariff {
+	return predicate.Tariff(func(s *sql.Selector) {
+		step := newIncludedAddonsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Tariff) predicate.Tariff {
 	return predicate.Tariff(sql.AndPredicates(predicates...))

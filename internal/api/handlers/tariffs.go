@@ -36,14 +36,17 @@ type TariffView struct {
 	HwidLimit         *int         `json:"hwid_limit"`
 	SquadUUIDs        []string     `json:"squad_uuids"`
 	Periods           []PeriodView `json:"periods"`
-	Subscribers       int          `json:"subscribers"`
-	Overridden        int          `json:"overridden"`
-	MRR               float64      `json:"mrr"`
+	// IncludedAddonTariffIDs (base tariffs) are add-on tariffs that come
+	// free with it.
+	IncludedAddonTariffIDs []int   `json:"included_addon_tariff_ids"`
+	Subscribers            int     `json:"subscribers"`
+	Overridden             int     `json:"overridden"`
+	MRR                    float64 `json:"mrr"`
 }
 
 func (h *Handlers) ListTariffs(c *fiber.Ctx) error {
 	ctx := c.UserContext()
-	ts, err := h.DB.Tariff.Query().WithAddon().WithPeriods(func(q *ent.TariffPeriodQuery) {
+	ts, err := h.DB.Tariff.Query().WithAddon().WithIncludedAddons().WithPeriods(func(q *ent.TariffPeriodQuery) {
 		q.Order(ent.Asc(tariffperiod.FieldMonths), ent.Asc(tariffperiod.FieldDays))
 	}).Order(ent.Asc(tariff.FieldKind), ent.Asc(tariff.FieldSortOrder), ent.Asc(tariff.FieldMonthlyPrice)).All(ctx)
 	if err != nil {
@@ -91,6 +94,10 @@ func (h *Handlers) ListTariffs(c *fiber.Ctx) error {
 			MonthlyPrice: money.ToMajor(t.MonthlyPrice), Active: t.Active, SortOrder: t.SortOrder,
 			ManageRw: t.ManageRw, TrafficLimitBytes: t.TrafficLimitBytes, TrafficStrategy: t.TrafficStrategy,
 			HwidLimit: t.HwidLimit, SquadUUIDs: t.SquadUuids, Periods: []PeriodView{},
+			IncludedAddonTariffIDs: []int{},
+		}
+		for _, inc := range t.Edges.IncludedAddons {
+			v.IncludedAddonTariffIDs = append(v.IncludedAddonTariffIDs, inc.ID)
 		}
 		if v.SquadUUIDs == nil {
 			v.SquadUUIDs = []string{}
@@ -123,6 +130,8 @@ type tariffInput struct {
 	HwidLimit         *int         `json:"hwid_limit"`
 	SquadUUIDs        []string     `json:"squad_uuids"`
 	Periods           []PeriodView `json:"periods"`
+	// IncludedAddonTariffIDs: add-on tariffs included in a base tariff.
+	IncludedAddonTariffIDs []int `json:"included_addon_tariff_ids"`
 	// PriceChange, when the monthly price changes: "keep" pins the old
 	// price as an override on current subscribers, "apply" moves everyone.
 	PriceChange string `json:"price_change"`
@@ -137,6 +146,8 @@ func (in *tariffInput) validate() error {
 	}
 	if in.Kind == "base" {
 		in.AddonID = nil
+	} else {
+		in.IncludedAddonTariffIDs = nil
 	}
 	if in.TrafficStrategy == "" {
 		in.TrafficStrategy = "NO_RESET"
@@ -165,6 +176,9 @@ func (h *Handlers) CreateTariff(c *fiber.Ctx) error {
 			return err
 		}
 		id = t.ID
+		if err := saveIncluded(ctx, tx, t.ID, in.IncludedAddonTariffIDs); err != nil {
+			return err
+		}
 		return savePeriods(ctx, tx, t.ID, in.Periods)
 	})
 	audit.Log(ctx, h.DB, "tariff.create", "tariff", id, in, err)
@@ -188,6 +202,30 @@ func savePeriods(ctx fiberCtx, tx *ent.Tx, tariffID int, periods []PeriodView) e
 		}
 	}
 	return nil
+}
+
+// saveIncluded sets the add-on tariffs a base tariff includes: add-on
+// tariffs only, at most one per add-on. Existing subscriptions pick the
+// change up on their next tariff change.
+func saveIncluded(ctx fiberCtx, tx *ent.Tx, tariffID int, ids []int) error {
+	ts, err := tx.Tariff.Query().Where(tariff.IDIn(ids...)).All(ctx)
+	if err != nil {
+		return err
+	}
+	if len(ts) != len(ids) {
+		return fiber.NewError(fiber.StatusBadRequest, "включённые аддоны: неизвестный тариф")
+	}
+	seen := map[int]bool{}
+	for _, t := range ts {
+		if t.Kind != tariff.KindAddon || t.AddonID == nil {
+			return fiber.NewError(fiber.StatusBadRequest, "включать можно только тарифы аддонов")
+		}
+		if seen[*t.AddonID] {
+			return fiber.NewError(fiber.StatusBadRequest, "один аддон включён дважды")
+		}
+		seen[*t.AddonID] = true
+	}
+	return tx.Tariff.UpdateOneID(tariffID).ClearIncludedAddons().AddIncludedAddonIDs(ids...).Exec(ctx)
 }
 
 func (h *Handlers) UpdateTariff(c *fiber.Ctx) error {
@@ -234,6 +272,9 @@ func (h *Handlers) UpdateTariff(c *fiber.Ctx) error {
 		if err := q.Exec(ctx); err != nil {
 			return err
 		}
+		if err := saveIncluded(ctx, tx, id, in.IncludedAddonTariffIDs); err != nil {
+			return err
+		}
 		return savePeriods(ctx, tx, id, in.Periods)
 	})
 	audit.Log(ctx, h.DB, "tariff.update", "tariff", id, in, err)
@@ -241,6 +282,26 @@ func (h *Handlers) UpdateTariff(c *fiber.Ctx) error {
 		return badRequest(err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// SyncIncluded: POST /tariffs/:id/sync-included {removed: disable|keep_paid}
+// applies the tariff's included add-ons to its current subscribers.
+func (h *Handlers) SyncIncluded(c *fiber.Ctx) error {
+	id, err := paramID(c, "id")
+	if err != nil {
+		return err
+	}
+	var in struct {
+		Removed string `json:"removed"`
+	}
+	if err := bind(c, &in); err != nil {
+		return err
+	}
+	n, err := h.Billing.SyncIncluded(c.UserContext(), id, in.Removed)
+	if err != nil {
+		return badRequest(err)
+	}
+	return c.JSON(fiber.Map{"subscriptions": n})
 }
 
 func (h *Handlers) DeleteTariff(c *fiber.Ctx) error {

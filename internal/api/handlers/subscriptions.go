@@ -293,9 +293,16 @@ func (h *Handlers) QuoteTariff(c *fiber.Ctx) error {
 	if err != nil {
 		return badRequest(err)
 	}
+	addons := make([]fiber.Map, 0, len(q.Addons))
+	for _, a := range q.Addons {
+		addons = append(addons, fiber.Map{
+			"subscription_addon_id": a.SubscriptionAddonID, "addon_id": a.AddonID, "addon_name": a.AddonName,
+			"tariff_name": a.TariffName, "action": a.Action, "credit": money.ToMajor(a.Credit),
+		})
+	}
 	return c.JSON(fiber.Map{
 		"old_monthly": money.ToMajor(q.OldMonthly), "new_monthly": money.ToMajor(q.NewMonthly),
-		"expire_at": q.ExpireAt, "surcharge": money.ToMajor(q.Surcharge),
+		"expire_at": q.ExpireAt, "surcharge": money.ToMajor(q.Surcharge), "addons": addons,
 	})
 }
 
@@ -303,6 +310,8 @@ type changeTariffRequest struct {
 	TariffID      int     `json:"tariff_id"`
 	Surcharge     float64 `json:"surcharge"`
 	ClearOverride bool    `json:"clear_override"`
+	// RemovedAddons: subscription add-on id → "disable" | "keep_paid".
+	RemovedAddons map[int]string `json:"removed_addons"`
 }
 
 func (h *Handlers) ChangeTariff(c *fiber.Ctx) error {
@@ -316,6 +325,7 @@ func (h *Handlers) ChangeTariff(c *fiber.Ctx) error {
 	}
 	if err := h.Billing.ChangeTariff(c.UserContext(), billing.ChangeTariffInput{
 		Kind: kind, ID: id, TariffID: req.TariffID, Surcharge: money.FromMajor(req.Surcharge), ClearOverride: req.ClearOverride,
+		RemovedAddons: req.RemovedAddons,
 	}); err != nil {
 		return badRequest(err)
 	}

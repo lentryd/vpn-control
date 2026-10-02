@@ -51,6 +51,10 @@ const (
 	EdgeSubscriptions = "subscriptions"
 	// EdgeSubscriptionAddons holds the string denoting the subscription_addons edge name in mutations.
 	EdgeSubscriptionAddons = "subscription_addons"
+	// EdgeIncludedIn holds the string denoting the included_in edge name in mutations.
+	EdgeIncludedIn = "included_in"
+	// EdgeIncludedAddons holds the string denoting the included_addons edge name in mutations.
+	EdgeIncludedAddons = "included_addons"
 	// Table holds the table name of the tariff in the database.
 	Table = "tariffs"
 	// AddonTable is the table that holds the addon relation/edge.
@@ -81,6 +85,10 @@ const (
 	SubscriptionAddonsInverseTable = "subscription_addons"
 	// SubscriptionAddonsColumn is the table column denoting the subscription_addons relation/edge.
 	SubscriptionAddonsColumn = "tariff_id"
+	// IncludedInTable is the table that holds the included_in relation/edge. The primary key declared below.
+	IncludedInTable = "tariff_included_addons"
+	// IncludedAddonsTable is the table that holds the included_addons relation/edge. The primary key declared below.
+	IncludedAddonsTable = "tariff_included_addons"
 )
 
 // Columns holds all SQL columns for tariff fields.
@@ -101,6 +109,15 @@ var Columns = []string{
 	FieldHwidLimit,
 	FieldSquadUuids,
 }
+
+var (
+	// IncludedInPrimaryKey and IncludedInColumn2 are the table columns denoting the
+	// primary key for the included_in relation (M2M).
+	IncludedInPrimaryKey = []string{"tariff_id", "included_in_id"}
+	// IncludedAddonsPrimaryKey and IncludedAddonsColumn2 are the table columns denoting the
+	// primary key for the included_addons relation (M2M).
+	IncludedAddonsPrimaryKey = []string{"tariff_id", "included_in_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -279,6 +296,34 @@ func BySubscriptionAddons(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOptio
 		sqlgraph.OrderByNeighborTerms(s, newSubscriptionAddonsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByIncludedInCount orders the results by included_in count.
+func ByIncludedInCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newIncludedInStep(), opts...)
+	}
+}
+
+// ByIncludedIn orders the results by included_in terms.
+func ByIncludedIn(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newIncludedInStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByIncludedAddonsCount orders the results by included_addons count.
+func ByIncludedAddonsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newIncludedAddonsStep(), opts...)
+	}
+}
+
+// ByIncludedAddons orders the results by included_addons terms.
+func ByIncludedAddons(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newIncludedAddonsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newAddonStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -305,5 +350,19 @@ func newSubscriptionAddonsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubscriptionAddonsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionAddonsTable, SubscriptionAddonsColumn),
+	)
+}
+func newIncludedInStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, true, IncludedInTable, IncludedInPrimaryKey...),
+	)
+}
+func newIncludedAddonsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, false, IncludedAddonsTable, IncludedAddonsPrimaryKey...),
 	)
 }

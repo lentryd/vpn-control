@@ -317,6 +317,10 @@ func init() {
 	subscriptionaddonDescAutoExtend := subscriptionaddonFields[5].Descriptor()
 	// subscriptionaddon.DefaultAutoExtend holds the default value on creation for the auto_extend field.
 	subscriptionaddon.DefaultAutoExtend = subscriptionaddonDescAutoExtend.Default.(bool)
+	// subscriptionaddonDescIncluded is the schema descriptor for included field.
+	subscriptionaddonDescIncluded := subscriptionaddonFields[6].Descriptor()
+	// subscriptionaddon.DefaultIncluded holds the default value on creation for the included field.
+	subscriptionaddon.DefaultIncluded = subscriptionaddonDescIncluded.Default.(bool)
 	tariffMixin := schema.Tariff{}.Mixin()
 	tariffMixinFields0 := tariffMixin[0].Fields()
 	_ = tariffMixinFields0

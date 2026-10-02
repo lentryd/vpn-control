@@ -145,20 +145,26 @@ export function AddonMenuItems({
     const disabled = addon.rw_user?.status === 'DISABLED'
     return (
         <>
-            <Menu.Label>Управление</Menu.Label>
-            <Menu.Item
-                leftSection={<PiCalendarPlus size={16} />}
-                disabled={!addon.rw_user || addon.rw_user.unlimited}
-                onClick={() => openExtendModal({ kind: 'addon', id: addon.id, title })}
-            >
-                Продлить
-            </Menu.Item>
-            <Menu.Item
-                leftSection={<PiArrowsLeftRight size={16} />}
-                onClick={() => openChangeTariffModal({ kind: 'addon', id: addon.id, title, tariffId: addon.tariff_id, addonId: addon.addon_id })}
-            >
-                Сменить тариф
-            </Menu.Item>
+            <Menu.Label>{addon.included ? 'Входит в тариф подписки' : 'Управление'}</Menu.Label>
+            {!addon.included && (
+                <>
+                    <Menu.Item
+                        leftSection={<PiCalendarPlus size={16} />}
+                        disabled={!addon.rw_user || addon.rw_user.unlimited}
+                        onClick={() => openExtendModal({ kind: 'addon', id: addon.id, title })}
+                    >
+                        Продлить
+                    </Menu.Item>
+                    <Menu.Item
+                        leftSection={<PiArrowsLeftRight size={16} />}
+                        onClick={() =>
+                            openChangeTariffModal({ kind: 'addon', id: addon.id, title, tariffId: addon.tariff_id, addonId: addon.addon_id })
+                        }
+                    >
+                        Сменить тариф
+                    </Menu.Item>
+                </>
+            )}
             {!inView && (
                 <Menu.Item leftSection={<PiPencilSimple size={16} />} onClick={() => openViewAddonModal(addon.id, addon.subscription_id)}>
                     Изменить

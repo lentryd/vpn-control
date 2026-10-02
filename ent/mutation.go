@@ -14422,6 +14422,7 @@ type SubscriptionAddonMutation struct {
 	price_override      *int64
 	addprice_override   *int64
 	auto_extend         *bool
+	included            *bool
 	clearedFields       map[string]struct{}
 	subscription        *int
 	clearedsubscription bool
@@ -14882,6 +14883,42 @@ func (m *SubscriptionAddonMutation) ResetAutoExtend() {
 	m.auto_extend = nil
 }
 
+// SetIncluded sets the "included" field.
+func (m *SubscriptionAddonMutation) SetIncluded(b bool) {
+	m.included = &b
+}
+
+// Included returns the value of the "included" field in the mutation.
+func (m *SubscriptionAddonMutation) Included() (r bool, exists bool) {
+	v := m.included
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIncluded returns the old "included" field's value of the SubscriptionAddon entity.
+// If the SubscriptionAddon object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionAddonMutation) OldIncluded(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIncluded is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIncluded requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIncluded: %w", err)
+	}
+	return oldValue.Included, nil
+}
+
+// ResetIncluded resets all changes to the "included" field.
+func (m *SubscriptionAddonMutation) ResetIncluded() {
+	m.included = nil
+}
+
 // ClearSubscription clears the "subscription" edge to the Subscription entity.
 func (m *SubscriptionAddonMutation) ClearSubscription() {
 	m.clearedsubscription = true
@@ -15024,7 +15061,7 @@ func (m *SubscriptionAddonMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionAddonMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, subscriptionaddon.FieldCreatedAt)
 	}
@@ -15048,6 +15085,9 @@ func (m *SubscriptionAddonMutation) Fields() []string {
 	}
 	if m.auto_extend != nil {
 		fields = append(fields, subscriptionaddon.FieldAutoExtend)
+	}
+	if m.included != nil {
+		fields = append(fields, subscriptionaddon.FieldIncluded)
 	}
 	return fields
 }
@@ -15073,6 +15113,8 @@ func (m *SubscriptionAddonMutation) Field(name string) (ent.Value, bool) {
 		return m.PriceOverride()
 	case subscriptionaddon.FieldAutoExtend:
 		return m.AutoExtend()
+	case subscriptionaddon.FieldIncluded:
+		return m.Included()
 	}
 	return nil, false
 }
@@ -15098,6 +15140,8 @@ func (m *SubscriptionAddonMutation) OldField(ctx context.Context, name string) (
 		return m.OldPriceOverride(ctx)
 	case subscriptionaddon.FieldAutoExtend:
 		return m.OldAutoExtend(ctx)
+	case subscriptionaddon.FieldIncluded:
+		return m.OldIncluded(ctx)
 	}
 	return nil, fmt.Errorf("unknown SubscriptionAddon field %s", name)
 }
@@ -15162,6 +15206,13 @@ func (m *SubscriptionAddonMutation) SetField(name string, value ent.Value) error
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAutoExtend(v)
+		return nil
+	case subscriptionaddon.FieldIncluded:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIncluded(v)
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionAddon field %s", name)
@@ -15271,6 +15322,9 @@ func (m *SubscriptionAddonMutation) ResetField(name string) error {
 		return nil
 	case subscriptionaddon.FieldAutoExtend:
 		m.ResetAutoExtend()
+		return nil
+	case subscriptionaddon.FieldIncluded:
+		m.ResetIncluded()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionAddon field %s", name)
@@ -15440,6 +15494,12 @@ type TariffMutation struct {
 	subscription_addons        map[int]struct{}
 	removedsubscription_addons map[int]struct{}
 	clearedsubscription_addons bool
+	included_in                map[int]struct{}
+	removedincluded_in         map[int]struct{}
+	clearedincluded_in         bool
+	included_addons            map[int]struct{}
+	removedincluded_addons     map[int]struct{}
+	clearedincluded_addons     bool
 	done                       bool
 	oldValue                   func(context.Context) (*Tariff, error)
 	predicates                 []predicate.Tariff
@@ -16385,6 +16445,114 @@ func (m *TariffMutation) ResetSubscriptionAddons() {
 	m.removedsubscription_addons = nil
 }
 
+// AddIncludedInIDs adds the "included_in" edge to the Tariff entity by ids.
+func (m *TariffMutation) AddIncludedInIDs(ids ...int) {
+	if m.included_in == nil {
+		m.included_in = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.included_in[ids[i]] = struct{}{}
+	}
+}
+
+// ClearIncludedIn clears the "included_in" edge to the Tariff entity.
+func (m *TariffMutation) ClearIncludedIn() {
+	m.clearedincluded_in = true
+}
+
+// IncludedInCleared reports if the "included_in" edge to the Tariff entity was cleared.
+func (m *TariffMutation) IncludedInCleared() bool {
+	return m.clearedincluded_in
+}
+
+// RemoveIncludedInIDs removes the "included_in" edge to the Tariff entity by IDs.
+func (m *TariffMutation) RemoveIncludedInIDs(ids ...int) {
+	if m.removedincluded_in == nil {
+		m.removedincluded_in = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.included_in, ids[i])
+		m.removedincluded_in[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedIncludedIn returns the removed IDs of the "included_in" edge to the Tariff entity.
+func (m *TariffMutation) RemovedIncludedInIDs() (ids []int) {
+	for id := range m.removedincluded_in {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// IncludedInIDs returns the "included_in" edge IDs in the mutation.
+func (m *TariffMutation) IncludedInIDs() (ids []int) {
+	for id := range m.included_in {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetIncludedIn resets all changes to the "included_in" edge.
+func (m *TariffMutation) ResetIncludedIn() {
+	m.included_in = nil
+	m.clearedincluded_in = false
+	m.removedincluded_in = nil
+}
+
+// AddIncludedAddonIDs adds the "included_addons" edge to the Tariff entity by ids.
+func (m *TariffMutation) AddIncludedAddonIDs(ids ...int) {
+	if m.included_addons == nil {
+		m.included_addons = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.included_addons[ids[i]] = struct{}{}
+	}
+}
+
+// ClearIncludedAddons clears the "included_addons" edge to the Tariff entity.
+func (m *TariffMutation) ClearIncludedAddons() {
+	m.clearedincluded_addons = true
+}
+
+// IncludedAddonsCleared reports if the "included_addons" edge to the Tariff entity was cleared.
+func (m *TariffMutation) IncludedAddonsCleared() bool {
+	return m.clearedincluded_addons
+}
+
+// RemoveIncludedAddonIDs removes the "included_addons" edge to the Tariff entity by IDs.
+func (m *TariffMutation) RemoveIncludedAddonIDs(ids ...int) {
+	if m.removedincluded_addons == nil {
+		m.removedincluded_addons = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.included_addons, ids[i])
+		m.removedincluded_addons[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedIncludedAddons returns the removed IDs of the "included_addons" edge to the Tariff entity.
+func (m *TariffMutation) RemovedIncludedAddonsIDs() (ids []int) {
+	for id := range m.removedincluded_addons {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// IncludedAddonsIDs returns the "included_addons" edge IDs in the mutation.
+func (m *TariffMutation) IncludedAddonsIDs() (ids []int) {
+	for id := range m.included_addons {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetIncludedAddons resets all changes to the "included_addons" edge.
+func (m *TariffMutation) ResetIncludedAddons() {
+	m.included_addons = nil
+	m.clearedincluded_addons = false
+	m.removedincluded_addons = nil
+}
+
 // Where appends a list predicates to the TariffMutation builder.
 func (m *TariffMutation) Where(ps ...predicate.Tariff) {
 	m.predicates = append(m.predicates, ps...)
@@ -16817,7 +16985,7 @@ func (m *TariffMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *TariffMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 6)
 	if m.addon != nil {
 		edges = append(edges, tariff.EdgeAddon)
 	}
@@ -16829,6 +16997,12 @@ func (m *TariffMutation) AddedEdges() []string {
 	}
 	if m.subscription_addons != nil {
 		edges = append(edges, tariff.EdgeSubscriptionAddons)
+	}
+	if m.included_in != nil {
+		edges = append(edges, tariff.EdgeIncludedIn)
+	}
+	if m.included_addons != nil {
+		edges = append(edges, tariff.EdgeIncludedAddons)
 	}
 	return edges
 }
@@ -16859,13 +17033,25 @@ func (m *TariffMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case tariff.EdgeIncludedIn:
+		ids := make([]ent.Value, 0, len(m.included_in))
+		for id := range m.included_in {
+			ids = append(ids, id)
+		}
+		return ids
+	case tariff.EdgeIncludedAddons:
+		ids := make([]ent.Value, 0, len(m.included_addons))
+		for id := range m.included_addons {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TariffMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 6)
 	if m.removedperiods != nil {
 		edges = append(edges, tariff.EdgePeriods)
 	}
@@ -16874,6 +17060,12 @@ func (m *TariffMutation) RemovedEdges() []string {
 	}
 	if m.removedsubscription_addons != nil {
 		edges = append(edges, tariff.EdgeSubscriptionAddons)
+	}
+	if m.removedincluded_in != nil {
+		edges = append(edges, tariff.EdgeIncludedIn)
+	}
+	if m.removedincluded_addons != nil {
+		edges = append(edges, tariff.EdgeIncludedAddons)
 	}
 	return edges
 }
@@ -16900,13 +17092,25 @@ func (m *TariffMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case tariff.EdgeIncludedIn:
+		ids := make([]ent.Value, 0, len(m.removedincluded_in))
+		for id := range m.removedincluded_in {
+			ids = append(ids, id)
+		}
+		return ids
+	case tariff.EdgeIncludedAddons:
+		ids := make([]ent.Value, 0, len(m.removedincluded_addons))
+		for id := range m.removedincluded_addons {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *TariffMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 6)
 	if m.clearedaddon {
 		edges = append(edges, tariff.EdgeAddon)
 	}
@@ -16918,6 +17122,12 @@ func (m *TariffMutation) ClearedEdges() []string {
 	}
 	if m.clearedsubscription_addons {
 		edges = append(edges, tariff.EdgeSubscriptionAddons)
+	}
+	if m.clearedincluded_in {
+		edges = append(edges, tariff.EdgeIncludedIn)
+	}
+	if m.clearedincluded_addons {
+		edges = append(edges, tariff.EdgeIncludedAddons)
 	}
 	return edges
 }
@@ -16934,6 +17144,10 @@ func (m *TariffMutation) EdgeCleared(name string) bool {
 		return m.clearedsubscriptions
 	case tariff.EdgeSubscriptionAddons:
 		return m.clearedsubscription_addons
+	case tariff.EdgeIncludedIn:
+		return m.clearedincluded_in
+	case tariff.EdgeIncludedAddons:
+		return m.clearedincluded_addons
 	}
 	return false
 }
@@ -16964,6 +17178,12 @@ func (m *TariffMutation) ResetEdge(name string) error {
 		return nil
 	case tariff.EdgeSubscriptionAddons:
 		m.ResetSubscriptionAddons()
+		return nil
+	case tariff.EdgeIncludedIn:
+		m.ResetIncludedIn()
+		return nil
+	case tariff.EdgeIncludedAddons:
+		m.ResetIncludedAddons()
 		return nil
 	}
 	return fmt.Errorf("unknown Tariff edge %s", name)
