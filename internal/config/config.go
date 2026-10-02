@@ -30,7 +30,7 @@ type Config struct {
 	// caddy-with-auth.
 	RemnawaveAPIKey string
 
-	// AddonsConfig is subpage's addons.yml, shared read-only.
+	// AddonsConfig is an optional add-ons file (subpage's addons.yml format).
 	AddonsConfig string
 
 	// JWTSecret signs admin session cookies.
@@ -64,7 +64,7 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("TRAFFIC_SYNC_INTERVAL: %w", err)
 	}
-	loc, err := time.LoadLocation(envOrDefault("TZ", "Europe/Moscow"))
+	loc, err := time.LoadLocation(envOrDefault("TZ", "UTC"))
 	if err != nil {
 		return nil, fmt.Errorf("TZ: %w", err)
 	}
