@@ -31,11 +31,11 @@ func init() {
 	apitokenFields := schema.APIToken{}.Fields()
 	_ = apitokenFields
 	// apitokenDescName is the schema descriptor for name field.
-	apitokenDescName := apitokenFields[0].Descriptor()
+	apitokenDescName := apitokenFields[1].Descriptor()
 	// apitoken.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	apitoken.NameValidator = apitokenDescName.Validators[0].(func(string) error)
 	// apitokenDescCreatedAt is the schema descriptor for created_at field.
-	apitokenDescCreatedAt := apitokenFields[4].Descriptor()
+	apitokenDescCreatedAt := apitokenFields[6].Descriptor()
 	// apitoken.DefaultCreatedAt holds the default value on creation for the created_at field.
 	apitoken.DefaultCreatedAt = apitokenDescCreatedAt.Default.(func() time.Time)
 	addonMixin := schema.Addon{}.Mixin()

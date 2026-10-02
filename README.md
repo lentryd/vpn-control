@@ -94,19 +94,21 @@ Add-ons come from two sources:
 - **The UI** (**Tariffs → Add-ons**): name, prefix and suffix, plus subpage's config names (`remark`, `remarkUnlimited`) and stubs.
 - **An add-ons file** in subpage's `addons.yml` format (`ADDONS_FILE`). Add-ons from the file are read-only in the UI.
 
-Other services can read the catalog. Create a token in **Settings → API tokens**. A token is shown once, and only a hash of it is stored. Then call the API:
+Other services can read the catalog. Create a token in **Settings → API tokens**, as in the panel: a name, an expiry in days and scopes per resource (Read/Write or single endpoints; presets: read only, full access, subpage). A token is shown once, and only a hash of it is stored. Then call the API:
 
 ```bash
 curl -H "Authorization: Bearer vpc_…" https://panel.example.com/control/api/v1/addons              # JSON
 curl -H "Authorization: Bearer vpc_…" "https://panel.example.com/control/api/v1/addons?format=yaml" # addons.yml
 ```
 
-| Endpoint | Scope | |
+| Endpoint | Endpoint key | |
 |---|---|---|
-| `GET /api/v1/addons` | `addons:read` | The add-on catalog; `?format=yaml` returns subpage's file format |
-| `GET /api/v1/backups` | `backups:read` | List of snapshots |
-| `GET /api/v1/backups/{name}` | `backups:read` | Download a snapshot |
-| `POST /api/v1/backups` | `backups:write` | Take a snapshot and download it in the same response |
+| `GET /api/v1/addons` | `addons:list` | The add-on catalog; `?format=yaml` returns subpage's file format |
+| `GET /api/v1/backups` | `backups:list` | List of snapshots |
+| `GET /api/v1/backups/{name}` | `backups:download` | Download a snapshot |
+| `POST /api/v1/backups` | `backups:create` | Take a snapshot and download it in the same response |
+
+Scopes follow the panel's grammar: `*`, `<resource>:*`, `<resource>:read`, `<resource>:write` or an endpoint key from the table.
 
 A base tariff can **include add-ons**: pick their add-on tariffs on the tariff. When you change the list, you can apply it to current subscribers right away. Otherwise it applies on their next tariff change. When a subscription moves to a tariff without one of its included add-ons, you choose whether to disable the add-on or keep it as a paid one.
 

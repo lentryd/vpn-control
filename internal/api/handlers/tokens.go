@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"slices"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 
 	"vpn-control/ent"
 	"vpn-control/ent/addon"
@@ -18,11 +18,22 @@ import (
 
 type tokenView struct {
 	ID         int        `json:"id"`
+	UUID       string     `json:"uuid"`
 	Name       string     `json:"name"`
 	Prefix     string     `json:"prefix"`
 	Scopes     []string   `json:"scopes"`
 	CreatedAt  time.Time  `json:"created_at"`
+	ExpireAt   *time.Time `json:"expire_at"`
 	LastUsedAt *time.Time `json:"last_used_at"`
+	// Token is set only in the creation response.
+	Token string `json:"token,omitempty"`
+}
+
+func viewToken(t *ent.APIToken) tokenView {
+	return tokenView{
+		ID: t.ID, UUID: t.UUID, Name: t.Name, Prefix: t.Prefix, Scopes: t.Scopes,
+		CreatedAt: t.CreatedAt, ExpireAt: t.ExpireAt, LastUsedAt: t.LastUsedAt,
+	}
 }
 
 func (h *Handlers) ListTokens(c *fiber.Ctx) error {
@@ -32,16 +43,22 @@ func (h *Handlers) ListTokens(c *fiber.Ctx) error {
 	}
 	out := make([]tokenView, 0, len(ts))
 	for _, t := range ts {
-		out = append(out, tokenView{ID: t.ID, Name: t.Name, Prefix: t.Prefix, Scopes: t.Scopes, CreatedAt: t.CreatedAt, LastUsedAt: t.LastUsedAt})
+		out = append(out, viewToken(t))
 	}
-	return c.JSON(fiber.Map{"tokens": out, "scopes": appmiddleware.Scopes})
+	return c.JSON(fiber.Map{"tokens": out})
+}
+
+// TokenScopes: GET /api-tokens/scopes — the grantable endpoints.
+func (h *Handlers) TokenScopes(c *fiber.Ctx) error {
+	return c.JSON(fiber.Map{"resources": appmiddleware.ScopeCatalog})
 }
 
 // CreateToken returns the new token once; only its hash is kept.
 func (h *Handlers) CreateToken(c *fiber.Ctx) error {
 	var in struct {
-		Name   string   `json:"name"`
-		Scopes []string `json:"scopes"`
+		Name          string   `json:"name"`
+		ExpiresInDays int      `json:"expires_in_days"`
+		Scopes        []string `json:"scopes"`
 	}
 	if err := bind(c, &in); err != nil {
 		return err
@@ -50,11 +67,14 @@ func (h *Handlers) CreateToken(c *fiber.Ctx) error {
 	if in.Name == "" {
 		return apperr.New("token.name_required", "name is required")
 	}
+	if in.ExpiresInDays < 1 {
+		return apperr.New("token.expiry_required", "set the expiry in days")
+	}
 	if len(in.Scopes) == 0 {
 		return apperr.New("token.scope_required", "choose at least one scope")
 	}
 	for _, s := range in.Scopes {
-		if !slices.Contains(appmiddleware.Scopes, s) {
+		if !appmiddleware.ValidScope(s) {
 			return apperr.New("token.unknown_scope", "unknown scope {{scope}}", "scope", s)
 		}
 	}
@@ -64,13 +84,16 @@ func (h *Handlers) CreateToken(c *fiber.Ctx) error {
 	}
 	ctx := c.UserContext()
 	t, err := h.DB.APIToken.Create().
-		SetName(in.Name).SetTokenHash(hash).SetPrefix(token[:12]).SetScopes(in.Scopes).
+		SetUUID(uuid.NewString()).SetName(in.Name).SetTokenHash(hash).SetPrefix(token[:12]).SetScopes(in.Scopes).
+		SetExpireAt(time.Now().AddDate(0, 0, in.ExpiresInDays)).
 		Save(ctx)
 	audit.Log(ctx, h.DB, "api_token.create", "api_token", tokenID(t), in, err)
 	if err != nil {
 		return badRequest(err)
 	}
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"id": t.ID, "token": token})
+	v := viewToken(t)
+	v.Token = token
+	return c.Status(fiber.StatusCreated).JSON(v)
 }
 
 func (h *Handlers) DeleteToken(c *fiber.Ctx) error {

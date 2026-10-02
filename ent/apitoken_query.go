@@ -262,12 +262,12 @@ func (_q *APITokenQuery) Clone() *APITokenQuery {
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		UUID string `json:"uuid,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.APIToken.Query().
-//		GroupBy(apitoken.FieldName).
+//		GroupBy(apitoken.FieldUUID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *APITokenQuery) GroupBy(field string, fields ...string) *APITokenGroupBy {
@@ -285,11 +285,11 @@ func (_q *APITokenQuery) GroupBy(field string, fields ...string) *APITokenGroupB
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		UUID string `json:"uuid,omitempty"`
 //	}
 //
 //	client.APIToken.Query().
-//		Select(apitoken.FieldName).
+//		Select(apitoken.FieldUUID).
 //		Scan(ctx, &v)
 func (_q *APITokenQuery) Select(fields ...string) *APITokenSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

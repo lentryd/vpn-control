@@ -22,6 +22,20 @@ type APITokenCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetUUID sets the "uuid" field.
+func (_c *APITokenCreate) SetUUID(v string) *APITokenCreate {
+	_c.mutation.SetUUID(v)
+	return _c
+}
+
+// SetNillableUUID sets the "uuid" field if the given value is not nil.
+func (_c *APITokenCreate) SetNillableUUID(v *string) *APITokenCreate {
+	if v != nil {
+		_c.SetUUID(*v)
+	}
+	return _c
+}
+
 // SetName sets the "name" field.
 func (_c *APITokenCreate) SetName(v string) *APITokenCreate {
 	_c.mutation.SetName(v)
@@ -43,6 +57,20 @@ func (_c *APITokenCreate) SetPrefix(v string) *APITokenCreate {
 // SetScopes sets the "scopes" field.
 func (_c *APITokenCreate) SetScopes(v []string) *APITokenCreate {
 	_c.mutation.SetScopes(v)
+	return _c
+}
+
+// SetExpireAt sets the "expire_at" field.
+func (_c *APITokenCreate) SetExpireAt(v time.Time) *APITokenCreate {
+	_c.mutation.SetExpireAt(v)
+	return _c
+}
+
+// SetNillableExpireAt sets the "expire_at" field if the given value is not nil.
+func (_c *APITokenCreate) SetNillableExpireAt(v *time.Time) *APITokenCreate {
+	if v != nil {
+		_c.SetExpireAt(*v)
+	}
 	return _c
 }
 
@@ -164,6 +192,10 @@ func (_c *APITokenCreate) createSpec() (*APIToken, *sqlgraph.CreateSpec) {
 		_spec = sqlgraph.NewCreateSpec(apitoken.Table, sqlgraph.NewFieldSpec(apitoken.FieldID, field.TypeInt))
 	)
 	_spec.OnConflict = _c.conflict
+	if value, ok := _c.mutation.UUID(); ok {
+		_spec.SetField(apitoken.FieldUUID, field.TypeString, value)
+		_node.UUID = value
+	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(apitoken.FieldName, field.TypeString, value)
 		_node.Name = value
@@ -180,6 +212,10 @@ func (_c *APITokenCreate) createSpec() (*APIToken, *sqlgraph.CreateSpec) {
 		_spec.SetField(apitoken.FieldScopes, field.TypeJSON, value)
 		_node.Scopes = value
 	}
+	if value, ok := _c.mutation.ExpireAt(); ok {
+		_spec.SetField(apitoken.FieldExpireAt, field.TypeTime, value)
+		_node.ExpireAt = &value
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(apitoken.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -195,7 +231,7 @@ func (_c *APITokenCreate) createSpec() (*APIToken, *sqlgraph.CreateSpec) {
 // of the `INSERT` statement. For example:
 //
 //	client.APIToken.Create().
-//		SetName(v).
+//		SetUUID(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -204,7 +240,7 @@ func (_c *APITokenCreate) createSpec() (*APIToken, *sqlgraph.CreateSpec) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.APITokenUpsert) {
-//			SetName(v+v).
+//			SetUUID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *APITokenCreate) OnConflict(opts ...sql.ConflictOption) *APITokenUpsertOne {
@@ -239,6 +275,24 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetUUID sets the "uuid" field.
+func (u *APITokenUpsert) SetUUID(v string) *APITokenUpsert {
+	u.Set(apitoken.FieldUUID, v)
+	return u
+}
+
+// UpdateUUID sets the "uuid" field to the value that was provided on create.
+func (u *APITokenUpsert) UpdateUUID() *APITokenUpsert {
+	u.SetExcluded(apitoken.FieldUUID)
+	return u
+}
+
+// ClearUUID clears the value of the "uuid" field.
+func (u *APITokenUpsert) ClearUUID() *APITokenUpsert {
+	u.SetNull(apitoken.FieldUUID)
+	return u
+}
 
 // SetName sets the "name" field.
 func (u *APITokenUpsert) SetName(v string) *APITokenUpsert {
@@ -285,6 +339,24 @@ func (u *APITokenUpsert) SetScopes(v []string) *APITokenUpsert {
 // UpdateScopes sets the "scopes" field to the value that was provided on create.
 func (u *APITokenUpsert) UpdateScopes() *APITokenUpsert {
 	u.SetExcluded(apitoken.FieldScopes)
+	return u
+}
+
+// SetExpireAt sets the "expire_at" field.
+func (u *APITokenUpsert) SetExpireAt(v time.Time) *APITokenUpsert {
+	u.Set(apitoken.FieldExpireAt, v)
+	return u
+}
+
+// UpdateExpireAt sets the "expire_at" field to the value that was provided on create.
+func (u *APITokenUpsert) UpdateExpireAt() *APITokenUpsert {
+	u.SetExcluded(apitoken.FieldExpireAt)
+	return u
+}
+
+// ClearExpireAt clears the value of the "expire_at" field.
+func (u *APITokenUpsert) ClearExpireAt() *APITokenUpsert {
+	u.SetNull(apitoken.FieldExpireAt)
 	return u
 }
 
@@ -351,6 +423,27 @@ func (u *APITokenUpsertOne) Update(set func(*APITokenUpsert)) *APITokenUpsertOne
 	return u
 }
 
+// SetUUID sets the "uuid" field.
+func (u *APITokenUpsertOne) SetUUID(v string) *APITokenUpsertOne {
+	return u.Update(func(s *APITokenUpsert) {
+		s.SetUUID(v)
+	})
+}
+
+// UpdateUUID sets the "uuid" field to the value that was provided on create.
+func (u *APITokenUpsertOne) UpdateUUID() *APITokenUpsertOne {
+	return u.Update(func(s *APITokenUpsert) {
+		s.UpdateUUID()
+	})
+}
+
+// ClearUUID clears the value of the "uuid" field.
+func (u *APITokenUpsertOne) ClearUUID() *APITokenUpsertOne {
+	return u.Update(func(s *APITokenUpsert) {
+		s.ClearUUID()
+	})
+}
+
 // SetName sets the "name" field.
 func (u *APITokenUpsertOne) SetName(v string) *APITokenUpsertOne {
 	return u.Update(func(s *APITokenUpsert) {
@@ -404,6 +497,27 @@ func (u *APITokenUpsertOne) SetScopes(v []string) *APITokenUpsertOne {
 func (u *APITokenUpsertOne) UpdateScopes() *APITokenUpsertOne {
 	return u.Update(func(s *APITokenUpsert) {
 		s.UpdateScopes()
+	})
+}
+
+// SetExpireAt sets the "expire_at" field.
+func (u *APITokenUpsertOne) SetExpireAt(v time.Time) *APITokenUpsertOne {
+	return u.Update(func(s *APITokenUpsert) {
+		s.SetExpireAt(v)
+	})
+}
+
+// UpdateExpireAt sets the "expire_at" field to the value that was provided on create.
+func (u *APITokenUpsertOne) UpdateExpireAt() *APITokenUpsertOne {
+	return u.Update(func(s *APITokenUpsert) {
+		s.UpdateExpireAt()
+	})
+}
+
+// ClearExpireAt clears the value of the "expire_at" field.
+func (u *APITokenUpsertOne) ClearExpireAt() *APITokenUpsertOne {
+	return u.Update(func(s *APITokenUpsert) {
+		s.ClearExpireAt()
 	})
 }
 
@@ -563,7 +677,7 @@ func (_c *APITokenCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.APITokenUpsert) {
-//			SetName(v+v).
+//			SetUUID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *APITokenCreateBulk) OnConflict(opts ...sql.ConflictOption) *APITokenUpsertBulk {
@@ -639,6 +753,27 @@ func (u *APITokenUpsertBulk) Update(set func(*APITokenUpsert)) *APITokenUpsertBu
 	return u
 }
 
+// SetUUID sets the "uuid" field.
+func (u *APITokenUpsertBulk) SetUUID(v string) *APITokenUpsertBulk {
+	return u.Update(func(s *APITokenUpsert) {
+		s.SetUUID(v)
+	})
+}
+
+// UpdateUUID sets the "uuid" field to the value that was provided on create.
+func (u *APITokenUpsertBulk) UpdateUUID() *APITokenUpsertBulk {
+	return u.Update(func(s *APITokenUpsert) {
+		s.UpdateUUID()
+	})
+}
+
+// ClearUUID clears the value of the "uuid" field.
+func (u *APITokenUpsertBulk) ClearUUID() *APITokenUpsertBulk {
+	return u.Update(func(s *APITokenUpsert) {
+		s.ClearUUID()
+	})
+}
+
 // SetName sets the "name" field.
 func (u *APITokenUpsertBulk) SetName(v string) *APITokenUpsertBulk {
 	return u.Update(func(s *APITokenUpsert) {
@@ -692,6 +827,27 @@ func (u *APITokenUpsertBulk) SetScopes(v []string) *APITokenUpsertBulk {
 func (u *APITokenUpsertBulk) UpdateScopes() *APITokenUpsertBulk {
 	return u.Update(func(s *APITokenUpsert) {
 		s.UpdateScopes()
+	})
+}
+
+// SetExpireAt sets the "expire_at" field.
+func (u *APITokenUpsertBulk) SetExpireAt(v time.Time) *APITokenUpsertBulk {
+	return u.Update(func(s *APITokenUpsert) {
+		s.SetExpireAt(v)
+	})
+}
+
+// UpdateExpireAt sets the "expire_at" field to the value that was provided on create.
+func (u *APITokenUpsertBulk) UpdateExpireAt() *APITokenUpsertBulk {
+	return u.Update(func(s *APITokenUpsert) {
+		s.UpdateExpireAt()
+	})
+}
+
+// ClearExpireAt clears the value of the "expire_at" field.
+func (u *APITokenUpsertBulk) ClearExpireAt() *APITokenUpsertBulk {
+	return u.Update(func(s *APITokenUpsert) {
+		s.ClearExpireAt()
 	})
 }
 

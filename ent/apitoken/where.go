@@ -54,6 +54,11 @@ func IDLTE(id int) predicate.APIToken {
 	return predicate.APIToken(sql.FieldLTE(FieldID, id))
 }
 
+// UUID applies equality check predicate on the "uuid" field. It's identical to UUIDEQ.
+func UUID(v string) predicate.APIToken {
+	return predicate.APIToken(sql.FieldEQ(FieldUUID, v))
+}
+
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
 func Name(v string) predicate.APIToken {
 	return predicate.APIToken(sql.FieldEQ(FieldName, v))
@@ -69,6 +74,11 @@ func Prefix(v string) predicate.APIToken {
 	return predicate.APIToken(sql.FieldEQ(FieldPrefix, v))
 }
 
+// ExpireAt applies equality check predicate on the "expire_at" field. It's identical to ExpireAtEQ.
+func ExpireAt(v time.Time) predicate.APIToken {
+	return predicate.APIToken(sql.FieldEQ(FieldExpireAt, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.APIToken {
 	return predicate.APIToken(sql.FieldEQ(FieldCreatedAt, v))
@@ -77,6 +87,81 @@ func CreatedAt(v time.Time) predicate.APIToken {
 // LastUsedAt applies equality check predicate on the "last_used_at" field. It's identical to LastUsedAtEQ.
 func LastUsedAt(v time.Time) predicate.APIToken {
 	return predicate.APIToken(sql.FieldEQ(FieldLastUsedAt, v))
+}
+
+// UUIDEQ applies the EQ predicate on the "uuid" field.
+func UUIDEQ(v string) predicate.APIToken {
+	return predicate.APIToken(sql.FieldEQ(FieldUUID, v))
+}
+
+// UUIDNEQ applies the NEQ predicate on the "uuid" field.
+func UUIDNEQ(v string) predicate.APIToken {
+	return predicate.APIToken(sql.FieldNEQ(FieldUUID, v))
+}
+
+// UUIDIn applies the In predicate on the "uuid" field.
+func UUIDIn(vs ...string) predicate.APIToken {
+	return predicate.APIToken(sql.FieldIn(FieldUUID, vs...))
+}
+
+// UUIDNotIn applies the NotIn predicate on the "uuid" field.
+func UUIDNotIn(vs ...string) predicate.APIToken {
+	return predicate.APIToken(sql.FieldNotIn(FieldUUID, vs...))
+}
+
+// UUIDGT applies the GT predicate on the "uuid" field.
+func UUIDGT(v string) predicate.APIToken {
+	return predicate.APIToken(sql.FieldGT(FieldUUID, v))
+}
+
+// UUIDGTE applies the GTE predicate on the "uuid" field.
+func UUIDGTE(v string) predicate.APIToken {
+	return predicate.APIToken(sql.FieldGTE(FieldUUID, v))
+}
+
+// UUIDLT applies the LT predicate on the "uuid" field.
+func UUIDLT(v string) predicate.APIToken {
+	return predicate.APIToken(sql.FieldLT(FieldUUID, v))
+}
+
+// UUIDLTE applies the LTE predicate on the "uuid" field.
+func UUIDLTE(v string) predicate.APIToken {
+	return predicate.APIToken(sql.FieldLTE(FieldUUID, v))
+}
+
+// UUIDContains applies the Contains predicate on the "uuid" field.
+func UUIDContains(v string) predicate.APIToken {
+	return predicate.APIToken(sql.FieldContains(FieldUUID, v))
+}
+
+// UUIDHasPrefix applies the HasPrefix predicate on the "uuid" field.
+func UUIDHasPrefix(v string) predicate.APIToken {
+	return predicate.APIToken(sql.FieldHasPrefix(FieldUUID, v))
+}
+
+// UUIDHasSuffix applies the HasSuffix predicate on the "uuid" field.
+func UUIDHasSuffix(v string) predicate.APIToken {
+	return predicate.APIToken(sql.FieldHasSuffix(FieldUUID, v))
+}
+
+// UUIDIsNil applies the IsNil predicate on the "uuid" field.
+func UUIDIsNil() predicate.APIToken {
+	return predicate.APIToken(sql.FieldIsNull(FieldUUID))
+}
+
+// UUIDNotNil applies the NotNil predicate on the "uuid" field.
+func UUIDNotNil() predicate.APIToken {
+	return predicate.APIToken(sql.FieldNotNull(FieldUUID))
+}
+
+// UUIDEqualFold applies the EqualFold predicate on the "uuid" field.
+func UUIDEqualFold(v string) predicate.APIToken {
+	return predicate.APIToken(sql.FieldEqualFold(FieldUUID, v))
+}
+
+// UUIDContainsFold applies the ContainsFold predicate on the "uuid" field.
+func UUIDContainsFold(v string) predicate.APIToken {
+	return predicate.APIToken(sql.FieldContainsFold(FieldUUID, v))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.
@@ -272,6 +357,56 @@ func PrefixEqualFold(v string) predicate.APIToken {
 // PrefixContainsFold applies the ContainsFold predicate on the "prefix" field.
 func PrefixContainsFold(v string) predicate.APIToken {
 	return predicate.APIToken(sql.FieldContainsFold(FieldPrefix, v))
+}
+
+// ExpireAtEQ applies the EQ predicate on the "expire_at" field.
+func ExpireAtEQ(v time.Time) predicate.APIToken {
+	return predicate.APIToken(sql.FieldEQ(FieldExpireAt, v))
+}
+
+// ExpireAtNEQ applies the NEQ predicate on the "expire_at" field.
+func ExpireAtNEQ(v time.Time) predicate.APIToken {
+	return predicate.APIToken(sql.FieldNEQ(FieldExpireAt, v))
+}
+
+// ExpireAtIn applies the In predicate on the "expire_at" field.
+func ExpireAtIn(vs ...time.Time) predicate.APIToken {
+	return predicate.APIToken(sql.FieldIn(FieldExpireAt, vs...))
+}
+
+// ExpireAtNotIn applies the NotIn predicate on the "expire_at" field.
+func ExpireAtNotIn(vs ...time.Time) predicate.APIToken {
+	return predicate.APIToken(sql.FieldNotIn(FieldExpireAt, vs...))
+}
+
+// ExpireAtGT applies the GT predicate on the "expire_at" field.
+func ExpireAtGT(v time.Time) predicate.APIToken {
+	return predicate.APIToken(sql.FieldGT(FieldExpireAt, v))
+}
+
+// ExpireAtGTE applies the GTE predicate on the "expire_at" field.
+func ExpireAtGTE(v time.Time) predicate.APIToken {
+	return predicate.APIToken(sql.FieldGTE(FieldExpireAt, v))
+}
+
+// ExpireAtLT applies the LT predicate on the "expire_at" field.
+func ExpireAtLT(v time.Time) predicate.APIToken {
+	return predicate.APIToken(sql.FieldLT(FieldExpireAt, v))
+}
+
+// ExpireAtLTE applies the LTE predicate on the "expire_at" field.
+func ExpireAtLTE(v time.Time) predicate.APIToken {
+	return predicate.APIToken(sql.FieldLTE(FieldExpireAt, v))
+}
+
+// ExpireAtIsNil applies the IsNil predicate on the "expire_at" field.
+func ExpireAtIsNil() predicate.APIToken {
+	return predicate.APIToken(sql.FieldIsNull(FieldExpireAt))
+}
+
+// ExpireAtNotNil applies the NotNil predicate on the "expire_at" field.
+func ExpireAtNotNil() predicate.APIToken {
+	return predicate.APIToken(sql.FieldNotNull(FieldExpireAt))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

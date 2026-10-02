@@ -13,6 +13,8 @@ const (
 	Label = "api_token"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldUUID holds the string denoting the uuid field in the database.
+	FieldUUID = "uuid"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldTokenHash holds the string denoting the token_hash field in the database.
@@ -21,6 +23,8 @@ const (
 	FieldPrefix = "prefix"
 	// FieldScopes holds the string denoting the scopes field in the database.
 	FieldScopes = "scopes"
+	// FieldExpireAt holds the string denoting the expire_at field in the database.
+	FieldExpireAt = "expire_at"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldLastUsedAt holds the string denoting the last_used_at field in the database.
@@ -32,10 +36,12 @@ const (
 // Columns holds all SQL columns for apitoken fields.
 var Columns = []string{
 	FieldID,
+	FieldUUID,
 	FieldName,
 	FieldTokenHash,
 	FieldPrefix,
 	FieldScopes,
+	FieldExpireAt,
 	FieldCreatedAt,
 	FieldLastUsedAt,
 }
@@ -65,6 +71,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
+// ByUUID orders the results by the uuid field.
+func ByUUID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUUID, opts...).ToFunc()
+}
+
 // ByName orders the results by the name field.
 func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
@@ -78,6 +89,11 @@ func ByTokenHash(opts ...sql.OrderTermOption) OrderOption {
 // ByPrefix orders the results by the prefix field.
 func ByPrefix(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrefix, opts...).ToFunc()
+}
+
+// ByExpireAt orders the results by the expire_at field.
+func ByExpireAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExpireAt, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

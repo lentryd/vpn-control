@@ -69,7 +69,9 @@
             "scope": "Token lacks scope {{scope}}",
             "name_required": "Name is required",
             "scope_required": "Choose at least one scope",
-            "unknown_scope": "Unknown scope {{scope}}"
+            "unknown_scope": "Unknown scope {{scope}}",
+            "expired": "API token expired",
+            "expiry_required": "Set the expiry in days"
         },
         "fx": {
             "rate_failed": "{{currency}} rate on {{date}}: {{error}}"
@@ -622,7 +624,7 @@
         "snapshots": "Snapshots",
         "restore_warning": "Selected categories will be replaced with the snapshot's contents. Current data is saved as a pre-import snapshot.",
         "restored": "Restored. Snapshot before restoring: {{snapshot}}",
-        "schedule_hint": "Automatic snapshots of the whole database. An external service can fetch them with an API token (backups:read)",
+        "schedule_hint": "Automatic snapshots of the whole database. An external service can fetch them with an API token (Backups → Read)",
         "schedule": "Schedule",
         "every_hours": "Every, hours",
         "every_hours_hint": "0 — never",
@@ -826,20 +828,34 @@
         "included": "Comes with the subscription's tariff"
     },
     "tokens": {
-        "scope": {
-            "addons_read": "GET /api/v1/addons — the add-on catalog (JSON, or ?format=yaml for subpage)",
-            "backups_read": "GET /api/v1/backups — list and download snapshots",
-            "backups_write": "POST /api/v1/backups — take a snapshot and get it right away"
-        },
-        "delete": "Delete token «{{name}}»?",
-        "delete_hint": "Services using this token lose access.",
-        "token": "Token",
-        "access": "Access",
-        "used": "Last used",
-        "new": "New API token",
-        "description": "For other services: Authorization: Bearer <token>, base URL {{url}}",
-        "copy_now": "Copy the token now — it won't be shown again.",
-        "name_hint": "A name, to know who uses it"
+        "card_description": "Manage your API access tokens for programmatic access.",
+        "none": "No API tokens found",
+        "col_scopes": "Scopes",
+        "col_created": "Created",
+        "col_expires": "Expires",
+        "expired": "Expired",
+        "never_expires": "Never",
+        "refresh": "Refresh",
+        "create": "Create API token",
+        "full_access": "Full access",
+        "view": "View",
+        "one_time_notice": "For security reasons, the token is shown <emphasis>only once</emphasis> right after creation. Make sure to copy and store it somewhere safe — you won't be able to see it again.",
+        "token_name": "Token name",
+        "expires_in_days": "Expires in (days)",
+        "read_only": "Read only",
+        "clear": "Clear",
+        "paste": "Paste",
+        "pasted": "Scopes pasted",
+        "pasted_message_one": "Imported {{count}} scope from clipboard",
+        "pasted_message_other": "Imported {{count}} scopes from clipboard",
+        "invalid_scopes": "Invalid scopes",
+        "invalid_scopes_message": "Clipboard must contain a JSON array of scope strings",
+        "endpoint": {
+            "addons_list": "Add-on catalog (JSON, or addons.yml with ?format=yaml)",
+            "backups_list": "List snapshots",
+            "backups_download": "Download a snapshot",
+            "backups_create": "Take a snapshot and download it"
+        }
     },
     "panel_users": {
         "unlinked_one": "not linked",

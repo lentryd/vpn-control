@@ -200,11 +200,16 @@ export interface Addon {
 
 export interface ApiToken {
     id: number
+    uuid: string
     name: string
     prefix: string
     scopes: string[]
     created_at: string
+    // null: made before tokens expired, never expires
+    expire_at: string | null
     last_used_at: string | null
+    // only in the creation response
+    token?: string
 }
 
 export interface Squad {

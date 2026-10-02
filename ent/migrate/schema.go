@@ -11,10 +11,12 @@ var (
 	// APITokensColumns holds the columns for the "api_tokens" table.
 	APITokensColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "uuid", Type: field.TypeString, Unique: true, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "token_hash", Type: field.TypeString, Unique: true},
 		{Name: "prefix", Type: field.TypeString},
 		{Name: "scopes", Type: field.TypeJSON},
+		{Name: "expire_at", Type: field.TypeTime, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "last_used_at", Type: field.TypeTime, Nullable: true},
 	}

@@ -18,6 +18,8 @@ type APIToken struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// UUID holds the value of the "uuid" field.
+	UUID string `json:"uuid,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// TokenHash holds the value of the "token_hash" field.
@@ -26,6 +28,8 @@ type APIToken struct {
 	Prefix string `json:"prefix,omitempty"`
 	// Scopes holds the value of the "scopes" field.
 	Scopes []string `json:"scopes,omitempty"`
+	// ExpireAt holds the value of the "expire_at" field.
+	ExpireAt *time.Time `json:"expire_at,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// LastUsedAt holds the value of the "last_used_at" field.
@@ -42,9 +46,9 @@ func (*APIToken) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case apitoken.FieldID:
 			values[i] = new(sql.NullInt64)
-		case apitoken.FieldName, apitoken.FieldTokenHash, apitoken.FieldPrefix:
+		case apitoken.FieldUUID, apitoken.FieldName, apitoken.FieldTokenHash, apitoken.FieldPrefix:
 			values[i] = new(sql.NullString)
-		case apitoken.FieldCreatedAt, apitoken.FieldLastUsedAt:
+		case apitoken.FieldExpireAt, apitoken.FieldCreatedAt, apitoken.FieldLastUsedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -67,6 +71,12 @@ func (_m *APIToken) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
+		case apitoken.FieldUUID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field uuid", values[i])
+			} else if value.Valid {
+				_m.UUID = value.String
+			}
 		case apitoken.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
@@ -92,6 +102,13 @@ func (_m *APIToken) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &_m.Scopes); err != nil {
 					return fmt.Errorf("unmarshal field scopes: %w", err)
 				}
+			}
+		case apitoken.FieldExpireAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field expire_at", values[i])
+			} else if value.Valid {
+				_m.ExpireAt = new(time.Time)
+				*_m.ExpireAt = value.Time
 			}
 		case apitoken.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -142,6 +159,9 @@ func (_m *APIToken) String() string {
 	var builder strings.Builder
 	builder.WriteString("APIToken(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("uuid=")
+	builder.WriteString(_m.UUID)
+	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)
 	builder.WriteString(", ")
@@ -152,6 +172,11 @@ func (_m *APIToken) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("scopes=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Scopes))
+	builder.WriteString(", ")
+	if v := _m.ExpireAt; v != nil {
+		builder.WriteString("expire_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

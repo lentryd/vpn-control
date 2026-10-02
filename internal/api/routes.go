@@ -29,10 +29,10 @@ func RegisterRoutes(app *fiber.App, deps *Deps) {
 	// before the session group, whose middleware covers all of /api.
 	token := func(scope string) fiber.Handler { return appmiddleware.RequireToken(h.DB, scope) }
 	v1 := api.Group("/v1")
-	v1.Get("/addons", token(appmiddleware.ScopeAddonsRead), h.PublicAddons)
-	v1.Get("/backups", token(appmiddleware.ScopeBackupsRead), h.ListSnapshots)
-	v1.Get("/backups/:name", token(appmiddleware.ScopeBackupsRead), h.DownloadSnapshot)
-	v1.Post("/backups", token(appmiddleware.ScopeBackupsWrite), h.CreateAndSendSnapshot)
+	v1.Get("/addons", token(appmiddleware.ScopeAddonsList), h.PublicAddons)
+	v1.Get("/backups", token(appmiddleware.ScopeBackupsList), h.ListSnapshots)
+	v1.Get("/backups/:name", token(appmiddleware.ScopeBackupsDownload), h.DownloadSnapshot)
+	v1.Post("/backups", token(appmiddleware.ScopeBackupsCreate), h.CreateAndSendSnapshot)
 
 	a := api.Group("", appmiddleware.RequireSession(h.Config.JWTSecret))
 	a.Get("/auth/me", h.Me)
@@ -82,6 +82,7 @@ func RegisterRoutes(app *fiber.App, deps *Deps) {
 	a.Delete("/addons/:id", h.DeleteAddon)
 
 	a.Get("/api-tokens", h.ListTokens)
+	a.Get("/api-tokens/scopes", h.TokenScopes)
 	a.Post("/api-tokens", h.CreateToken)
 	a.Delete("/api-tokens/:id", h.DeleteToken)
 

@@ -29,6 +29,26 @@ func (_u *APITokenUpdate) Where(ps ...predicate.APIToken) *APITokenUpdate {
 	return _u
 }
 
+// SetUUID sets the "uuid" field.
+func (_u *APITokenUpdate) SetUUID(v string) *APITokenUpdate {
+	_u.mutation.SetUUID(v)
+	return _u
+}
+
+// SetNillableUUID sets the "uuid" field if the given value is not nil.
+func (_u *APITokenUpdate) SetNillableUUID(v *string) *APITokenUpdate {
+	if v != nil {
+		_u.SetUUID(*v)
+	}
+	return _u
+}
+
+// ClearUUID clears the value of the "uuid" field.
+func (_u *APITokenUpdate) ClearUUID() *APITokenUpdate {
+	_u.mutation.ClearUUID()
+	return _u
+}
+
 // SetName sets the "name" field.
 func (_u *APITokenUpdate) SetName(v string) *APITokenUpdate {
 	_u.mutation.SetName(v)
@@ -80,6 +100,26 @@ func (_u *APITokenUpdate) SetScopes(v []string) *APITokenUpdate {
 // AppendScopes appends value to the "scopes" field.
 func (_u *APITokenUpdate) AppendScopes(v []string) *APITokenUpdate {
 	_u.mutation.AppendScopes(v)
+	return _u
+}
+
+// SetExpireAt sets the "expire_at" field.
+func (_u *APITokenUpdate) SetExpireAt(v time.Time) *APITokenUpdate {
+	_u.mutation.SetExpireAt(v)
+	return _u
+}
+
+// SetNillableExpireAt sets the "expire_at" field if the given value is not nil.
+func (_u *APITokenUpdate) SetNillableExpireAt(v *time.Time) *APITokenUpdate {
+	if v != nil {
+		_u.SetExpireAt(*v)
+	}
+	return _u
+}
+
+// ClearExpireAt clears the value of the "expire_at" field.
+func (_u *APITokenUpdate) ClearExpireAt() *APITokenUpdate {
+	_u.mutation.ClearExpireAt()
 	return _u
 }
 
@@ -157,6 +197,12 @@ func (_u *APITokenUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
+	if value, ok := _u.mutation.UUID(); ok {
+		_spec.SetField(apitoken.FieldUUID, field.TypeString, value)
+	}
+	if _u.mutation.UUIDCleared() {
+		_spec.ClearField(apitoken.FieldUUID, field.TypeString)
+	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(apitoken.FieldName, field.TypeString, value)
 	}
@@ -173,6 +219,12 @@ func (_u *APITokenUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, apitoken.FieldScopes, value)
 		})
+	}
+	if value, ok := _u.mutation.ExpireAt(); ok {
+		_spec.SetField(apitoken.FieldExpireAt, field.TypeTime, value)
+	}
+	if _u.mutation.ExpireAtCleared() {
+		_spec.ClearField(apitoken.FieldExpireAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.LastUsedAt(); ok {
 		_spec.SetField(apitoken.FieldLastUsedAt, field.TypeTime, value)
@@ -198,6 +250,26 @@ type APITokenUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *APITokenMutation
+}
+
+// SetUUID sets the "uuid" field.
+func (_u *APITokenUpdateOne) SetUUID(v string) *APITokenUpdateOne {
+	_u.mutation.SetUUID(v)
+	return _u
+}
+
+// SetNillableUUID sets the "uuid" field if the given value is not nil.
+func (_u *APITokenUpdateOne) SetNillableUUID(v *string) *APITokenUpdateOne {
+	if v != nil {
+		_u.SetUUID(*v)
+	}
+	return _u
+}
+
+// ClearUUID clears the value of the "uuid" field.
+func (_u *APITokenUpdateOne) ClearUUID() *APITokenUpdateOne {
+	_u.mutation.ClearUUID()
+	return _u
 }
 
 // SetName sets the "name" field.
@@ -251,6 +323,26 @@ func (_u *APITokenUpdateOne) SetScopes(v []string) *APITokenUpdateOne {
 // AppendScopes appends value to the "scopes" field.
 func (_u *APITokenUpdateOne) AppendScopes(v []string) *APITokenUpdateOne {
 	_u.mutation.AppendScopes(v)
+	return _u
+}
+
+// SetExpireAt sets the "expire_at" field.
+func (_u *APITokenUpdateOne) SetExpireAt(v time.Time) *APITokenUpdateOne {
+	_u.mutation.SetExpireAt(v)
+	return _u
+}
+
+// SetNillableExpireAt sets the "expire_at" field if the given value is not nil.
+func (_u *APITokenUpdateOne) SetNillableExpireAt(v *time.Time) *APITokenUpdateOne {
+	if v != nil {
+		_u.SetExpireAt(*v)
+	}
+	return _u
+}
+
+// ClearExpireAt clears the value of the "expire_at" field.
+func (_u *APITokenUpdateOne) ClearExpireAt() *APITokenUpdateOne {
+	_u.mutation.ClearExpireAt()
 	return _u
 }
 
@@ -358,6 +450,12 @@ func (_u *APITokenUpdateOne) sqlSave(ctx context.Context) (_node *APIToken, err 
 			}
 		}
 	}
+	if value, ok := _u.mutation.UUID(); ok {
+		_spec.SetField(apitoken.FieldUUID, field.TypeString, value)
+	}
+	if _u.mutation.UUIDCleared() {
+		_spec.ClearField(apitoken.FieldUUID, field.TypeString)
+	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(apitoken.FieldName, field.TypeString, value)
 	}
@@ -374,6 +472,12 @@ func (_u *APITokenUpdateOne) sqlSave(ctx context.Context) (_node *APIToken, err 
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, apitoken.FieldScopes, value)
 		})
+	}
+	if value, ok := _u.mutation.ExpireAt(); ok {
+		_spec.SetField(apitoken.FieldExpireAt, field.TypeTime, value)
+	}
+	if _u.mutation.ExpireAtCleared() {
+		_spec.ClearField(apitoken.FieldExpireAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.LastUsedAt(); ok {
 		_spec.SetField(apitoken.FieldLastUsedAt, field.TypeTime, value)

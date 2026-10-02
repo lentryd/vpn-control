@@ -10,9 +10,11 @@ import (
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 	"modernc.org/sqlite"
 
 	"vpn-control/ent"
+	"vpn-control/ent/apitoken"
 	"vpn-control/ent/migrate"
 )
 
@@ -55,6 +57,10 @@ func OpenDB(ctx context.Context, path string) (*ent.Client, *sql.DB, error) {
 		_ = client.Close()
 		return nil, nil, fmt.Errorf("drop removed schema: %w", err)
 	}
+	if err := backfillTokenUUIDs(ctx, client); err != nil {
+		_ = client.Close()
+		return nil, nil, fmt.Errorf("backfill token uuids: %w", err)
+	}
 	return client, db, nil
 }
 
@@ -74,6 +80,20 @@ func dropRemoved(ctx context.Context, db *sql.DB) error {
 	if n > 0 {
 		_, err := db.ExecContext(ctx, "ALTER TABLE expense_items DROP COLUMN rw_inbound_tag")
 		return err
+	}
+	return nil
+}
+
+// backfillTokenUUIDs gives a UUID to API tokens made before they had one.
+func backfillTokenUUIDs(ctx context.Context, client *ent.Client) error {
+	ts, err := client.APIToken.Query().Where(apitoken.Or(apitoken.UUIDIsNil(), apitoken.UUID(""))).All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, t := range ts {
+		if err := client.APIToken.UpdateOne(t).SetUUID(uuid.NewString()).Exec(ctx); err != nil {
+			return err
+		}
 	}
 	return nil
 }

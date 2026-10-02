@@ -69,7 +69,9 @@
             "scope": "У токена нет доступа {{scope}}",
             "name_required": "Введите название",
             "scope_required": "Выберите хотя бы один доступ",
-            "unknown_scope": "Неизвестный доступ {{scope}}"
+            "unknown_scope": "Неизвестный доступ {{scope}}",
+            "expired": "Срок действия API-токена истёк",
+            "expiry_required": "Укажите срок действия в днях"
         },
         "fx": {
             "rate_failed": "Курс {{currency}} на {{date}}: {{error}}"
@@ -646,7 +648,7 @@
         "snapshots": "Снапшоты",
         "restore_warning": "Выбранные категории заменятся содержимым снапшота. Текущие данные сохранятся в снапшот «перед импортом».",
         "restored": "Восстановлено. Снимок до восстановления: {{snapshot}}",
-        "schedule_hint": "Автоматические снапшоты всей базы. Внешний сервис может забирать их по API-токену (backups:read)",
+        "schedule_hint": "Автоматические снапшоты всей базы. Внешний сервис может забирать их по API-токену (Backups → Read)",
         "schedule": "Расписание",
         "every_hours": "Каждые, часов",
         "every_hours_hint": "0 — не делать",
@@ -854,20 +856,36 @@
         "included": "Входит в тариф подписки"
     },
     "tokens": {
-        "scope": {
-            "addons_read": "GET /api/v1/addons — каталог аддонов (JSON или ?format=yaml для subpage)",
-            "backups_read": "GET /api/v1/backups — список и скачивание снапшотов",
-            "backups_write": "POST /api/v1/backups — создать снапшот и сразу получить его"
-        },
-        "delete": "Удалить токен «{{name}}»?",
-        "delete_hint": "Сервисы с этим токеном потеряют доступ.",
-        "token": "Токен",
-        "access": "Доступ",
-        "used": "Использован",
-        "new": "Новый API-токен",
-        "description": "Для других сервисов: Authorization: Bearer <токен>, адрес {{url}}",
-        "copy_now": "Скопируйте токен сейчас — больше его показать не получится.",
-        "name_hint": "Название — чтобы понимать, кто им пользуется"
+        "card_description": "Управление токенами доступа к API.",
+        "none": "Токенов API нет",
+        "col_scopes": "Права",
+        "col_created": "Создан",
+        "col_expires": "Истекает",
+        "expired": "Истёк",
+        "never_expires": "Никогда",
+        "refresh": "Обновить",
+        "create": "Создать токен API",
+        "full_access": "Полный доступ",
+        "view": "Просмотр",
+        "one_time_notice": "Из соображений безопасности токен показывается <emphasis>только один раз</emphasis>, сразу после создания. Обязательно скопируйте и сохраните его в надёжном месте — увидеть его снова не получится.",
+        "token_name": "Название токена",
+        "expires_in_days": "Истекает через (дней)",
+        "read_only": "Только чтение",
+        "clear": "Очистить",
+        "paste": "Вставить",
+        "pasted": "Права вставлены",
+        "pasted_message_one": "Из буфера импортировано {{count}} право",
+        "pasted_message_few": "Из буфера импортировано {{count}} права",
+        "pasted_message_many": "Из буфера импортировано {{count}} прав",
+        "pasted_message_other": "Из буфера импортировано {{count}} права",
+        "invalid_scopes": "Неверные права",
+        "invalid_scopes_message": "В буфере должен быть JSON-массив строк с правами",
+        "endpoint": {
+            "addons_list": "Каталог аддонов (JSON или addons.yml с ?format=yaml)",
+            "backups_list": "Список снапшотов",
+            "backups_download": "Скачать снапшот",
+            "backups_create": "Сделать снапшот и сразу скачать его"
+        }
     },
     "panel_users": {
         "unlinked_one": "не привязан",

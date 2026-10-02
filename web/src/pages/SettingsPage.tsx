@@ -5,7 +5,7 @@ import { TbSettings } from 'react-icons/tb'
 import { useEffect, useMemo, useState } from 'react'
 
 import { api } from '@/api/client'
-import { ApiTokensPanel } from '@/components/ApiTokensPanel'
+import { ApiTokensCard } from '@/components/api-tokens/api-tokens-card'
 import { BackupPanel } from '@/components/BackupPanel'
 import { useApiMutation, useAudit, useSettings } from '@/api/hooks'
 import type { AuditRow } from '@/api/types'
@@ -139,7 +139,7 @@ export function SettingsPage() {
                     <BackupPanel />
                 </Tabs.Panel>
                 <Tabs.Panel value="tokens">
-                    <ApiTokensPanel />
+                    <ApiTokensCard />
                 </Tabs.Panel>
                 <Tabs.Panel value="audit">
                     <DataTableCard

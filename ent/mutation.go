@@ -68,11 +68,13 @@ type APITokenMutation struct {
 	op            Op
 	typ           string
 	id            *int
+	uuid          *string
 	name          *string
 	token_hash    *string
 	prefix        *string
 	scopes        *[]string
 	appendscopes  []string
+	expire_at     *time.Time
 	created_at    *time.Time
 	last_used_at  *time.Time
 	clearedFields map[string]struct{}
@@ -177,6 +179,55 @@ func (m *APITokenMutation) IDs(ctx context.Context) ([]int, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetUUID sets the "uuid" field.
+func (m *APITokenMutation) SetUUID(s string) {
+	m.uuid = &s
+}
+
+// UUID returns the value of the "uuid" field in the mutation.
+func (m *APITokenMutation) UUID() (r string, exists bool) {
+	v := m.uuid
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUUID returns the old "uuid" field's value of the APIToken entity.
+// If the APIToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *APITokenMutation) OldUUID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUUID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUUID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUUID: %w", err)
+	}
+	return oldValue.UUID, nil
+}
+
+// ClearUUID clears the value of the "uuid" field.
+func (m *APITokenMutation) ClearUUID() {
+	m.uuid = nil
+	m.clearedFields[apitoken.FieldUUID] = struct{}{}
+}
+
+// UUIDCleared returns if the "uuid" field was cleared in this mutation.
+func (m *APITokenMutation) UUIDCleared() bool {
+	_, ok := m.clearedFields[apitoken.FieldUUID]
+	return ok
+}
+
+// ResetUUID resets all changes to the "uuid" field.
+func (m *APITokenMutation) ResetUUID() {
+	m.uuid = nil
+	delete(m.clearedFields, apitoken.FieldUUID)
 }
 
 // SetName sets the "name" field.
@@ -338,6 +389,55 @@ func (m *APITokenMutation) ResetScopes() {
 	m.appendscopes = nil
 }
 
+// SetExpireAt sets the "expire_at" field.
+func (m *APITokenMutation) SetExpireAt(t time.Time) {
+	m.expire_at = &t
+}
+
+// ExpireAt returns the value of the "expire_at" field in the mutation.
+func (m *APITokenMutation) ExpireAt() (r time.Time, exists bool) {
+	v := m.expire_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpireAt returns the old "expire_at" field's value of the APIToken entity.
+// If the APIToken object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *APITokenMutation) OldExpireAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpireAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpireAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpireAt: %w", err)
+	}
+	return oldValue.ExpireAt, nil
+}
+
+// ClearExpireAt clears the value of the "expire_at" field.
+func (m *APITokenMutation) ClearExpireAt() {
+	m.expire_at = nil
+	m.clearedFields[apitoken.FieldExpireAt] = struct{}{}
+}
+
+// ExpireAtCleared returns if the "expire_at" field was cleared in this mutation.
+func (m *APITokenMutation) ExpireAtCleared() bool {
+	_, ok := m.clearedFields[apitoken.FieldExpireAt]
+	return ok
+}
+
+// ResetExpireAt resets all changes to the "expire_at" field.
+func (m *APITokenMutation) ResetExpireAt() {
+	m.expire_at = nil
+	delete(m.clearedFields, apitoken.FieldExpireAt)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *APITokenMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -457,7 +557,10 @@ func (m *APITokenMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *APITokenMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 8)
+	if m.uuid != nil {
+		fields = append(fields, apitoken.FieldUUID)
+	}
 	if m.name != nil {
 		fields = append(fields, apitoken.FieldName)
 	}
@@ -469,6 +572,9 @@ func (m *APITokenMutation) Fields() []string {
 	}
 	if m.scopes != nil {
 		fields = append(fields, apitoken.FieldScopes)
+	}
+	if m.expire_at != nil {
+		fields = append(fields, apitoken.FieldExpireAt)
 	}
 	if m.created_at != nil {
 		fields = append(fields, apitoken.FieldCreatedAt)
@@ -484,6 +590,8 @@ func (m *APITokenMutation) Fields() []string {
 // schema.
 func (m *APITokenMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case apitoken.FieldUUID:
+		return m.UUID()
 	case apitoken.FieldName:
 		return m.Name()
 	case apitoken.FieldTokenHash:
@@ -492,6 +600,8 @@ func (m *APITokenMutation) Field(name string) (ent.Value, bool) {
 		return m.Prefix()
 	case apitoken.FieldScopes:
 		return m.Scopes()
+	case apitoken.FieldExpireAt:
+		return m.ExpireAt()
 	case apitoken.FieldCreatedAt:
 		return m.CreatedAt()
 	case apitoken.FieldLastUsedAt:
@@ -505,6 +615,8 @@ func (m *APITokenMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *APITokenMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case apitoken.FieldUUID:
+		return m.OldUUID(ctx)
 	case apitoken.FieldName:
 		return m.OldName(ctx)
 	case apitoken.FieldTokenHash:
@@ -513,6 +625,8 @@ func (m *APITokenMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldPrefix(ctx)
 	case apitoken.FieldScopes:
 		return m.OldScopes(ctx)
+	case apitoken.FieldExpireAt:
+		return m.OldExpireAt(ctx)
 	case apitoken.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case apitoken.FieldLastUsedAt:
@@ -526,6 +640,13 @@ func (m *APITokenMutation) OldField(ctx context.Context, name string) (ent.Value
 // type.
 func (m *APITokenMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case apitoken.FieldUUID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUUID(v)
+		return nil
 	case apitoken.FieldName:
 		v, ok := value.(string)
 		if !ok {
@@ -553,6 +674,13 @@ func (m *APITokenMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetScopes(v)
+		return nil
+	case apitoken.FieldExpireAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpireAt(v)
 		return nil
 	case apitoken.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -598,6 +726,12 @@ func (m *APITokenMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *APITokenMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(apitoken.FieldUUID) {
+		fields = append(fields, apitoken.FieldUUID)
+	}
+	if m.FieldCleared(apitoken.FieldExpireAt) {
+		fields = append(fields, apitoken.FieldExpireAt)
+	}
 	if m.FieldCleared(apitoken.FieldLastUsedAt) {
 		fields = append(fields, apitoken.FieldLastUsedAt)
 	}
@@ -615,6 +749,12 @@ func (m *APITokenMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *APITokenMutation) ClearField(name string) error {
 	switch name {
+	case apitoken.FieldUUID:
+		m.ClearUUID()
+		return nil
+	case apitoken.FieldExpireAt:
+		m.ClearExpireAt()
+		return nil
 	case apitoken.FieldLastUsedAt:
 		m.ClearLastUsedAt()
 		return nil
@@ -626,6 +766,9 @@ func (m *APITokenMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *APITokenMutation) ResetField(name string) error {
 	switch name {
+	case apitoken.FieldUUID:
+		m.ResetUUID()
+		return nil
 	case apitoken.FieldName:
 		m.ResetName()
 		return nil
@@ -637,6 +780,9 @@ func (m *APITokenMutation) ResetField(name string) error {
 		return nil
 	case apitoken.FieldScopes:
 		m.ResetScopes()
+		return nil
+	case apitoken.FieldExpireAt:
+		m.ResetExpireAt()
 		return nil
 	case apitoken.FieldCreatedAt:
 		m.ResetCreatedAt()
