@@ -13,20 +13,22 @@ import { openSubscriptionForm } from '@/modals/SubscriptionModals'
 import { openViewAddonModal, openViewSubscriptionModal } from '@/modals/ViewItemModal'
 import { Page } from '@shared/ui/page'
 import { DataTableCard } from '@shared/ui/table'
+import { useTranslation } from 'react-i18next'
 
 export function RwUsersPage() {
+    const { t } = useTranslation()
     const { data, isFetching } = useRwUsers()
     const [scope, setScope] = useState('unlinked')
     const rows = useMemo(() => (data ?? []).filter((u) => (scope === 'all' ? true : !u.linked)), [data, scope])
 
     const columns = useMemo<MRT_ColumnDef<RwUserRow>[]>(
         () => [
-            { accessorKey: 'username', header: 'Пользователь', size: 240, Cell: ({ row }) => <UsernameCell user={row.original} /> },
-            { accessorKey: 'description', header: 'Описание' },
-            { id: 'status', header: 'Статус', accessorFn: (r) => r.status, filterVariant: 'multi-select', size: 190, mantineTableBodyCellProps: { align: 'center' }, Cell: ({ row }) => <StatusBadge user={row.original} /> },
+            { accessorKey: 'username', header: t('expense_items.col_user'), size: 240, Cell: ({ row }) => <UsernameCell user={row.original} /> },
+            { accessorKey: 'description', header: t('tariffs.description_label') },
+            { id: 'status', header: t('dashboard.col_status'), accessorFn: (r) => r.status, filterVariant: 'multi-select', size: 190, mantineTableBodyCellProps: { align: 'center' }, Cell: ({ row }) => <StatusBadge user={row.original} /> },
             {
                 id: 'expire',
-                header: 'Истекает',
+                header: t('sub.expires'),
                 sortingFn: 'datetime',
                 accessorFn: (r) => (r.expire_at ? new Date(r.expire_at) : undefined),
                 sortDescFirst: false,
@@ -35,10 +37,10 @@ export function RwUsersPage() {
                 mantineTableBodyCellProps: { align: 'center' },
                 Cell: ({ row }) => <ExpireCell date={row.original.expire_at} />
             },
-            { id: 'traffic', header: 'Трафик', accessorFn: (r) => r.used_traffic_bytes, enableColumnFilter: false, size: 260, Cell: ({ row }) => <TrafficCell user={row.original} /> },
+            { id: 'traffic', header: t('sub.traffic'), accessorFn: (r) => r.used_traffic_bytes, enableColumnFilter: false, size: 260, Cell: ({ row }) => <TrafficCell user={row.original} /> },
             {
                 id: 'online',
-                header: 'В сети',
+                header: t('subscriptions.col_online'),
                 size: 190,
                 sortingFn: 'datetime',
                 accessorFn: (r) => (r.online_at ? new Date(r.online_at) : undefined),
@@ -48,7 +50,7 @@ export function RwUsersPage() {
             },
             {
                 id: 'linked',
-                header: 'Клиент',
+                header: t('sub.customer'),
                 accessorFn: (r) => r.customer_name,
                 Cell: ({ row }) =>
                     row.original.linked ? (
@@ -58,39 +60,39 @@ export function RwUsersPage() {
                             </Anchor>
                             {row.original.subscription_addon_id && (
                                 <Badge size="xs" color="grape" variant="soft">
-                                    аддон
+                                    {t('dashboard.addon_badge')}
                                 </Badge>
                             )}
                         </Group>
                     ) : (
                         <Badge color="yellow" variant="soft">
-                            не привязан
+                            {t('panel_users.unlinked_one')}
                         </Badge>
                     )
             }
         ],
-        []
+        [t]
     )
 
     return (
-        <Page title="Пользователи панели">
+        <Page title={t('menu.panel_users')}>
             <PageHeader
                 icon={<PiUsersThreeDuotone size={24} />}
-                title="Пользователи панели"
-                description="Кэш пользователей Remnawave. Привяжите каждого к клиенту — тогда он появится в учёте и продлениях"
+                title={t('menu.panel_users')}
+                description={t('panel_users.description')}
             />
             <DataTableCard
                 storageKey="panel-users"
                 icon={<PiUsersThreeDuotone size={24} />}
-                title="Пользователи Remnawave"
+                title={t('panel_users.table_title')}
                 actions={
                     <SegmentedControl
                         size="xs"
                         value={scope}
                         onChange={setScope}
                         data={[
-                            { value: 'unlinked', label: 'Непривязанные' },
-                            { value: 'all', label: 'Все' }
+                            { value: 'unlinked', label: t('panel_users.unlinked') },
+                            { value: 'all', label: t('common.all') }
                         ]}
                     />
                 }
@@ -114,7 +116,7 @@ export function RwUsersPage() {
                                 leftSection={<PiLink size={14} />}
                                 onClick={() => openSubscriptionForm({ rwUserId: row.original.id })}
                             >
-                                К клиенту
+                                {t('panel_users.to_customer')}
                             </Button>
                             <Button
                                 size="compact-xs"
@@ -125,7 +127,7 @@ export function RwUsersPage() {
                                     openCustomerForm(undefined, (id) => openSubscriptionForm({ customerId: id, rwUserId: row.original.id }))
                                 }
                             >
-                                Новый клиент
+                                {t('customers.new')}
                             </Button>
                         </Group>
                     )

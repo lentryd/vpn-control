@@ -13,12 +13,13 @@ import { notifyError } from '@/components/notify'
 import { confirmDanger, openModal } from '@/modals/open'
 import { FormFooter, FormSection } from '@shared/ui/forms/form-section'
 import { DataTableCard } from '@shared/ui/table'
+import i18n from '@/app/i18n/i18n'
+import { useTranslation } from 'react-i18next'
 
-const scopeHelp: Record<string, string> = {
-    'addons:read': 'GET /api/v1/addons — каталог аддонов (JSON или ?format=yaml для subpage)',
-    'backups:read': 'GET /api/v1/backups — список и скачивание снапшотов',
-    'backups:write': 'POST /api/v1/backups — создать снапшот и сразу получить его'
-}
+const SCOPES = ['addons:read', 'backups:read', 'backups:write'] as const
+const scopeHelp = (s: string) =>
+    (SCOPES as readonly string[]).includes(s) ? i18n.t(`tokens.scope.${s.replace(':', '_') as 'addons_read'}`) : ''
+
 
 const useTokens = () =>
     useQuery({ queryKey: ['api-tokens'], queryFn: () => api.get<{ tokens: ApiToken[]; scopes: string[] }>('api-tokens') })
@@ -26,12 +27,13 @@ const useTokens = () =>
 // ApiTokensPanel manages tokens other services use for /api/v1, like the
 // panel's own API tokens: the secret is shown once, on creation.
 export function ApiTokensPanel() {
+    const { t } = useTranslation()
     const q = useTokens()
     const invalidate = useInvalidateAll()
-    const remove = (t: ApiToken) =>
-        confirmDanger(`Удалить токен «${t.name}»?`, 'Сервисы с этим токеном потеряют доступ.', async () => {
+    const remove = (tok: ApiToken) =>
+        confirmDanger(t('tokens.delete', { name: tok.name }), t('tokens.delete_hint'), async () => {
             try {
-                await api.del(`api-tokens/${t.id}`)
+                await api.del(`api-tokens/${tok.id}`)
                 await invalidate()
             } catch (e) {
                 notifyError(e)
@@ -39,15 +41,15 @@ export function ApiTokensPanel() {
         })
     const columns = useMemo<MRT_ColumnDef<ApiToken>[]>(
         () => [
-            { accessorKey: 'name', header: 'Название' },
+            { accessorKey: 'name', header: t('tariffs.col_name') },
             {
                 accessorKey: 'prefix',
-                header: 'Токен',
+                header: t('tokens.token'),
                 Cell: ({ cell }) => <Code>{cell.getValue<string>()}…</Code>
             },
             {
                 accessorKey: 'scopes',
-                header: 'Доступ',
+                header: t('tokens.access'),
                 enableSorting: false,
                 Cell: ({ row }) => (
                     <Group gap={4}>
@@ -59,14 +61,14 @@ export function ApiTokensPanel() {
                     </Group>
                 )
             },
-            { accessorKey: 'created_at', header: 'Создан', Cell: ({ cell }) => fmtDateTime(cell.getValue<string>()) },
+            { accessorKey: 'created_at', header: t('backup.col_created'), Cell: ({ cell }) => fmtDateTime(cell.getValue<string>()) },
             {
                 accessorKey: 'last_used_at',
-                header: 'Использован',
-                Cell: ({ cell }) => (cell.getValue<string | null>() ? fromNow(cell.getValue<string>()) : 'никогда')
+                header: t('tokens.used'),
+                Cell: ({ cell }) => (cell.getValue<string | null>() ? fromNow(cell.getValue<string>()) : t('common.never'))
             }
         ],
-        []
+        [t]
     )
     return (
         <DataTableCard
@@ -74,16 +76,16 @@ export function ApiTokensPanel() {
                 <Button
                     color="teal"
                     leftSection={<PiPlus size={14} />}
-                    onClick={() => openModal({ icon: PiKeyDuotone, title: 'Новый API-токен' }, (close) => <CreateTokenForm onDone={close} scopes={q.data?.scopes ?? []} />, 'lg')}
+                    onClick={() => openModal({ icon: PiKeyDuotone, title: t('tokens.new') }, (close) => <CreateTokenForm onDone={close} scopes={q.data?.scopes ?? []} />, 'lg')}
                     size="xs"
                     variant="soft"
                 >
-                    Токен
+                    {t('tokens.token')}
                 </Button>
             }
             columns={columns}
             data={q.data?.tokens ?? []}
-            description={`Для других сервисов: Authorization: Bearer <токен>, адрес ${API_BASE}v1/`}
+            description={t('tokens.description', { url: `${API_BASE}v1/` })}
             enableRowActions
             icon={<PiKeyDuotone size={24} />}
             renderRowActions={({ row }) => (
@@ -93,17 +95,18 @@ export function ApiTokensPanel() {
             )}
             state={{ isLoading: q.isPending }}
             storageKey="api-tokens"
-            title="API-токены"
+            title={t('settings.tokens')}
         />
     )
 }
 
 function CreateTokenForm({ scopes, onDone }: { scopes: string[]; onDone: () => void }) {
+    const { t } = useTranslation()
     const form = useForm({
         initialValues: { name: '', scopes: [] as string[] },
         validate: {
-            name: (v) => (v.trim() ? null : 'Введите название'),
-            scopes: (v) => (v.length ? null : 'Выберите доступ')
+            name: (v) => (v.trim() ? null : t('tariffs.name_required')),
+            scopes: (v) => (v.length ? null : t('errors.token.scope_required'))
         }
     })
     const m = useApiMutation((v: typeof form.values) => api.post<{ token: string }>('api-tokens', v))
@@ -111,7 +114,7 @@ function CreateTokenForm({ scopes, onDone }: { scopes: string[]; onDone: () => v
         return (
             <Stack>
                 <Alert color="yellow" variant="soft">
-                    Скопируйте токен сейчас — больше его показать не получится.
+                    {t('tokens.copy_now')}
                 </Alert>
                 <Group gap="xs" wrap="nowrap">
                     <Code block style={{ flex: 1, wordBreak: 'break-all' }}>
@@ -119,7 +122,7 @@ function CreateTokenForm({ scopes, onDone }: { scopes: string[]; onDone: () => v
                     </Code>
                     <CopyButton value={m.data.token}>
                         {({ copied, copy }) => (
-                            <Tooltip label={copied ? 'Скопировано' : 'Копировать'}>
+                            <Tooltip label={copied ? t('common.copied') : t('common.copy')}>
                                 <ActionIcon color={copied ? 'teal' : 'gray'} onClick={copy} size="lg" variant="soft">
                                     {copied ? <PiCheck size={18} /> : <PiCopy size={18} />}
                                 </ActionIcon>
@@ -127,20 +130,20 @@ function CreateTokenForm({ scopes, onDone }: { scopes: string[]; onDone: () => v
                         )}
                     </CopyButton>
                 </Group>
-                <FormFooter inline onSubmit={onDone} submitLabel="Готово" />
+                <FormFooter inline onSubmit={onDone} submitLabel={t('common.done')} />
             </Stack>
         )
     }
     return (
         <form onSubmit={form.onSubmit((v) => m.mutate(v, { onError: (e) => notifyError(e) }))}>
             <Stack gap="md">
-                <FormSection icon={PiKeyDuotone} title="Токен" description="Название — чтобы понимать, кто им пользуется">
-                    <TextInput label="Название" leftSection={<PiTextAa size={16} />} placeholder="subpage" {...form.getInputProps('name')} />
-                    <Checkbox.Group label="Доступ" {...form.getInputProps('scopes')}>
+                <FormSection icon={PiKeyDuotone} title={t('tokens.token')} description={t('tokens.name_hint')}>
+                    <TextInput label={t('tariffs.col_name')} leftSection={<PiTextAa size={16} />} placeholder="subpage" {...form.getInputProps('name')} />
+                    <Checkbox.Group label={t('tokens.access')} {...form.getInputProps('scopes')}>
                         <Stack gap="xs" mt="xs">
                             {scopes.map((s) => (
                                 <Checkbox
-                                    description={<Text size="xs">{scopeHelp[s]}</Text>}
+                                    description={<Text size="xs">{scopeHelp(s)}</Text>}
                                     key={s}
                                     label={s}
                                     value={s}
@@ -149,7 +152,7 @@ function CreateTokenForm({ scopes, onDone }: { scopes: string[]; onDone: () => v
                         </Stack>
                     </Checkbox.Group>
                 </FormSection>
-                <FormFooter inline loading={m.isPending} onCancel={onDone} submitLabel="Создать" />
+                <FormFooter inline loading={m.isPending} onCancel={onDone} submitLabel={t('common.create')} />
             </Stack>
         </form>
     )

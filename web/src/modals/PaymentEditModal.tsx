@@ -1,4 +1,4 @@
-import { Alert, NumberInput, Select, SimpleGrid, TextInput } from '@mantine/core'
+import { Alert, NumberInput, SimpleGrid, TextInput, Autocomplete } from '@mantine/core'
 import { DateInput } from '@mantine/dates'
 import { useForm } from '@mantine/form'
 import dayjs from 'dayjs'
@@ -7,23 +7,27 @@ import { PiBank, PiCalendarDuotone, PiCoinsDuotone, PiCreditCardDuotone, PiInfo,
 import { api } from '@/api/client'
 import { useApiMutation } from '@/api/hooks'
 import type { Payment } from '@/api/types'
-import { fmtMoney, currencySymbol } from '@/components/format'
+import { fmtMoney, currencySymbol, dateLayout } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
 
 import { openModal } from './open'
+import i18n from '@/app/i18n/i18n'
+import { useTranslation } from 'react-i18next'
 
-export const paymentMethods = ['Перевод', 'СБП', 'Наличные', 'Крипта', 'Другое']
+// paymentMethods are suggestions in the UI language; any text can be entered.
+export const paymentMethods = () => i18n.t('payment.methods', { returnObjects: true }) as string[]
 
 export function openPaymentEdit(p: Payment) {
     openModal(
-        { icon: PiCreditCardDuotone, color: 'teal', title: 'Платёж', subtitle: `${p.customer_name} · ${fmtMoney(p.amount, 2)}` },
+        { icon: PiCreditCardDuotone, color: 'teal', title: i18n.t('payment.title'), subtitle: `${p.customer_name} · ${fmtMoney(p.amount, 2)}` },
         (close) => <PaymentEditForm onDone={close} payment={p} />,
         'lg'
     )
 }
 
 function PaymentEditForm({ payment, onDone }: { payment: Payment; onDone: () => void }) {
+    const { t } = useTranslation()
     const form = useForm({
         initialValues: {
             amount: payment.amount as number | string,
@@ -32,21 +36,22 @@ function PaymentEditForm({ payment, onDone }: { payment: Payment; onDone: () => 
             note: payment.note
         },
         validate: {
-            amount: (v) => (Number(v) > 0 ? null : 'Сумма должна быть больше нуля'),
-            date: (v) => (v ? null : 'Укажите дату')
+            amount: (v) => (Number(v) > 0 ? null : t('errors.amount_positive')),
+            date: (v) => (v ? null : t('errors.date_required'))
         }
     })
     const m = useApiMutation((v: typeof form.values) =>
         api.put(`payments/${payment.id}`, { ...v, amount: Number(v.amount), method: v.method ?? '' })
     )
-    const methods = payment.method && !paymentMethods.includes(payment.method) ? [...paymentMethods, payment.method] : paymentMethods
+    const suggestions = paymentMethods()
+    const methods = payment.method && !suggestions.includes(payment.method) ? [...suggestions, payment.method] : suggestions
 
     return (
         <form
             onSubmit={form.onSubmit((v) =>
                 m.mutate(v, {
                     onSuccess: () => {
-                        notifyOk('Платёж сохранён')
+                        notifyOk(t('payment.saved'))
                         onDone()
                     },
                     onError: (e) => notifyError(e)
@@ -54,24 +59,24 @@ function PaymentEditForm({ payment, onDone }: { payment: Payment; onDone: () => 
             )}
         >
             <FormStack>
-                <FormSection color="teal" description="Сумма, дата и способ оплаты" icon={PiCreditCardDuotone} title="Поступление">
+                <FormSection color="teal" description={t('payment.edit_hint')} icon={PiCreditCardDuotone} title={t('payment.income')}>
                     <SimpleGrid cols={{ base: 1, xs: 2 }}>
                         <NumberInput
                             data-autofocus
                             decimalScale={2}
-                            label={`Сумма, ${currencySymbol()}`}
+                            label={t('common.amount_in', { currency: currencySymbol() })}
                             leftSection={<PiCoinsDuotone size={16} />}
                             min={0}
                             {...form.getInputProps('amount')}
                         />
-                        <DateInput label="Дата" leftSection={<PiCalendarDuotone size={16} />} valueFormat="DD.MM.YYYY" {...form.getInputProps('date')} />
-                        <Select data={methods} label="Способ" leftSection={<PiBank size={16} />} {...form.getInputProps('method')} />
-                        <TextInput label="Комментарий" leftSection={<PiNotePencil size={16} />} {...form.getInputProps('note')} />
+                        <DateInput label={t('customer.col_date')} leftSection={<PiCalendarDuotone size={16} />} valueFormat={dateLayout()} {...form.getInputProps('date')} />
+                        <Autocomplete data={methods} label={t('payment.method')} leftSection={<PiBank size={16} />} {...form.getInputProps('method')} />
+                        <TextInput label={t('payment.comment')} leftSection={<PiNotePencil size={16} />} {...form.getInputProps('note')} />
                     </SimpleGrid>
                     <Alert color="gray" icon={<PiInfo size={18} />} variant="soft">
                         {payment.historical
-                            ? 'Платёж из импорта: на баланс клиента не влияет.'
-                            : 'Изменится и зачисление на баланс клиента. Реферальное начисление пересчитается, если ещё не выплачено. Уже сделанные продления останутся как есть.'}
+                            ? t('payment.historical')
+                            : t('payment.edit_effects')}
                     </Alert>
                 </FormSection>
                 <FormFooter loading={m.isPending} onCancel={onDone} />

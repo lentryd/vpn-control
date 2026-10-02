@@ -41,7 +41,7 @@ func (h *Handlers) Login(c *fiber.Ctx) error {
 			if apiErr, isAPI := err.(*remnawave.APIError); isAPI && apiErr.Status < 500 {
 				return apperr.Status(fiber.StatusUnauthorized, "auth.invalid", "wrong username or password")
 			}
-			return apperr.Wrap(err, "panel.unavailable", "panel unavailable: {{error}}")
+			return apperr.Wrap(err, "panel.unavailable", "panel unavailable: {{error}}").WithStatus(fiber.StatusBadGateway)
 		}
 	}
 

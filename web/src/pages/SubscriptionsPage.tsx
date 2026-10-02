@@ -8,7 +8,7 @@ import { Link } from 'react-router'
 
 import { useSubscriptions } from '@/api/hooks'
 import type { AddonItem, RwUser, Subscription } from '@/api/types'
-import { ExpireCell, OnlineCell, StatusBadge, TrafficCell, UsernameCell } from '@/components/badges'
+import { ExpireCell, OnlineCell, StatusBadge, TrafficCell, UsernameCell, statusLabel } from '@/components/badges'
 import { daysLeft } from '@/components/format'
 import { AddonActions, SubscriptionActions } from '@/components/ItemActions'
 import { Money } from '@/components/ui'
@@ -18,6 +18,7 @@ import { IMetricCardProps, MetricCardShared } from '@shared/ui/metrics/metric-ca
 import { Page } from '@shared/ui/page'
 import { PageHeaderShared } from '@shared/ui/page-header'
 import { DataTableCard } from '@shared/ui/table'
+import { useTranslation } from 'react-i18next'
 
 interface Row {
     key: string
@@ -34,6 +35,7 @@ interface Row {
 }
 
 export function SubscriptionsPage() {
+    const { t } = useTranslation()
     const { data, isFetching } = useSubscriptions()
     const [scope, setScope] = useState('active')
 
@@ -83,7 +85,7 @@ export function SubscriptionsPage() {
         () => [
             {
                 accessorKey: 'title',
-                header: 'Подписка',
+                header: t('dashboard.col_subscription'),
                 size: 260,
                 Cell: ({ row }) => (
                     <UsernameCell
@@ -92,7 +94,7 @@ export function SubscriptionsPage() {
                         badge={
                             row.original.kind === 'addon' && (
                                 <Badge size="xs" color="grape" variant="soft">
-                                    {row.original.addon?.included ? 'аддон · в тарифе' : 'аддон'}
+                                    {row.original.addon?.included ? t('subscriptions.addon_included') : t('dashboard.addon_badge')}
                                 </Badge>
                             )
                         }
@@ -101,7 +103,7 @@ export function SubscriptionsPage() {
             },
             {
                 accessorKey: 'customer_name',
-                header: 'Клиент',
+                header: t('sub.customer'),
                 Cell: ({ row }) => (
                     <Anchor component={Link} to={`/customers/${row.original.customer_id}`} size="sm">
                         {row.original.customer_name}
@@ -110,16 +112,12 @@ export function SubscriptionsPage() {
             },
             {
                 id: 'status',
-                header: 'Статус',
+                header: t('dashboard.col_status'),
                 accessorFn: (r) => (r.rw ? r.rw.status : 'UNLINKED'),
                 filterVariant: 'multi-select',
                 mantineFilterMultiSelectProps: {
                     data: [
-                        { value: 'ACTIVE', label: 'Активна' },
-                        { value: 'EXPIRED', label: 'Истекла' },
-                        { value: 'LIMITED', label: 'Лимит' },
-                        { value: 'DISABLED', label: 'Отключена' },
-                        { value: 'UNLINKED', label: 'Не привязана' }
+                        ...['ACTIVE', 'EXPIRED', 'LIMITED', 'DISABLED', 'UNLINKED'].map((value) => ({ value, label: statusLabel(value) }))
                     ]
                 },
                 size: 190,
@@ -128,7 +126,7 @@ export function SubscriptionsPage() {
             },
             {
                 id: 'expire',
-                header: 'Оплачено до',
+                header: t('sub.paid_until'),
                 sortingFn: 'datetime',
                 accessorFn: (r) => (r.rw?.expire_at ? new Date(r.rw.expire_at) : undefined),
                 sortDescFirst: false,
@@ -137,11 +135,11 @@ export function SubscriptionsPage() {
                 mantineTableBodyCellProps: { align: 'center' },
                 Cell: ({ row }) => <ExpireCell date={row.original.rw?.expire_at} />
             },
-            { accessorKey: 'tariff', header: 'Тариф', filterVariant: 'multi-select' },
-            { accessorKey: 'price', header: 'Цена', enableColumnFilter: false, Cell: ({ cell }) => <Money value={cell.getValue<number>()} /> },
+            { accessorKey: 'tariff', header: t('tariffs.tariff'), filterVariant: 'multi-select' },
+            { accessorKey: 'price', header: t('dashboard.col_price'), enableColumnFilter: false, Cell: ({ cell }) => <Money value={cell.getValue<number>()} /> },
             {
                 id: 'traffic',
-                header: 'Трафик',
+                header: t('sub.traffic'),
                 accessorFn: (r) => r.rw?.used_traffic_bytes ?? 0,
                 enableColumnFilter: false,
                 size: 260,
@@ -150,7 +148,7 @@ export function SubscriptionsPage() {
             },
             {
                 id: 'online',
-                header: 'В сети',
+                header: t('subscriptions.col_online'),
                 size: 190,
                 sortingFn: 'datetime',
                 accessorFn: (r) => (r.rw?.online_at ? new Date(r.rw.online_at) : undefined),
@@ -161,12 +159,12 @@ export function SubscriptionsPage() {
             { id: 'username', header: 'Username', accessorFn: (r) => r.rw?.username ?? '' },
             {
                 accessorKey: 'auto',
-                header: 'Автопродл.',
+                header: t('subscriptions.col_auto'),
                 enableColumnFilter: false,
-                Cell: ({ cell }) => (cell.getValue<boolean>() ? 'да' : 'нет')
+                Cell: ({ cell }) => (cell.getValue<boolean>() ? t('common.yes') : t('common.no'))
             }
         ],
-        []
+        [t]
     )
 
     const stats = useMemo(() => {
@@ -176,28 +174,28 @@ export function SubscriptionsPage() {
     }, [data])
 
     const cards: IMetricCardProps[] = [
-        { IconComponent: PiUsersDuotone, iconColor: 'blue', title: 'Всего', value: stats.all.length, iconVariant: 'soft' },
-        { IconComponent: PiPulseDuotone, iconColor: 'teal', title: 'Активны', value: stats.count((u) => u?.status === 'ACTIVE'), iconVariant: 'soft' },
+        { IconComponent: PiUsersDuotone, iconColor: 'blue', title: t('subscriptions.total'), value: stats.all.length, iconVariant: 'soft' },
+        { IconComponent: PiPulseDuotone, iconColor: 'teal', title: t('subscriptions.active'), value: stats.count((u) => u?.status === 'ACTIVE'), iconVariant: 'soft' },
         {
             IconComponent: PiClockCountdownDuotone,
             iconColor: 'orange',
-            title: 'Истекают за 7 дней',
+            title: t('subscriptions.expiring_7'),
             value: stats.count((u) => {
                 const d = daysLeft(u?.expire_at)
                 return u?.status === 'ACTIVE' && d !== null && d >= 0 && d <= 7
             }),
             iconVariant: 'soft'
         },
-        { IconComponent: PiClockUserDuotone, iconColor: 'red', title: 'Истекли', value: stats.count((u) => u?.status === 'EXPIRED'), iconVariant: 'soft' },
-        { IconComponent: PiLinkBreakDuotone, iconColor: 'gray', title: 'Без панели', value: stats.count((u) => !u), iconVariant: 'soft' }
+        { IconComponent: PiClockUserDuotone, iconColor: 'red', title: t('subscriptions.expired'), value: stats.count((u) => u?.status === 'EXPIRED'), iconVariant: 'soft' },
+        { IconComponent: PiLinkBreakDuotone, iconColor: 'gray', title: t('subscriptions.unlinked'), value: stats.count((u) => !u), iconVariant: 'soft' }
     ]
 
     return (
-        <Page title="Подписки">
+        <Page title={t('menu.subscriptions')}>
             <PageHeaderShared
                 icon={<TbHexagon size={24} />}
-                title="Подписки"
-                description="Все подписки и аддоны: у кого что и до какого числа"
+                title={t('menu.subscriptions')}
+                description={t('subscriptions.description')}
             />
             <Stack>
                 <SimpleGrid cols={{ base: 1, xs: 2, xl: 5 }} spacing="xs">
@@ -216,7 +214,7 @@ export function SubscriptionsPage() {
                 <DataTableCard
                     storageKey="subscriptions"
                     icon={<TbHexagon size={24} />}
-                    title="Подписки и аддоны"
+                    title={t('subscriptions.table_title')}
                     actions={
                         <>
                             <SegmentedControl
@@ -224,14 +222,14 @@ export function SubscriptionsPage() {
                                 value={scope}
                                 onChange={setScope}
                                 data={[
-                                    { value: 'active', label: 'Активные клиенты' },
-                                    { value: 'expiring', label: 'Истекают' },
-                                    { value: 'unlinked', label: 'Без панели' },
-                                    { value: 'all', label: 'Все' }
+                                    { value: 'active', label: t('subscriptions.scope_active') },
+                                    { value: 'expiring', label: t('subscriptions.scope_expiring') },
+                                    { value: 'unlinked', label: t('subscriptions.unlinked') },
+                                    { value: 'all', label: t('common.all') }
                                 ]}
                             />
                             <Button leftSection={<PiLinkDuotone size={16} />} onClick={() => openSubscriptionForm({})} variant="soft">
-                                Привязать
+                                {t('sub.link')}
                             </Button>
                         </>
                     }

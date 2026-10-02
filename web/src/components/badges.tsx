@@ -5,28 +5,35 @@ import dayjs from 'dayjs'
 import { PiClockCountdown, PiClockUser, PiLinkBreak, PiProhibit, PiPulse, PiTrash } from 'react-icons/pi'
 
 import type { RwUser } from '@/api/types'
+import i18n from '@/app/i18n/i18n'
 
-import { daysLeft, fmtBytes, fmtDate, fmtDateTime, fromNow, isUnlimited, strategyLabel } from './format'
+import { dateLayout, daysLeft, fmtBytes, fmtDate, fmtDateTime, fromNow, isUnlimited, strategyLabel } from './format'
 
-const statusMeta: Record<string, { color: BadgeProps['color']; label: string; icon: React.ReactNode }> = {
-    ACTIVE: { color: 'teal', label: 'Активна', icon: <PiPulse size={18} /> },
-    DISABLED: { color: 'shaded-gray', label: 'Отключена', icon: <PiProhibit size={18} /> },
-    LIMITED: { color: 'orange', label: 'Лимит', icon: <PiClockCountdown size={18} /> },
-    EXPIRED: { color: 'red', label: 'Истекла', icon: <PiClockUser size={18} /> }
+const statusMeta: Record<string, { color: BadgeProps['color']; icon: React.ReactNode }> = {
+    ACTIVE: { color: 'teal', icon: <PiPulse size={18} /> },
+    DISABLED: { color: 'shaded-gray', icon: <PiProhibit size={18} /> },
+    LIMITED: { color: 'orange', icon: <PiClockCountdown size={18} /> },
+    EXPIRED: { color: 'red', icon: <PiClockUser size={18} /> }
 }
+
+// statusLabel names a panel user status (and the app's own pseudo ones).
+export const statusLabel = (status: string) =>
+    ['ACTIVE', 'DISABLED', 'LIMITED', 'EXPIRED', 'UNLINKED', 'DELETED'].includes(status)
+        ? i18n.t(`status.${status as 'ACTIVE'}`)
+        : status
 
 export function StatusBadge({ user, ...props }: { user: RwUser | null } & Omit<BadgeProps, 'children' | 'color'>) {
     if (!user) {
         return (
             <Badge color="yellow" leftSection={<PiLinkBreak size={18} />} size="lg" variant="soft" {...props}>
-                Не привязана
+                {statusLabel('UNLINKED')}
             </Badge>
         )
     }
     if (user.deleted) {
         return (
             <Badge color="red" leftSection={<PiTrash size={18} />} size="lg" variant="soft" {...props}>
-                Удалена
+                {statusLabel('DELETED')}
             </Badge>
         )
     }
@@ -34,10 +41,10 @@ export function StatusBadge({ user, ...props }: { user: RwUser | null } & Omit<B
 }
 
 export function StatusPill({ status, ...props }: { status: string } & Omit<BadgeProps, 'children' | 'color'>) {
-    const m = statusMeta[status] ?? { color: 'gray', label: status, icon: null }
+    const m = statusMeta[status] ?? { color: 'gray', icon: null }
     return (
         <Badge color={m.color} leftSection={m.icon} miw="13ch" size="lg" variant="soft" {...props}>
-            {m.label}
+            {statusLabel(status)}
         </Badge>
     )
 }
@@ -52,11 +59,11 @@ export function expiryColor(days: number | null) {
 
 // expirationText mirrors the panel's get-expiration-text util.
 export function expirationText(date: string | null | undefined) {
-    if (!date) return 'неизвестно'
+    if (!date) return i18n.t('expiry.unknown')
     const d = dayjs(date)
-    if (isUnlimited(date)) return 'бессрочно'
-    if (d.isBefore(dayjs())) return `истекла ${d.fromNow()}`
-    return `истекает через ${d.fromNow(true)}`
+    if (isUnlimited(date)) return i18n.t('expiry.forever')
+    if (d.isBefore(dayjs())) return i18n.t('expiry.expired', { ago: d.fromNow() })
+    return i18n.t('expiry.expires_in', { in: d.fromNow(true) })
 }
 
 export function ExpireCell({ date }: { date: string | null | undefined }) {
@@ -64,13 +71,13 @@ export function ExpireCell({ date }: { date: string | null | undefined }) {
     if (!date || d === null) return <Text c="dimmed">—</Text>
     if (isUnlimited(date))
         return (
-            <Tooltip label={`${dayjs(date).format('DD.MM.YYYY')} — в панели «навсегда»`}>
+            <Tooltip label={i18n.t('expiry.forever_hint', { date: dayjs(date).format(dateLayout()) })}>
                 <Stack gap={0} align="center">
                     <Text ff="monospace" fw={600} size="md">
                         ∞
                     </Text>
                     <Text c="teal" size="xs">
-                        бессрочно
+                        {i18n.t('expiry.forever')}
                     </Text>
                 </Stack>
             </Tooltip>
@@ -108,7 +115,7 @@ export function UsernameCell({ user, title, badge }: { user: RwUser | null; titl
                     </Text>
                 </Group>
                 <Text c="dimmed" fw={600} size="xs" truncate="end">
-                    {!user ? 'нет в панели' : user.online_at ? fromNow(user.online_at) : 'ещё не подключался'}
+                    {!user ? i18n.t('users.not_in_panel') : user.online_at ? fromNow(user.online_at) : i18n.t('users.never_connected')}
                 </Text>
             </Box>
         </Group>
@@ -122,7 +129,7 @@ export function TrafficCell({ user }: { user: RwUser | null }) {
     const limit = user.traffic_limit_bytes
     const unlimited = !limit
     const pct = unlimited ? 0 : (used * 100) / limit
-    const strategy = user.traffic_limit_strategy === 'NO_RESET' ? '∞' : strategyLabel[user.traffic_limit_strategy]
+    const strategy = user.traffic_limit_strategy === 'NO_RESET' ? '∞' : strategyLabel(user.traffic_limit_strategy)
     const color = unlimited ? 'teal' : pct > 95 ? 'red' : pct > 80 ? 'yellow.4' : 'teal'
 
     return (
@@ -163,7 +170,7 @@ export function lastSeenColor(onlineAt: string | null | undefined) {
 }
 
 export function OnlineCell({ user }: { user: RwUser | null }) {
-    if (!user?.online_at) return <Text c="dimmed" size="sm">никогда</Text>
+    if (!user?.online_at) return <Text c="dimmed" size="sm">{i18n.t('common.never')}</Text>
     return (
         <Tooltip label={fmtDateTime(user.online_at)}>
             <Group gap="xs" wrap="nowrap">

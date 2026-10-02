@@ -11,12 +11,22 @@ import { confirmDanger } from '@/modals/open'
 
 import { fmtDate, fmtMoney } from './format'
 import { notifyError } from './notify'
+import i18n from '@/app/i18n/i18n'
 
+// methodMeta styles the suggested methods of both languages; others are gray.
+const bank = { color: 'cyan', icon: <PiBank size={14} /> }
+const instant = { color: 'violet', icon: <PiLightning size={14} /> }
+const cash = { color: 'teal', icon: <PiMoney size={14} /> }
+const crypto = { color: 'orange', icon: <PiCurrencyBtc size={14} /> }
 const methodMeta: Record<string, { color: string; icon: React.ReactNode }> = {
-    Перевод: { color: 'cyan', icon: <PiBank size={14} /> },
-    СБП: { color: 'violet', icon: <PiLightning size={14} /> },
-    Наличные: { color: 'teal', icon: <PiMoney size={14} /> },
-    Крипта: { color: 'orange', icon: <PiCurrencyBtc size={14} /> }
+    Перевод: bank,
+    'Bank transfer': bank,
+    СБП: instant,
+    Card: instant,
+    Наличные: cash,
+    Cash: cash,
+    Крипта: crypto,
+    Crypto: crypto
 }
 
 export function MethodBadge({ method }: { method: string }) {
@@ -34,7 +44,7 @@ export function paymentColumns(withCustomer: boolean): MRT_ColumnDef<Payment>[] 
     const cols: MRT_ColumnDef<Payment>[] = [
         {
             id: 'date',
-            header: 'Дата',
+            header: i18n.t('customer.col_date'),
             size: 130,
             sortingFn: 'datetime',
             accessorFn: (r) => new Date(r.date),
@@ -49,7 +59,7 @@ export function paymentColumns(withCustomer: boolean): MRT_ColumnDef<Payment>[] 
     if (withCustomer) {
         cols.push({
             accessorKey: 'customer_name',
-            header: 'Клиент',
+            header: i18n.t('sub.customer'),
             Cell: ({ row }) => (
                 <Anchor component={Link} onClick={(e) => e.stopPropagation()} size="sm" to={`/customers/${row.original.customer_id}`}>
                     <Group gap={6} wrap="nowrap">
@@ -63,7 +73,7 @@ export function paymentColumns(withCustomer: boolean): MRT_ColumnDef<Payment>[] 
     cols.push(
         {
             accessorKey: 'amount',
-            header: 'Сумма',
+            header: i18n.t('customer.col_amount'),
             size: 140,
             enableColumnFilter: false,
             Cell: ({ cell }) => (
@@ -74,20 +84,20 @@ export function paymentColumns(withCustomer: boolean): MRT_ColumnDef<Payment>[] 
         },
         {
             accessorKey: 'method',
-            header: 'Способ',
+            header: i18n.t('payment.method'),
             size: 160,
             filterVariant: 'multi-select',
             Cell: ({ cell }) => <MethodBadge method={cell.getValue<string>()} />
         },
         {
             accessorKey: 'note',
-            header: 'Комментарий',
+            header: i18n.t('payment.comment'),
             size: 300,
             Cell: ({ row }) => (
                 <Group gap="xs" wrap="nowrap">
                     {row.original.historical && (
                         <Badge color="gray" size="md" variant="soft">
-                            импорт
+                            {i18n.t('payment.import_badge')}
                         </Badge>
                     )}
                     <Text c={row.original.note ? undefined : 'dimmed'} size="sm" truncate="end">
@@ -104,8 +114,8 @@ export function PaymentRowActions({ payment }: { payment: Payment }) {
     const invalidate = useInvalidateAll()
     const remove = () =>
         confirmDanger(
-            'Удалить платёж?',
-            'Удалится поступление, его зачисление на баланс и реферальное начисление. Уже сделанные продления останутся.',
+            i18n.t('payment.delete'),
+            i18n.t('payment.delete_hint'),
             async () => {
                 try {
                     await api.del(`payments/${payment.id}`)

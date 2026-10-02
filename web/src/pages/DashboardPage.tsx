@@ -40,7 +40,7 @@ import { useDashboard } from '@/api/hooks'
 import type { ExpiringItem, MeteredSummary } from '@/api/types'
 import { SquadBadge } from '@shared/ui/infra/squad'
 import { expirationText, expiryColor, StatusPill } from '@/components/badges'
-import { fmtDate, fmtMoney, fmtNum, plural } from '@/components/format'
+import { fmtDate, fmtMoney, fmtNum, dateLayout } from '@/components/format'
 import { Money, PageHeader, StatCard } from '@/components/ui'
 import { openExtendModal } from '@/modals/ExtendModal'
 import { openViewAddonModal, openViewSubscriptionModal } from '@/modals/ViewItemModal'
@@ -51,6 +51,8 @@ import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
 import { Page } from '@shared/ui/page'
 import { SectionCard } from '@shared/ui/section-card'
 import { DataTableCard, DataTableShared } from '@shared/ui/table'
+import { useTranslation } from 'react-i18next'
+import { codedText } from '@/components/notify'
 
 // Block is a dashboard card with the panel's card-title header.
 function Block({
@@ -85,6 +87,7 @@ const fadeIn = (index: number) => ({
 })
 
 export function DashboardPage() {
+    const { t } = useTranslation()
     const { data, isPending, error } = useDashboard()
     // the table takes two of three columns only where there are three; a
     // span on the one-column phone grid adds an implicit column and skews it
@@ -96,30 +99,30 @@ export function DashboardPage() {
         {
             title: 'MRR',
             value: fmtMoney(data.mrr),
-            hint: `${data.active_customers} клиентов · ${data.active_subs} подписок · ${data.active_addons} аддонов`,
+            hint: t('dashboard.mrr_hint', { customers: data.active_customers, subs: data.active_subs, addons: data.active_addons }),
             icon: PiCoinsDuotone,
             color: 'cyan'
         },
-        { title: 'Расходы в месяц', value: fmtMoney(data.planned_expenses), hint: 'по текущему курсу и прогнозу трафика', icon: PiReceiptDuotone, color: 'orange' },
-        { title: 'Профит в месяц', value: fmtMoney(data.profit), hint: 'MRR − плановые расходы', icon: PiChartLineUpDuotone, color: data.profit >= 0 ? 'teal' : 'red' },
+        { title: t('dashboard.expenses_month'), value: fmtMoney(data.planned_expenses), hint: t('dashboard.expenses_hint'), icon: PiReceiptDuotone, color: 'orange' },
+        { title: t('dashboard.profit_month'), value: fmtMoney(data.profit), hint: t('dashboard.profit_hint'), icon: PiChartLineUpDuotone, color: data.profit >= 0 ? 'teal' : 'red' },
         {
-            title: 'Касса',
+            title: t('dashboard.cash'),
             value: fmtMoney(data.cash_balance),
-            hint: `за месяц: +${fmtMoney(data.income_month)} / −${fmtMoney(data.expenses_month)}`,
+            hint: t('dashboard.cash_hint', { income: fmtMoney(data.income_month), expenses: fmtMoney(data.expenses_month) }),
             icon: PiVaultDuotone,
             color: 'grape'
         }
     ]
 
     return (
-        <Page title="Главная">
+        <Page title={t('menu.home')}>
             <PageHeader
                 icon={<PiStarDuotone size={24} />}
-                title="Главная"
-                description={`Окно истечения: ${data.window_days} ${plural(data.window_days, 'день', 'дня', 'дней')}`}
+                title={t('menu.home')}
+                description={t('dashboard.window', { count: data.window_days })}
             />
             {data.sync.error && (
-                <Alert color="red" icon={<PiWarningDuotone />} mb="md" title="Нет связи с панелью" variant="soft">
+                <Alert color="red" icon={<PiWarningDuotone />} mb="md" title={t('dashboard.no_panel')} variant="soft">
                     {data.sync.error}
                 </Alert>
             )}
@@ -134,29 +137,29 @@ export function DashboardPage() {
             <SimpleGrid cols={{ base: 1, lg: 3 }} mb="md" spacing="md">
                 <ExpiringTable data={data.expiring} style={{ gridColumn: tableSpan }} />
                 <Stack>
-                    <Block icon={<PiTreeStructureDuotone size={24} />} title="Рефералка" description="Только учёт, без списаний">
+                    <Block icon={<PiTreeStructureDuotone size={24} />} title={t('dashboard.referrals')} description={t('dashboard.referrals_hint')}>
                         <Group justify="space-between">
                             <Text size="sm" c="dimmed">
-                                Начислено за месяц
+                                {t('dashboard.accrued_month')}
                             </Text>
                             <Money value={data.referral_month} />
                         </Group>
                         <Group justify="space-between">
                             <Text size="sm" c="dimmed">
-                                Всего
+                                {t('dashboard.total')}
                             </Text>
                             <Money value={data.referral_total} />
                         </Group>
                         {data.debt_total > 0 && (
                             <Group justify="space-between" mt="xs">
                                 <Text size="sm" c="red">
-                                    Долги клиентов
+                                    {t('dashboard.debts')}
                                 </Text>
                                 <Money value={data.debt_total} />
                             </Group>
                         )}
                     </Block>
-                    <Block icon={<PiCalendarDotsDuotone size={24} />} title="Ближайшие оплаты">
+                    <Block icon={<PiCalendarDotsDuotone size={24} />} title={t('dashboard.due_soon')}>
                         {data.due_soon?.length ? (
                             <Stack gap="sm">
                                 {data.due_soon.map((d, i) => {
@@ -170,7 +173,7 @@ export function DashboardPage() {
                                                     </Text>
                                                     {d.source === 'panel' && (
                                                         <Badge color="gray" size="xs" variant="soft">
-                                                            панель
+                                                            {t('dashboard.panel_badge')}
                                                         </Badge>
                                                     )}
                                                 </Group>
@@ -195,11 +198,10 @@ export function DashboardPage() {
                             </Stack>
                         ) : (
                             <Text size="sm" c="dimmed">
-                                В ближайшее время оплат нет. Даты задаются в{' '}
+                                {t('dashboard.no_due')}{' '}
                                 <Anchor component={Link} to="/expense-items" size="sm">
-                                    статьях расходов
+                                    {t('dashboard.no_due_link')}
                                 </Anchor>
-                                .
                             </Text>
                         )}
                     </Block>
@@ -208,14 +210,14 @@ export function DashboardPage() {
 
             {data.metered?.map((m) => <MeteredCard key={m.item_id} m={m} />)}
 
-            <Block icon={<PiChartBarDuotone size={24} />} title="Поступления и траты по месяцам">
+            <Block icon={<PiChartBarDuotone size={24} />} title={t('dashboard.by_month')}>
                 <BarChart
                     h={260}
                     data={data.months.map((m) => ({ ...m, month: dayjs(m.month + '-01').format('MMM YY') }))}
                     dataKey="month"
                     series={[
-                        { name: 'income', label: 'Поступления', color: 'teal.6' },
-                        { name: 'expenses', label: 'Траты', color: 'orange.6' }
+                        { name: 'income', label: t('dashboard.income'), color: 'teal.6' },
+                        { name: 'expenses', label: t('dashboard.spent'), color: 'orange.6' }
                     ]}
                     valueFormatter={(v) => fmtMoney(v)}
                     withLegend
@@ -227,11 +229,12 @@ export function DashboardPage() {
 }
 
 function ExpiringTable({ data, style }: { data: ExpiringItem[]; style?: React.CSSProperties }) {
+    const { t } = useTranslation()
     const columns = useMemo<MRT_ColumnDef<ExpiringItem>[]>(
         () => [
             {
                 accessorKey: 'title',
-                header: 'Подписка',
+                header: t('dashboard.col_subscription'),
                 size: 220,
                 Cell: ({ row }) => (
                     <Group gap="md" pl={10} wrap="nowrap">
@@ -240,7 +243,7 @@ function ExpiringTable({ data, style }: { data: ExpiringItem[]; style?: React.CS
                             <Group gap={6} wrap="nowrap">
                                 {row.original.kind === 'addon' && (
                                     <Badge color="grape" size="xs" variant="soft">
-                                        аддон
+                                        {t('dashboard.addon_badge')}
                                     </Badge>
                                 )}
                                 <Text fw={500} size="sm" truncate="end">
@@ -256,7 +259,7 @@ function ExpiringTable({ data, style }: { data: ExpiringItem[]; style?: React.CS
             },
             {
                 accessorKey: 'days_left',
-                header: 'Срок',
+                header: t('dashboard.col_term'),
                 size: 150,
                 mantineTableBodyCellProps: { align: 'center' },
                 Cell: ({ row }) => (
@@ -272,14 +275,14 @@ function ExpiringTable({ data, style }: { data: ExpiringItem[]; style?: React.CS
             },
             {
                 accessorKey: 'status',
-                header: 'Статус',
+                header: t('dashboard.col_status'),
                 size: 150,
                 mantineTableBodyCellProps: { align: 'center' },
                 Cell: ({ row }) => <StatusPill size="md" status={row.original.status} />
             },
             {
                 accessorKey: 'price',
-                header: 'Цена',
+                header: t('dashboard.col_price'),
                 size: 100,
                 Cell: ({ cell }) => (
                     <Text ff="monospace" size="sm">
@@ -289,7 +292,7 @@ function ExpiringTable({ data, style }: { data: ExpiringItem[]; style?: React.CS
             },
             {
                 accessorKey: 'balance',
-                header: 'Баланс',
+                header: t('dashboard.col_balance'),
                 size: 100,
                 Cell: ({ cell }) => (
                     <Text c={cell.getValue<number>() < 0 ? 'red' : cell.getValue<number>() > 0 ? 'teal' : 'dimmed'} ff="monospace" size="sm">
@@ -298,7 +301,7 @@ function ExpiringTable({ data, style }: { data: ExpiringItem[]; style?: React.CS
                 )
             }
         ],
-        []
+        [t]
     )
     return (
         <Box style={style}>
@@ -312,7 +315,7 @@ function ExpiringTable({ data, style }: { data: ExpiringItem[]; style?: React.CS
                 }
                 columns={columns}
                 data={data}
-                description="Подписки и аддоны, которые пора продлить"
+                description={t('dashboard.expiring_hint')}
                 enableRowActions
                 icon={<PiClockCountdownDuotone size={24} />}
                 initialState={{ sorting: [{ id: 'days_left', desc: false }] }}
@@ -323,7 +326,7 @@ function ExpiringTable({ data, style }: { data: ExpiringItem[]; style?: React.CS
                 }
                 renderEmptyRowsFallback={() => (
                     <Text c="dimmed" p="md" size="sm">
-                        Ничего не истекает — всё оплачено.
+                        {t('dashboard.nothing_expiring')}
                     </Text>
                 )}
                 renderRowActions={({ row }) => (
@@ -336,22 +339,23 @@ function ExpiringTable({ data, style }: { data: ExpiringItem[]; style?: React.CS
                         size="compact-xs"
                         variant="soft"
                     >
-                        Продлить
+                        {t('dashboard.extend')}
                     </Button>
                 )}
                 displayColumnDefOptions={{ 'mrt-row-actions': { header: '', size: 120 } }}
                 storageKey="dashboard-expiring"
-                title="Истекает и просрочено"
+                title={t('dashboard.expiring')}
             />
         </Box>
     )
 }
 
 export function MeteredCard({ m }: { m: MeteredSummary }) {
+    const { t } = useTranslation()
     if (m.error) {
         return (
             <Alert color="yellow" icon={<PiCloudDuotone />} mb="md" title={m.name} variant="soft">
-                {m.error}
+                {codedText(m.error, m.error_code, m.error_params)}
             </Alert>
         )
     }
@@ -363,8 +367,8 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
     const periodLabel =
         dayjs(m.period_start).date() === 1
             ? dayjs(m.period_start).format('MMMM YYYY')
-            : `${dayjs(m.period_start).format('DD.MM')} – ${dayjs(m.period_end).format('DD.MM.YYYY')}`
-    const priceHint = m.tiers?.length ? 'ступенчатая цена' : `${fmtMoney(m.price_per_gb, 2)}/ГБ сверх`
+            : `${dayjs(m.period_start).format(t('format.date_short'))} – ${dayjs(m.period_end).format(dateLayout())}`
+    const priceHint = m.tiers?.length ? t('metered.tiered_price') : t('metered.per_gb_over', { price: fmtMoney(m.price_per_gb, 2) })
     return (
         <Block
             actions={
@@ -380,7 +384,7 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
             }
             icon={<PiCloudDuotone size={24} />}
             style={{ marginBottom: 'var(--mantine-spacing-md)' }}
-            title={`${m.name}: трафик и стоимость`}
+            title={t('metered.card_title', { name: m.name })}
         >
             <SimpleGrid cols={{ base: 1, md: 3 }} mb="md" spacing="xs">
                 <Paper p="md" withBorder>
@@ -396,32 +400,30 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                         />
                         <Stack gap={0}>
                             <Text c="dimmed" fw={500} size="sm">
-                                {free ? 'Израсходовано / бесплатно' : 'Израсходовано / в минимуме'}
+                                {free ? t('metered.used_free') : t('metered.used_min')}
                             </Text>
                             <Text ff="monospace" fw={700} size="lg">
-                                {fmtNum(m.used_gb)} / {fmtNum(m.included_gb)} ГБ
+                                {fmtNum(m.used_gb)} / {fmtNum(m.included_gb)} {t('format.units.gb')}
                             </Text>
                         </Stack>
                     </Group>
                 </Paper>
                 <StatCard
-                    hint={`${free ? 'абонплата' : 'минимум'} ${fmtMoney(m.min_charge)} · ${priceHint}`}
+                    hint={`${free ? t('metered.fee') : t('metered.minimum')} ${fmtMoney(m.min_charge)} · ${priceHint}`}
                     icon={PiCoinsDuotone}
-                    title="Сейчас к оплате"
+                    title={t('metered.due_now')}
                     value={fmtMoney(m.cost_rub, 2)}
                 />
                 <StatCard
                     color={forecastOver ? 'orange' : 'teal'}
                     hint={
                         forecastOver
-                            ? `≈ ${fmtNum(m.forecast_gb - m.included_gb)} ГБ сверх ${free ? 'бесплатного объёма' : 'минимума'}`
-                            : free
-                              ? 'укладываемся в бесплатный объём'
-                              : 'укладываемся в минимальный платёж'
+                            ? t(free ? 'metered.over_free' : 'metered.over_min', { gb: fmtNum(m.forecast_gb - m.included_gb) })
+                            : t(free ? 'metered.within_free' : 'metered.within_min')
                     }
                     icon={PiChartLineUpDuotone}
-                    title="Прогноз на конец периода"
-                    value={`${fmtNum(m.forecast_gb)} ГБ · ${fmtMoney(m.forecast_rub)}`}
+                    title={t('metered.forecast')}
+                    value={`${fmtNum(m.forecast_gb)} ${t('format.units.gb')} · ${fmtMoney(m.forecast_rub)}`}
                 />
             </SimpleGrid>
             <SimpleGrid cols={{ base: 1, md: 2 }}>
@@ -430,17 +432,17 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                         <BaseOverlayHeader
                             IconComponent={PiChartLineUpDuotone}
                             iconColor="cyan"
-                            subtitle={`за ${periodLabel} — ${fmtNum(m.used_gb)} ГБ`}
-                            title="Трафик по дням"
+                            subtitle={t('metered.daily_subtitle', { period: periodLabel, gb: fmtNum(m.used_gb) })}
+                            title={t('metered.daily')}
                             titleOrder={6}
                         />
                     </SectionCard.Section>
                     <Box style={{ flex: 1, minHeight: 240 }}>
                         <AreaChart
                             h="100%"
-                            data={m.daily.map((d) => ({ ...d, date: dayjs(d.date).format('DD.MM') }))}
+                            data={m.daily.map((d) => ({ ...d, date: dayjs(d.date).format(t('format.date_short')) }))}
                             dataKey="date"
-                            series={[{ name: 'gb', label: 'ГБ', color: 'cyan.6' }]}
+                            series={[{ name: 'gb', label: t('format.units.gb'), color: 'cyan.6' }]}
                             curveType="monotone"
                             fillOpacity={0.35}
                             strokeWidth={2}
@@ -453,10 +455,10 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                             yAxisProps={{ width: 44, tickMargin: 4, tickFormatter: (v: number) => fmtNum(v, 1) }}
                             referenceLines={
                                 avgDaily > 0
-                                    ? [{ y: avgDaily, color: 'gray.6', label: `в среднем ${fmtNum(avgDaily, 1)} ГБ/день`, labelPosition: 'insideTopRight' }]
+                                    ? [{ y: avgDaily, color: 'gray.6', label: t('metered.avg_daily', { gb: fmtNum(avgDaily, 1) }), labelPosition: 'insideTopRight' }]
                                     : undefined
                             }
-                            valueFormatter={(v) => `${fmtNum(v)} ГБ`}
+                            valueFormatter={(v) => `${fmtNum(v)} ${t('format.units.gb')}`}
                         />
                     </Box>
                 </SectionCard.Root>
@@ -467,10 +469,10 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                             iconColor="indigo"
                             subtitle={
                                 m.squad_uuid
-                                    ? `участники сквада — ${fmtNum(m.squad_share_percent, 1)}% трафика ноды`
-                                    : 'все пользователи ноды'
+                                    ? t('metered.squad_share', { pct: fmtNum(m.squad_share_percent, 1) })
+                                    : t('metered.all_node_users')
                             }
-                            title="Кто нагружает"
+                            title={t('metered.top_consumers')}
                             titleOrder={6}
                         />
                     </SectionCard.Section>
@@ -506,7 +508,7 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                                 )}
                             </Group>
                             <Text c="dimmed" ff="monospace" size="xs" style={{ whiteSpace: 'nowrap' }}>
-                                {fmtNum(c.gb)} ГБ · {fmtNum(c.share_percent, 1)}% · ≈{fmtMoney(c.cost_rub)}
+                                {fmtNum(c.gb)} {t('format.units.gb')} · {fmtNum(c.share_percent, 1)}% · ≈{fmtMoney(c.cost_rub)}
                             </Text>
                         </Group>
                     ))}

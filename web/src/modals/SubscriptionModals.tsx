@@ -35,8 +35,11 @@ import { FormColumns, FormFooter, FormSection } from '@shared/ui/forms/form-sect
 import { openModal } from './open'
 import { SearchSelect } from '@shared/ui/forms/search-select'
 import { CurrencyIcon } from '@shared/currencies'
+import i18n from '@/app/i18n/i18n'
+import { useTranslation } from 'react-i18next'
 
-export const tariffLabel = (t: Tariff) => `${t.name} — ${fmtMoney(t.monthly_price)}/мес${t.active ? '' : ' (отключён)'}`
+export const tariffLabel = (t: Tariff) =>
+    i18n.t(t.active ? 'sub.tariff_label' : 'sub.tariff_label_inactive', { name: t.name, price: fmtMoney(t.monthly_price) })
 
 export const rwLabel = (u: RwUserRow) => `${u.username}${u.description ? ` · ${u.description}` : ''}`
 
@@ -45,7 +48,7 @@ const statusColor: Record<string, string> = { ACTIVE: 'teal', EXPIRED: 'red', LI
 // openSubscriptionForm links a panel user to a customer; an existing link
 // is edited in the subscription modal itself.
 export function openSubscriptionForm(p: { customerId?: number; rwUserId?: number }) {
-    openModal({ icon: PiLinkDuotone, color: 'cyan', title: 'Привязать пользователя панели' }, (close) => <SubscriptionForm {...p} onDone={close} />, '1000px')
+    openModal({ icon: PiLinkDuotone, color: 'cyan', title: i18n.t('sub.link_title') }, (close) => <SubscriptionForm {...p} onDone={close} />, '1000px')
 }
 
 // RwUserSelect picks a panel user, listed the way the panel shows them.
@@ -54,15 +57,16 @@ export function RwUserSelect({
     users,
     ...props
 }: { options: { value: string; label: string }[]; users: RwUserRow[] | undefined } & Omit<SelectProps, 'data'>) {
+    const { t } = useTranslation()
     return (
         <SearchSelect
             allowDeselect
             clearable
             data={options}
-            label="Пользователь Remnawave"
+            label={t('sub.rw_user')}
             leftSection={<PiUserCircle size={16} />}
-            nothingFoundMessage="Свободных пользователей нет"
-            placeholder="Выберите пользователя"
+            nothingFoundMessage={t('sub.no_free_users')}
+            placeholder={t('sub.choose_user')}
             renderOption={({ option }) => {
                 const u = users?.find((x) => String(x.id) === option.value)
                 return (
@@ -84,6 +88,7 @@ export function RwUserSelect({
 
 // RwUserPreview shows the picked panel user the way the panel lists it.
 function RwUserPreview({ user }: { user: RwUserRow }) {
+    const { t } = useTranslation()
     const days = daysLeft(user.expire_at)
     return (
         <Paper bd="1px solid rgba(255,255,255,0.08)" bg="rgba(255,255,255,0.02)" p="sm" radius="md">
@@ -94,7 +99,7 @@ function RwUserPreview({ user }: { user: RwUserRow }) {
                             {user.username}
                         </Text>
                         <Text c="dimmed" size="xs" truncate="end">
-                            {user.description || 'без описания'}
+                            {user.description || t('sub.no_description')}
                         </Text>
                     </Stack>
                     <StatusBadge size="md" user={user} />
@@ -102,7 +107,7 @@ function RwUserPreview({ user }: { user: RwUserRow }) {
                 <SimpleGrid cols={2} spacing="sm">
                     <Stack gap={0}>
                         <Text c="dimmed" size="xs">
-                            Истекает
+                            {t('sub.expires')}
                         </Text>
                         <Text c={expiryColor(days)} ff="monospace" fw={500} size="sm">
                             {fmtDate(user.expire_at)}
@@ -110,7 +115,7 @@ function RwUserPreview({ user }: { user: RwUserRow }) {
                     </Stack>
                     <Stack gap={0}>
                         <Text c="dimmed" size="xs">
-                            Трафик
+                            {t('sub.traffic')}
                         </Text>
                         <Text ff="monospace" fw={500} size="sm">
                             {fmtBytes(user.used_traffic_bytes)} / {user.traffic_limit_bytes ? fmtBytes(user.traffic_limit_bytes) : '∞'}
@@ -123,6 +128,7 @@ function RwUserPreview({ user }: { user: RwUserRow }) {
 }
 
 function SubscriptionForm({ customerId, rwUserId, onDone }: { customerId?: number; rwUserId?: number; onDone: () => void }) {
+    const { t } = useTranslation()
     const customers = useCustomers()
     const tariffs = useTariffs()
     const rwUsers = useRwUsers()
@@ -135,7 +141,7 @@ function SubscriptionForm({ customerId, rwUserId, onDone }: { customerId?: numbe
             price_override: '' as number | '',
             auto_extend: true
         },
-        validate: { customer_id: (v) => (v ? null : 'Выберите клиента') }
+        validate: { customer_id: (v) => (v ? null : t('sub.choose_customer')) }
     })
     const rwOptions = useMemo(
         () =>
@@ -161,7 +167,7 @@ function SubscriptionForm({ customerId, rwUserId, onDone }: { customerId?: numbe
             onSubmit={form.onSubmit((v) =>
                 m.mutate(v, {
                     onSuccess: () => {
-                        notifyOk('Сохранено')
+                        notifyOk(t('common.saved'))
                         onDone()
                     },
                     onError: (e) => notifyError(e)
@@ -171,23 +177,23 @@ function SubscriptionForm({ customerId, rwUserId, onDone }: { customerId?: numbe
             <FormColumns
                 left={
                     <>
-                        <FormSection color="blue" icon={TbUser} title="Клиент" description="Чья это подписка">
+                        <FormSection color="blue" icon={TbUser} title={t('sub.customer')} description={t('sub.customer_hint')}>
                             <SearchSelect
                                 data={(customers.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))}
-                                label="Клиент"
+                                label={t('sub.customer')}
                                 leftSection={<PiUser size={16} />}
                                 required
                                 {...form.getInputProps('customer_id')}
                             />
                             <TextInput
-                                description="Чтобы отличать подписки одного клиента"
-                                label="Метка"
+                                description={t('sub.label_hint')}
+                                label={t('sub.label')}
                                 leftSection={<PiTag size={16} />}
-                                placeholder="например «Родители»"
+                                placeholder={t('sub.label_placeholder')}
                                 {...form.getInputProps('label')}
                             />
                         </FormSection>
-                        <FormSection color="cyan" icon={PiUserCircleDuotone} title="Пользователь панели" description="Только ещё не привязанные">
+                        <FormSection color="cyan" icon={PiUserCircleDuotone} title={t('sub.panel_user')} description={t('sub.panel_user_hint')}>
                             <RwUserSelect options={rwOptions} users={rwUsers.data} {...form.getInputProps('rw_user_id')} />
                             {picked && <RwUserPreview user={picked} />}
                         </FormSection>
@@ -195,30 +201,30 @@ function SubscriptionForm({ customerId, rwUserId, onDone }: { customerId?: numbe
                 }
                 right={
                     <>
-                        <FormSection color="teal" icon={PiTagDuotone} title="Тариф и цена" description="Сколько стоит месяц">
+                        <FormSection color="teal" icon={PiTagDuotone} title={t('sub.tariff_price')} description={t('sub.tariff_price_hint')}>
                             <SearchSelect
                                 allowDeselect
                                 clearable
                                 data={(tariffs.data ?? []).filter((t) => t.kind === 'base').map((t) => ({ value: String(t.id), label: tariffLabel(t) }))}
-                                description="Здесь параметры в панели не меняются — для этого «Сменить тариф»"
-                                label="Тариф"
+                                description={t('sub.tariff_no_rw')}
+                                label={t('tariffs.tariff')}
                                 leftSection={<PiTag size={16} />}
-                                placeholder="Без тарифа"
+                                placeholder={t('sub.no_tariff')}
                                 {...form.getInputProps('tariff_id')}
                             />
                             <NumberInput
                                 decimalScale={2}
-                                description="Пусто — цена тарифа"
-                                label={`Индивидуальная цена, ${currencySymbol()}/мес`}
+                                description={t('sub.price_override_hint')}
+                                label={t('sub.price_override', { currency: currencySymbol() })}
                                 leftSection={<CurrencyIcon size={16} />}
                                 min={0}
                                 {...form.getInputProps('price_override')}
                             />
                         </FormSection>
-                        <FormSection color="orange" icon={PiArrowsClockwiseDuotone} title="Продление">
+                        <FormSection color="orange" icon={PiArrowsClockwiseDuotone} title={t('sub.renewal')}>
                             <Switch
-                                description="Продлевать из платежей клиента"
-                                label="Автопродление"
+                                description={t('sub.auto_extend_hint')}
+                                label={t('sub.auto_extend')}
                                 thumbIcon={<PiArrowsClockwise size={10} />}
                                 {...form.getInputProps('auto_extend', { type: 'checkbox' })}
                             />
@@ -226,17 +232,18 @@ function SubscriptionForm({ customerId, rwUserId, onDone }: { customerId?: numbe
                     </>
                 }
             />
-            <FormFooter loading={m.isPending} onCancel={onDone} submitIcon={<PiLinkDuotone size={16} />} submitLabel="Привязать" />
+            <FormFooter loading={m.isPending} onCancel={onDone} submitIcon={<PiLinkDuotone size={16} />} submitLabel={t('sub.link')} />
         </form>
     )
 }
 
 // openProvisionModal creates a brand-new panel user for a customer.
 export function openProvisionModal(customer: { id: number; name: string }) {
-    openModal({ icon: PiPlusCircleDuotone, color: 'teal', title: 'Новая подписка', subtitle: customer.name }, (close) => <ProvisionForm customerId={customer.id} onDone={close} />, '1000px')
+    openModal({ icon: PiPlusCircleDuotone, color: 'teal', title: i18n.t('sub.new_title'), subtitle: customer.name }, (close) => <ProvisionForm customerId={customer.id} onDone={close} />, '1000px')
 }
 
 function ProvisionForm({ customerId, onDone }: { customerId: number; onDone: () => void }) {
+    const { t } = useTranslation()
     const tariffs = useTariffs()
     const customers = useCustomers()
     const [tariffId, setTariffId] = useState<string | null>(null)
@@ -266,39 +273,39 @@ function ProvisionForm({ customerId, onDone }: { customerId: number; onDone: () 
         <>
             {eligible.length === 0 && (
                 <Alert color="yellow" mb="md" variant="soft">
-                    Нет базовых тарифов с параметрами панели. Включите «Управлять параметрами пользователя» и выберите сквады у тарифа.
+                    {t('sub.no_managed_tariffs')}
                 </Alert>
             )}
             <FormColumns
                 left={
                     <>
-                        <FormSection color="cyan" icon={PiUserCircleDuotone} title="Пользователь в панели" description="Создастся с параметрами тарифа">
+                        <FormSection color="cyan" icon={PiUserCircleDuotone} title={t('sub.panel_user_new')} description={t('sub.panel_user_new_hint')}>
                             <Select
                                 data={eligible.map((t) => ({ value: String(t.id), label: tariffLabel(t) }))}
-                                label="Тариф"
+                                label={t('tariffs.tariff')}
                                 leftSection={<PiTag size={16} />}
                                 onChange={setTariffId}
-                                placeholder="Выберите тариф"
+                                placeholder={t('sub.choose_tariff')}
                                 value={tariffId}
                             />
                             <TextInput
                                 data-autofocus
-                                description="3–36 символов: латиница, цифры, _ и -"
+                                description={t('sub.username_hint')}
                                 label="Username"
                                 leftSection={<PiUser size={16} />}
                                 onChange={(e) => setUsername(e.currentTarget.value.trim())}
                                 value={username}
                             />
                             <TextInput
-                                label="Метка"
+                                label={t('sub.label')}
                                 leftSection={<PiTag size={16} />}
                                 onChange={(e) => setLabel(e.currentTarget.value)}
-                                placeholder="например «Родители»"
+                                placeholder={t('sub.label_placeholder')}
                                 value={label}
                             />
                         </FormSection>
                         <TermSection
-                            description="Считается от сегодня"
+                            description={t('sub.from_today')}
                             from={null}
                             onChange={setTerm}
                             presets={tariff ? tariffPresets(tariff.monthly_price, tariff.periods) : []}
@@ -324,24 +331,25 @@ function ProvisionForm({ customerId, onDone }: { customerId: number; onDone: () 
                 onSubmit={() =>
                     m.mutate(undefined, {
                         onSuccess: () => {
-                            notifyOk('Пользователь создан в панели')
+                            notifyOk(t('sub.created'))
                             onDone()
                         },
                         onError: (e) => notifyError(e)
                     })
                 }
                 submitIcon={<PiPlusCircle size={16} />}
-                submitLabel="Создать в панели"
+                submitLabel={t('sub.create_in_panel')}
             />
         </>
     )
 }
 
 export function openConnectAddonModal(sub: Subscription) {
-    openModal({ icon: PiPuzzlePieceDuotone, color: 'grape', title: 'Подключить аддон', subtitle: sub.title }, (close) => <ConnectAddonForm sub={sub} onDone={close} />, '1000px')
+    openModal({ icon: PiPuzzlePieceDuotone, color: 'grape', title: i18n.t('sub.connect_addon'), subtitle: sub.title }, (close) => <ConnectAddonForm sub={sub} onDone={close} />, '1000px')
 }
 
 function ConnectAddonForm({ sub, onDone }: { sub: Subscription; onDone: () => void }) {
+    const { t } = useTranslation()
     const tariffs = useTariffs()
     const customers = useCustomers()
     const connected = new Set(sub.addons.map((a) => a.addon_id))
@@ -373,7 +381,7 @@ function ConnectAddonForm({ sub, onDone }: { sub: Subscription; onDone: () => vo
         ...(alignTerm
             ? [
                   {
-                      label: subUnlimited ? 'Бессрочно, как подписка' : `До конца подписки · ${fmtDate(subEnd)}`,
+                      label: subUnlimited ? t('sub.forever_like_sub') : t('sub.until_sub_end', { date: fmtDate(subEnd) }),
                       hint: tariff ? fmtMoney(periodCost(tariff.monthly_price, tariff.periods, alignTerm.months, alignTerm.days)) : undefined,
                       term: alignTerm
                   }
@@ -397,12 +405,12 @@ function ConnectAddonForm({ sub, onDone }: { sub: Subscription; onDone: () => vo
                 <Stack gap="xs" mb="md">
                     {!sub.rw_user && (
                         <Alert color="yellow" variant="soft">
-                            Сначала привяжите подписку к пользователю панели.
+                            {t('sub.link_first')}
                         </Alert>
                     )}
                     {groups.length === 0 && (
                         <Alert color="yellow" variant="soft">
-                            Нет доступных тарифов аддонов — создайте их в «Тарифы и аддоны».
+                            {t('sub.no_addon_tariffs')}
                         </Alert>
                     )}
                 </Stack>
@@ -410,22 +418,22 @@ function ConnectAddonForm({ sub, onDone }: { sub: Subscription; onDone: () => vo
             <FormColumns
                 left={
                     <>
-                        <FormSection color="grape" icon={PiPuzzlePieceDuotone} title="Аддон" description="Создастся отдельный пользователь панели">
+                        <FormSection color="grape" icon={PiPuzzlePieceDuotone} title={t('tariffs.addon')} description={t('sub.addon_hint')}>
                             <Select
                                 data={groups}
-                                label="Аддон и тариф"
+                                label={t('sub.addon_tariff')}
                                 leftSection={<PiPuzzlePiece size={16} />}
                                 onChange={setTariffId}
-                                placeholder="Выберите аддон"
+                                placeholder={t('errors.tariff.addon_required')}
                                 value={tariffId}
                             />
                             {tariff && !tariff.squad_uuids.length && (
                                 <Alert color="orange" variant="soft">
-                                    У тарифа не выбраны сквады — пользователь аддона будет создан без серверов.
+                                    {t('sub.addon_no_squads')}
                                 </Alert>
                             )}
                         </FormSection>
-                        <TermSection description="Считается от сегодня" from={null} onChange={setTerm} presets={presets} value={term} />
+                        <TermSection description={t('sub.from_today')} from={null} onChange={setTerm} presets={presets} value={term} />
                     </>
                 }
                 right={
@@ -433,7 +441,7 @@ function ConnectAddonForm({ sub, onDone }: { sub: Subscription; onDone: () => vo
                         allowDebt={allowDebt}
                         amount={amount}
                         balance={customers.data?.find((c) => c.id === sub.customer_id)?.balance}
-                        description="По тарифу пропорционально сроку; можно изменить (0 — бесплатно)"
+                        description={t('sub.addon_amount_hint')}
                         monthly={tariff?.monthly_price}
                         onAllowDebt={setAllowDebt}
                         onAmount={setAmount}
@@ -447,21 +455,21 @@ function ConnectAddonForm({ sub, onDone }: { sub: Subscription; onDone: () => vo
                 onSubmit={() =>
                     m.mutate(undefined, {
                         onSuccess: () => {
-                            notifyOk('Аддон подключён')
+                            notifyOk(t('sub.addon_connected'))
                             onDone()
                         },
                         onError: (e) => notifyError(e)
                     })
                 }
                 submitIcon={<PiPuzzlePiece size={16} />}
-                submitLabel="Подключить"
+                submitLabel={t('sub.connect')}
             />
         </>
     )
 }
 
 export function openChangeTariffModal(p: { kind: 'subscription' | 'addon'; id: number; title: string; tariffId: number | null; addonId?: number }) {
-    openModal({ icon: PiArrowsLeftRightDuotone, color: 'indigo', title: 'Смена тарифа', subtitle: p.title }, (close) => <ChangeTariffForm {...p} onDone={close} />, '1000px')
+    openModal({ icon: PiArrowsLeftRightDuotone, color: 'indigo', title: i18n.t('sub.change_tariff'), subtitle: p.title }, (close) => <ChangeTariffForm {...p} onDone={close} />, '1000px')
 }
 
 function ChangeTariffForm({
@@ -477,6 +485,7 @@ function ChangeTariffForm({
     addonId?: number
     onDone: () => void
 }) {
+    const { t } = useTranslation()
     const tariffs = useTariffs()
     const options = (tariffs.data ?? []).filter((t) =>
         kind === 'subscription' ? t.kind === 'base' : t.kind === 'addon' && t.addon_id === addonId
@@ -499,7 +508,7 @@ function ChangeTariffForm({
         setSurcharge(Math.max(0, quote.data.surcharge + credits) - credits)
         setRemoved({})
     }, [quote.data])
-    const t = options.find((x) => String(x.id) === target)
+    const picked = options.find((x) => String(x.id) === target)
     const m = useApiMutation(() =>
         api.post(`items/${kind}/${id}/tariff`, {
             tariff_id: Number(target),
@@ -516,12 +525,12 @@ function ChangeTariffForm({
         <>
             <FormColumns
                 left={
-                    <FormSection color="indigo" icon={PiArrowsLeftRightDuotone} title="Новый тариф" description="Сравнение с текущей ценой">
+                    <FormSection color="indigo" icon={PiArrowsLeftRightDuotone} title={t('tariffs.new_tariff')} description={t('sub.compare_hint')}>
                         <Select
-                            label="Тариф"
+                            label={t('tariffs.tariff')}
                             leftSection={<PiTag size={16} />}
                             data={options.filter((o) => o.id !== tariffId).map((o) => ({ value: String(o.id), label: tariffLabel(o) }))}
-                            placeholder="Выберите тариф"
+                            placeholder={t('sub.choose_tariff')}
                             value={target}
                             onChange={setTarget}
                         />
@@ -530,7 +539,7 @@ function ChangeTariffForm({
                                 <Stack gap={4}>
                                     <Group justify="space-between">
                                         <Text c="dimmed" size="sm">
-                                            В месяц
+                                            {t('sub.per_month')}
                                         </Text>
                                         <Text ff="monospace" fw={600} size="sm">
                                             {fmtMoney(quote.data.old_monthly)} → {fmtMoney(quote.data.new_monthly)}
@@ -538,7 +547,7 @@ function ChangeTariffForm({
                                     </Group>
                                     <Group justify="space-between">
                                         <Text c="dimmed" size="sm">
-                                            Оплачено до
+                                            {t('sub.paid_until')}
                                         </Text>
                                         <Text ff="monospace" size="sm">
                                             {fmtDate(quote.data.expire_at)}
@@ -546,7 +555,7 @@ function ChangeTariffForm({
                                     </Group>
                                     <Group justify="space-between">
                                         <Text c="dimmed" size="sm">
-                                            Пропорционально за остаток
+                                            {t('sub.prorated')}
                                         </Text>
                                         <Text ff="monospace" fw={600} size="sm">
                                             {fmtMoney(quote.data.surcharge, 2)}
@@ -558,7 +567,7 @@ function ChangeTariffForm({
                         {!!quote.data?.addons.length && (
                             <Stack gap="xs">
                                 <Text fw={500} size="sm">
-                                    Аддоны из тарифа
+                                    {t('sub.tariff_addons')}
                                 </Text>
                                 {quote.data.addons.map((a) => (
                                     <Paper key={`${a.action}-${a.addon_id}`} p="xs" radius="md" withBorder>
@@ -568,25 +577,25 @@ function ChangeTariffForm({
                                                     {a.addon_name}
                                                 </Text>
                                                 <Text c="dimmed" size="xs">
-                                                    {a.action === 'connect' && `подключится бесплатно до конца подписки (${a.tariff_name})`}
+                                                    {a.action === 'connect' && t('sub.addon_will_connect', { tariff: a.tariff_name })}
                                                     {a.action === 'include' &&
-                                                        `станет включённым${a.credit > 0 ? `, вернём ${fmtMoney(a.credit, 2)} за оплаченный остаток` : ''}`}
-                                                    {a.action === 'remove' && 'больше не входит в тариф'}
+                                                        (a.credit > 0 ? t('sub.addon_will_include_credit', { credit: fmtMoney(a.credit, 2) }) : t('sub.addon_will_include'))}
+                                                    {a.action === 'remove' && t('sub.addon_removed')}
                                                 </Text>
                                             </Stack>
                                             {a.action === 'remove' ? (
                                                 <SegmentedControl
                                                     size="xs"
                                                     data={[
-                                                        { value: 'disable', label: 'Отключить' },
-                                                        { value: 'keep_paid', label: 'Оставить платным' }
+                                                        { value: 'disable', label: t('sub.disable') },
+                                                        { value: 'keep_paid', label: t('sub.keep_paid') }
                                                     ]}
                                                     value={removed[a.subscription_addon_id!] ?? 'disable'}
                                                     onChange={(v) => setRemoved((r) => ({ ...r, [a.subscription_addon_id!]: v }))}
                                                 />
                                             ) : (
                                                 <Badge color={a.action === 'connect' ? 'teal' : 'grape'} variant="soft">
-                                                    {a.action === 'connect' ? 'новый' : 'в тариф'}
+                                                    {a.action === 'connect' ? t('sub.badge_new') : t('sub.badge_include')}
                                                 </Badge>
                                             )}
                                         </Group>
@@ -594,28 +603,26 @@ function ChangeTariffForm({
                                 ))}
                             </Stack>
                         )}
-                        {t && (
+                        {picked && (
                             <Text c="dimmed" size="xs">
-                                {t.manage_rw
-                                    ? 'Лимит трафика, стратегия сброса, HWID и сквады будут обновлены в панели.'
-                                    : 'У тарифа не включено управление параметрами — в панели ничего не изменится.'}
+                                {picked.manage_rw ? t('sub.rw_will_update') : t('sub.rw_unchanged')}
                             </Text>
                         )}
                     </FormSection>
                 }
                 right={
-                    <FormSection icon={PiWalletDuotone} color="orange" title="Доплата" description="Пропорционально оставшемуся сроку">
+                    <FormSection icon={PiWalletDuotone} color="orange" title={t('sub.surcharge_title')} description={t('sub.surcharge_hint')}>
                         <NumberInput
-                            label={`Доплата, ${currencySymbol()}`}
-                            description="Списывается с баланса; отрицательная — вернуть на баланс"
+                            label={t('sub.surcharge', { currency: currencySymbol() })}
+                            description={t('sub.surcharge_desc')}
                             leftSection={<CurrencyIcon size={16} />}
                             decimalScale={2}
                             value={surcharge}
                             onChange={(v) => setSurcharge(Number(v) || 0)}
                         />
                         <Switch
-                            label="Сбросить индивидуальную цену"
-                            description="Брать цену нового тарифа"
+                            label={t('sub.clear_override')}
+                            description={t('sub.clear_override_hint')}
                             checked={clearOverride}
                             onChange={(e) => setClearOverride(e.currentTarget.checked)}
                         />
@@ -629,14 +636,14 @@ function ChangeTariffForm({
                 onSubmit={() =>
                     m.mutate(undefined, {
                         onSuccess: () => {
-                            notifyOk('Тариф сменён')
+                            notifyOk(t('sub.tariff_changed'))
                             onDone()
                         },
                         onError: (e) => notifyError(e)
                     })
                 }
                 submitIcon={<PiArrowsLeftRight size={16} />}
-                submitLabel="Сменить"
+                submitLabel={t('sub.change')}
             />
         </>
     )

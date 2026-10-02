@@ -9,10 +9,12 @@ import { SectionCard } from '@shared/ui/section-card'
 import { ExpireCell, OnlineCell, StatusBadge, TrafficCell } from './badges'
 import { AddonActions, SubscriptionActions } from './ItemActions'
 import { Money } from './ui'
+import { useTranslation } from 'react-i18next'
 
 function AutoIcon({ on }: { on: boolean }) {
+    const { t } = useTranslation()
     return (
-        <Tooltip label={on ? 'Продлевается из платежей автоматически' : 'Автопродление выключено'}>
+        <Tooltip label={on ? t('card.auto_on') : t('card.auto_off')}>
             <PiArrowsClockwise color={on ? 'var(--mantine-color-teal-5)' : 'var(--mantine-color-dark-3)'} size={16} />
         </Tooltip>
     )
@@ -34,6 +36,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 // SubscriptionCard is a section card per subscription on the customer page;
 // clicking the header opens the subscription modal, as rows do in tables.
 export function SubscriptionCard({ sub }: { sub: Subscription }) {
+    const { t } = useTranslation()
     return (
         <SectionCard.Root>
             <SectionCard.Section>
@@ -41,7 +44,7 @@ export function SubscriptionCard({ sub }: { sub: Subscription }) {
                     <UnstyledButton onClick={() => openViewSubscriptionModal(sub)}>
                         <BaseOverlayHeader
                             IconComponent={PiHexagonDuotone}
-                            subtitle={sub.rw_user?.username ?? 'не привязана к панели'}
+                            subtitle={sub.rw_user?.username ?? t('view.not_linked')}
                             title={sub.title}
                             titleOrder={5}
                         />
@@ -55,26 +58,26 @@ export function SubscriptionCard({ sub }: { sub: Subscription }) {
             </SectionCard.Section>
             <SectionCard.Section>
                 <SimpleGrid cols={{ base: 2, md: 5 }} spacing="md">
-                    <Field label="Тариф">{sub.tariff_name || '—'}</Field>
-                    <Field label="Цена">
+                    <Field label={t('tariffs.tariff')}>{sub.tariff_name || '—'}</Field>
+                    <Field label={t('dashboard.col_price')}>
                         <Group gap={4}>
                             <Money value={sub.price} />
                             {sub.price_override !== null && (
                                 <Badge color="yellow" size="xs" variant="soft">
-                                    инд.
+                                    {t('card.custom')}
                                 </Badge>
                             )}
                         </Group>
                     </Field>
-                    <Field label="Оплачено до">
+                    <Field label={t('sub.paid_until')}>
                         <Group>
                             <ExpireCell date={sub.rw_user?.expire_at} />
                         </Group>
                     </Field>
-                    <Field label="Трафик">
+                    <Field label={t('sub.traffic')}>
                         <TrafficCell user={sub.rw_user} />
                     </Field>
-                    <Field label="Был в сети">
+                    <Field label={t('card.last_online')}>
                         <OnlineCell user={sub.rw_user} />
                     </Field>
                 </SimpleGrid>
@@ -89,7 +92,7 @@ export function SubscriptionCard({ sub }: { sub: Subscription }) {
                                         <Badge color="grape" variant="soft">
                                             {a.addon_name}
                                         </Badge>
-                                        <Text size="sm">{a.tariff_name || 'без тарифа'}</Text>
+                                        <Text size="sm">{a.tariff_name || t('view.no_tariff')}</Text>
                                         <AutoIcon on={a.auto_extend} />
                                     </Group>
                                 </UnstyledButton>

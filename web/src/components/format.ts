@@ -1,10 +1,12 @@
 import dayjs from 'dayjs'
 
+import i18n from '@/app/i18n/i18n'
+
 // Money is shown in the base currency (a setting) with the UI locale; the
 // app root calls setFormat as soon as both are known, before any page
 // renders, so the plain functions below can stay synchronous.
 let base = 'RUB'
-let locale = 'ru-RU'
+let locale = 'en-US'
 let money0: Intl.NumberFormat
 let money2: Intl.NumberFormat
 
@@ -42,7 +44,7 @@ export const fmtCurrency = (v: number, cur: string) => (cur === base ? fmtMoney(
 
 export function fmtBytes(b: number | null | undefined): string {
     if (!b) return '0'
-    const units = ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ']
+    const units = (['b', 'kb', 'mb', 'gb', 'tb'] as const).map((u) => i18n.t(`format.units.${u}`))
     let i = 0
     let v = b
     while (v >= 1024 && i < units.length - 1) {
@@ -57,8 +59,10 @@ export function fmtBytes(b: number | null | undefined): string {
 export const UNLIMITED_YEAR = 2090
 export const isUnlimited = (d: string | null | undefined) => !!d && dayjs(d).year() >= UNLIMITED_YEAR
 
-export const fmtDate = (d: string | null | undefined) => (!d ? '—' : isUnlimited(d) ? '∞' : dayjs(d).format('DD.MM.YYYY'))
-export const fmtDateTime = (d: string | null | undefined) => (!d ? '—' : isUnlimited(d) ? '∞' : dayjs(d).format('DD.MM.YYYY HH:mm'))
+// Date layouts follow the UI language (format.date / format.datetime).
+export const dateLayout = () => i18n.t('format.date')
+export const fmtDate = (d: string | null | undefined) => (!d ? '—' : isUnlimited(d) ? '∞' : dayjs(d).format(dateLayout()))
+export const fmtDateTime = (d: string | null | undefined) => (!d ? '—' : isUnlimited(d) ? '∞' : dayjs(d).format(i18n.t('format.datetime')))
 export const fromNow = (d: string | null | undefined) => (d ? dayjs(d).fromNow() : '—')
 
 export function daysLeft(d: string | null | undefined): number | null {
@@ -67,24 +71,15 @@ export function daysLeft(d: string | null | undefined): number | null {
     return Math.floor(dayjs(d).diff(dayjs(), 'hour') / 24)
 }
 
-export function plural(n: number, one: string, few: string, many: string) {
-    const a = Math.abs(n) % 100
-    const b = a % 10
-    if (a > 10 && a < 20) return many
-    if (b > 1 && b < 5) return few
-    if (b === 1) return one
-    return many
-}
-
 export const durationLabel = (months: number, days: number) =>
-    [months ? `${months} мес.` : '', days ? `${days} дн.` : ''].filter(Boolean).join(' ') || '—'
+    [months ? i18n.t('format.months_short', { count: months }) : '', days ? i18n.t('format.days_short', { count: days }) : '']
+        .filter(Boolean)
+        .join(' ') || '—'
 
 export const GB = 1024 ** 3
 
-export const strategyLabel: Record<string, string> = {
-    NO_RESET: 'Без сброса',
-    DAY: 'Каждый день',
-    WEEK: 'Каждую неделю',
-    MONTH: 'Каждый месяц',
-    MONTH_ROLLING: 'Месяц от создания'
-}
+// Traffic reset strategies of the panel.
+export const STRATEGIES = ['NO_RESET', 'DAY', 'WEEK', 'MONTH', 'MONTH_ROLLING'] as const
+
+export const strategyLabel = (s: string) =>
+    (STRATEGIES as readonly string[]).includes(s) ? i18n.t(`format.strategy.${s as (typeof STRATEGIES)[number]}`) : s

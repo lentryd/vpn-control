@@ -3,7 +3,7 @@ import { Box, Divider, NavLink, Stack, Title } from '@mantine/core'
 import { PiArrowRight } from 'react-icons/pi'
 import { NavLink as RouterLink, useLocation } from 'react-router'
 
-import { MENU } from '../menu-sections/menu'
+import { useMenu } from '../menu-sections/menu'
 import classes from './mobile-navigation.module.css'
 
 interface IProps {
@@ -14,7 +14,7 @@ export const MobileNavigation = (props: IProps) => {
     const { onClose } = props
     const { pathname } = useLocation()
 
-    const menu = MENU
+    const menu = useMenu()
 
     return (
         <Stack gap="md" pb="md" pt="md">

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { PiWarningDuotone } from 'react-icons/pi'
 
 import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
+import i18n from '@/app/i18n/i18n'
 
 export interface ModalHeader {
     color?: string
@@ -35,11 +36,11 @@ export function openModal(header: ModalHeader, render: (close: () => void) => Re
     return close
 }
 
-export function confirmDanger(title: string, text: ReactNode, onConfirm: () => void, confirmLabel = 'Удалить') {
+export function confirmDanger(title: string, text: ReactNode, onConfirm: () => void, confirmLabel = i18n.t('common.delete')) {
     modals.openConfirmModal({
         title: <BaseOverlayHeader iconColor="red" IconComponent={PiWarningDuotone} title={title} />,
         children: text,
-        labels: { confirm: confirmLabel, cancel: 'Отмена' },
+        labels: { confirm: confirmLabel, cancel: i18n.t('common.cancel') },
         confirmProps: { color: 'red', variant: 'soft' },
         cancelProps: { color: 'gray', variant: 'subtle' },
         onConfirm

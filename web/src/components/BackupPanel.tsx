@@ -1,7 +1,7 @@
 import type { MRT_ColumnDef } from '@kastov/mantine-react-table-open'
 import { ActionIcon, Alert, Anchor, Badge, Button, Checkbox, FileButton, Group, NumberInput, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import {
     PiArchiveDuotone,
     PiArrowCounterClockwise,
@@ -23,6 +23,7 @@ import { confirmDanger, openModal } from '@/modals/open'
 import { FormFooter } from '@shared/ui/forms/form-section'
 import { DataTableCard } from '@shared/ui/table'
 import { SettingsCardShared } from '@shared/ui/settings-card'
+import { useTranslation } from 'react-i18next'
 
 interface BackupCategory {
     key: string
@@ -49,11 +50,33 @@ interface ImportResult {
     snapshot: string
 }
 
-const useBackupCategories = () =>
-    useQuery({
+const CATEGORY_KEYS = ['customers', 'tariffs', 'subscriptions', 'payments', 'expenses', 'settings', 'stats', 'audit'] as const
+
+// useBackupCategories loads the categories with titles in the UI language
+// (the server's English ones are the fallback for unknown keys).
+function useBackupCategories() {
+    const { t } = useTranslation()
+    const select = useCallback(
+        (d: { categories: BackupCategory[]; counts: Record<string, number> }) => ({
+            ...d,
+            categories: d.categories.map((c) =>
+                (CATEGORY_KEYS as readonly string[]).includes(c.key)
+                    ? {
+                          ...c,
+                          title: t(`backup.cat.${c.key as (typeof CATEGORY_KEYS)[number]}.title`),
+                          description: t(`backup.cat.${c.key as (typeof CATEGORY_KEYS)[number]}.description`)
+                      }
+                    : c
+            )
+        }),
+        [t]
+    )
+    return useQuery({
         queryKey: ['backup', 'categories'],
-        queryFn: () => api.get<{ categories: BackupCategory[]; counts: Record<string, number> }>('backup/categories')
+        queryFn: () => api.get<{ categories: BackupCategory[]; counts: Record<string, number> }>('backup/categories'),
+        select
     })
+}
 
 const rowsOf = (c: BackupCategory, tables: Record<string, number>) => c.tables.reduce((n, t) => n + (tables[t] ?? 0), 0)
 
@@ -69,19 +92,20 @@ function CategoryPicker({
     value: string[]
     onChange: (v: string[]) => void
 }) {
+    const { t } = useTranslation()
     const allKeys = categories.map((c) => c.key)
     const titleOf = (key: string) => categories.find((c) => c.key === key)?.title ?? key
     return (
         <Stack gap="xs">
             <Group gap="xs">
                 <Anchor component="button" size="sm" onClick={() => onChange(allKeys)}>
-                    Выбрать всё
+                    {t('backup.select_all')}
                 </Anchor>
                 <Text c="dimmed" size="sm">
                     ·
                 </Text>
                 <Anchor component="button" size="sm" onClick={() => onChange([])}>
-                    Снять всё
+                    {t('backup.select_none')}
                 </Anchor>
             </Group>
             <Checkbox.Group value={value} onChange={onChange}>
@@ -105,7 +129,7 @@ function CategoryPicker({
                                         {c.description}
                                         {missing.length > 0 && (
                                             <Text c="yellow" component="span" display="block" size="xs">
-                                                Ссылается на: {missing.map(titleOf).join(', ')}
+                                                {t('backup.references', { list: missing.map(titleOf).join(', ') })}
                                             </Text>
                                         )}
                                     </>
@@ -120,6 +144,7 @@ function CategoryPicker({
 }
 
 function ExportCard({ categories, counts }: { categories: BackupCategory[]; counts: Record<string, number> }) {
+    const { t } = useTranslation()
     const [selected, setSelected] = useState(() => categories.map((c) => c.key))
     const [busy, setBusy] = useState(false)
 
@@ -137,11 +162,11 @@ function ExportCard({ categories, counts }: { categories: BackupCategory[]; coun
     return (
         <SettingsCardShared.Container>
             <SettingsCardShared.Header
-                description="Скачайте zip-архив с выбранными данными — для бэкапа или переноса на другую установку"
+                description={t('backup.export_hint')}
                 icon={<PiDownloadSimpleDuotone size={24} />}
                 iconColor="teal"
                 iconVariant="soft"
-                title="Экспорт"
+                title={t('backup.export')}
             />
             <SettingsCardShared.Content>
                 <CategoryPicker categories={categories} counts={(c) => counts[c.key] ?? 0} value={selected} onChange={setSelected} />
@@ -157,7 +182,7 @@ function ExportCard({ categories, counts }: { categories: BackupCategory[]; coun
                         variant="soft"
                         onClick={run}
                     >
-                        Скачать архив
+                        {t('backup.download_archive')}
                     </Button>
                 </Group>
             </SettingsCardShared.Bottom>
@@ -166,6 +191,7 @@ function ExportCard({ categories, counts }: { categories: BackupCategory[]; coun
 }
 
 function ImportCard({ categories }: { categories: BackupCategory[] }) {
+    const { t } = useTranslation()
     const [file, setFile] = useState<File | null>(null)
     const [info, setInfo] = useState<Inspected | null>(null)
     const [selected, setSelected] = useState<string[]>([])
@@ -203,36 +229,33 @@ function ImportCard({ categories }: { categories: BackupCategory[] }) {
     const run = () => {
         if (!file) return
         confirmDanger(
-            'Импорт данных',
-            <Text size="sm">
-                Данные в категориях <b>{titles.join(', ')}</b> будут полностью заменены содержимым архива. Текущие данные этих категорий
-                сохранятся снапшотом «перед импортом».
-            </Text>,
+            t('backup.import_title'),
+            <Text size="sm">{t('backup.import_confirm', { list: titles.join(', ') })}</Text>,
             () =>
                 importMut.mutate(
                     { file, categories: selected },
                     {
                         onSuccess: (res) => {
                             const rows = Object.values(res.report.tables).reduce((a, b) => a + b, 0)
-                            notifyOk(`Импортировано записей: ${rows}. Снимок до импорта: ${res.snapshot}`)
+                            notifyOk(t('backup.imported', { rows, snapshot: res.snapshot }))
                             setFile(null)
                             setInfo(null)
                         },
                         onError: (e) => notifyError(e)
                     }
                 ),
-            'Импортировать'
+            t('backup.import_action')
         )
     }
 
     return (
         <SettingsCardShared.Container>
             <SettingsCardShared.Header
-                description="Загрузите архив, созданный экспортом, и выберите, что из него восстановить"
+                description={t('backup.import_hint')}
                 icon={<PiUploadSimpleDuotone size={24} />}
                 iconColor="orange"
                 iconVariant="soft"
-                title="Импорт"
+                title={t('backup.import')}
             />
             <SettingsCardShared.Content>
                 <Stack>
@@ -240,7 +263,7 @@ function ImportCard({ categories }: { categories: BackupCategory[] }) {
                         <FileButton accept=".zip,application/zip" onChange={pick}>
                             {(props) => (
                                 <Button {...props} color="gray" leftSection={<PiArchiveDuotone size={16} />} loading={inspecting} variant="soft">
-                                    Выбрать архив
+                                    {t('backup.choose_archive')}
                                 </Button>
                             )}
                         </FileButton>
@@ -253,8 +276,8 @@ function ImportCard({ categories }: { categories: BackupCategory[] }) {
                     {info && (
                         <>
                             <Text c="dimmed" size="sm">
-                                Создан {fmtDateTime(info.manifest.created_at)}
-                                {info.manifest.app_version && `, версия ${info.manifest.app_version}`}
+                                {t('backup.created_at', { date: fmtDateTime(info.manifest.created_at) })}
+                                {info.manifest.app_version && t('backup.version', { version: info.manifest.app_version })}
                             </Text>
                             <CategoryPicker
                                 categories={available}
@@ -263,8 +286,7 @@ function ImportCard({ categories }: { categories: BackupCategory[] }) {
                                 onChange={setSelected}
                             />
                             <Alert color="yellow" icon={<PiWarningDuotone />} variant="soft">
-                                Выбранные категории заменяются целиком. Если в архиве есть записи, ссылающиеся на отсутствующие данные (например,
-                                подписки без клиентов), импорт будет отменён без изменений.
+                                {t('backup.import_warning')}
                             </Alert>
                         </>
                     )}
@@ -281,7 +303,7 @@ function ImportCard({ categories }: { categories: BackupCategory[] }) {
                         variant="soft"
                         onClick={run}
                     >
-                        Импортировать
+                        {t('backup.import_action')}
                     </Button>
                 </Group>
             </SettingsCardShared.Bottom>
@@ -298,11 +320,7 @@ interface Snapshot {
     categories: string[]
 }
 
-const kindLabel: Record<Snapshot['kind'], { label: string; color: string }> = {
-    auto: { label: 'по расписанию', color: 'cyan' },
-    manual: { label: 'вручную', color: 'teal' },
-    'pre-import': { label: 'перед импортом', color: 'orange' }
-}
+const kindColor: Record<Snapshot['kind'], string> = { auto: 'cyan', manual: 'teal', 'pre-import': 'orange' }
 
 const useSnapshots = () =>
     useQuery({ queryKey: ['backup', 'snapshots'], queryFn: () => api.get<{ snapshots: Snapshot[] }>('backup/snapshots') })
@@ -310,11 +328,12 @@ const useSnapshots = () =>
 // SnapshotsCard lists the full backups kept on the server (scheduled,
 // manual and pre-import ones) with download, restore and delete.
 function SnapshotsCard({ categories }: { categories: BackupCategory[] }) {
+    const { t } = useTranslation()
     const q = useSnapshots()
     const invalidate = useInvalidateAll()
     const create = useApiMutation(() => api.post<Snapshot>('backup/snapshots'))
     const remove = (sn: Snapshot) =>
-        confirmDanger(`Удалить снапшот ${sn.name}?`, 'Файл будет удалён с сервера.', async () => {
+        confirmDanger(t('backup.delete_snapshot', { name: sn.name }), t('backup.delete_snapshot_hint'), async () => {
             try {
                 await api.del(`backup/snapshots/${sn.name}`)
                 await invalidate()
@@ -324,26 +343,26 @@ function SnapshotsCard({ categories }: { categories: BackupCategory[] }) {
         })
     const columns = useMemo<MRT_ColumnDef<Snapshot>[]>(
         () => [
-            { accessorKey: 'created_at', header: 'Создан', Cell: ({ cell }) => fmtDateTime(cell.getValue<string>()) },
+            { accessorKey: 'created_at', header: t('backup.col_created'), Cell: ({ cell }) => fmtDateTime(cell.getValue<string>()) },
             {
                 accessorKey: 'kind',
-                header: 'Тип',
+                header: t('backup.col_kind'),
                 filterVariant: 'multi-select',
                 Cell: ({ row }) => (
-                    <Badge color={kindLabel[row.original.kind].color} variant="soft">
-                        {kindLabel[row.original.kind].label}
+                    <Badge color={kindColor[row.original.kind]} variant="soft">
+                        {t(`backup.kind.${row.original.kind}`)}
                     </Badge>
                 )
             },
-            { accessorKey: 'size', header: 'Размер', enableColumnFilter: false, Cell: ({ cell }) => fmtBytes(cell.getValue<number>()) },
+            { accessorKey: 'size', header: t('backup.col_size'), enableColumnFilter: false, Cell: ({ cell }) => fmtBytes(cell.getValue<number>()) },
             {
                 id: 'categories',
-                header: 'Данные',
+                header: t('backup.col_data'),
                 enableSorting: false,
                 accessorFn: (r) => r.categories.length,
                 Cell: ({ row }) =>
                     row.original.categories.length === categories.length ? (
-                        <Text size="sm">всё</Text>
+                        <Text size="sm">{t('backup.everything')}</Text>
                     ) : (
                         <Text size="sm">
                             {row.original.categories.map((k) => categories.find((c) => c.key === k)?.title ?? k).join(', ')}
@@ -351,7 +370,7 @@ function SnapshotsCard({ categories }: { categories: BackupCategory[] }) {
                     )
             }
         ],
-        [categories]
+        [categories, t]
     )
     return (
         <DataTableCard
@@ -360,22 +379,22 @@ function SnapshotsCard({ categories }: { categories: BackupCategory[] }) {
                     color="teal"
                     leftSection={<PiPlus size={14} />}
                     loading={create.isPending}
-                    onClick={() => create.mutate(undefined, { onSuccess: (sn) => notifyOk(`Снапшот ${sn.name} создан`), onError: (e) => notifyError(e) })}
+                    onClick={() => create.mutate(undefined, { onSuccess: (sn) => notifyOk(t('backup.snapshot_created', { name: sn.name })), onError: (e) => notifyError(e) })}
                     size="xs"
                     variant="soft"
                 >
-                    Снапшот
+                    {t('backup.snapshot')}
                 </Button>
             }
             columns={columns}
             data={q.data?.snapshots ?? []}
-            description="Полные копии базы на сервере (data/backups): по расписанию, вручную и перед каждым импортом"
+            description={t('backup.snapshots_hint')}
             enableRowActions
             icon={<PiCameraDuotone size={24} />}
             initialState={{ sorting: [{ id: 'created_at', desc: true }] }}
             renderRowActions={({ row }) => (
                 <Group gap={4} wrap="nowrap">
-                    <Tooltip label="Скачать">
+                    <Tooltip label={t('backup.download')}>
                         <ActionIcon
                             color="gray"
                             onClick={() => api.download(`backup/snapshots/${row.original.name}`, row.original.name).catch(notifyError)}
@@ -384,12 +403,12 @@ function SnapshotsCard({ categories }: { categories: BackupCategory[] }) {
                             <PiDownloadSimple size={16} />
                         </ActionIcon>
                     </Tooltip>
-                    <Tooltip label="Восстановить">
+                    <Tooltip label={t('backup.restore')}>
                         <ActionIcon
                             color="orange"
                             onClick={() =>
                                 openModal(
-                                    { icon: PiArrowCounterClockwise, color: 'orange', title: 'Восстановить', subtitle: row.original.name },
+                                    { icon: PiArrowCounterClockwise, color: 'orange', title: t('backup.restore'), subtitle: row.original.name },
                                     (close) => <RestoreSnapshotForm categories={categories} name={row.original.name} onDone={close} />,
                                     'lg'
                                 )
@@ -399,7 +418,7 @@ function SnapshotsCard({ categories }: { categories: BackupCategory[] }) {
                             <PiArrowCounterClockwise size={16} />
                         </ActionIcon>
                     </Tooltip>
-                    <Tooltip label="Удалить">
+                    <Tooltip label={t('common.delete')}>
                         <ActionIcon color="red" onClick={() => remove(row.original)} variant="subtle">
                             <PiTrash size={16} />
                         </ActionIcon>
@@ -409,12 +428,13 @@ function SnapshotsCard({ categories }: { categories: BackupCategory[] }) {
             displayColumnDefOptions={{ 'mrt-row-actions': { header: '', size: 120 } }}
             state={{ isLoading: q.isPending }}
             storageKey="snapshots"
-            title="Снапшоты"
+            title={t('backup.snapshots')}
         />
     )
 }
 
 function RestoreSnapshotForm({ name, categories, onDone }: { name: string; categories: BackupCategory[]; onDone: () => void }) {
+    const { t } = useTranslation()
     const info = useQuery({ queryKey: ['backup', 'inspect', name], queryFn: () => api.get<Inspected>(`backup/snapshots/${name}/inspect`) })
     const [selected, setSelected] = useState<string[]>([])
     useEffect(() => {
@@ -433,7 +453,7 @@ function RestoreSnapshotForm({ name, categories, onDone }: { name: string; categ
                 />
             )}
             <Alert color="yellow" icon={<PiWarningDuotone />} variant="soft">
-                Выбранные категории заменятся содержимым снапшота. Текущие данные сохранятся в снапшот «перед импортом».
+                {t('backup.restore_warning')}
             </Alert>
             <FormFooter
                 disabled={!selected.length}
@@ -443,14 +463,14 @@ function RestoreSnapshotForm({ name, categories, onDone }: { name: string; categ
                 onSubmit={() =>
                     m.mutate(undefined, {
                         onSuccess: (res) => {
-                            notifyOk(`Восстановлено. Снимок до восстановления: ${res.snapshot}`)
+                            notifyOk(t('backup.restored', { snapshot: res.snapshot }))
                             onDone()
                         },
                         onError: (e) => notifyError(e)
                     })
                 }
                 submitIcon={<PiArrowCounterClockwise size={16} />}
-                submitLabel="Восстановить"
+                submitLabel={t('backup.restore')}
             />
         </Stack>
     )
@@ -458,6 +478,7 @@ function RestoreSnapshotForm({ name, categories, onDone }: { name: string; categ
 
 // ScheduleCard sets how often automatic snapshots are taken and kept.
 function ScheduleCard() {
+    const { t } = useTranslation()
     const settings = useSettings()
     const [hours, setHours] = useState<number | string>('')
     const [keep, setKeep] = useState<number | string>('')
@@ -470,16 +491,16 @@ function ScheduleCard() {
     return (
         <SettingsCardShared.Container>
             <SettingsCardShared.Header
-                description="Автоматические снапшоты всей базы. Внешний сервис может забирать их по API-токену (backups:read)"
+                description={t('backup.schedule_hint')}
                 icon={<PiCameraDuotone size={24} />}
                 iconColor="cyan"
                 iconVariant="soft"
-                title="Расписание"
+                title={t('backup.schedule')}
             />
             <SettingsCardShared.Content>
                 <SimpleGrid cols={{ base: 1, xs: 2 }}>
-                    <NumberInput label="Каждые, часов" description="0 — не делать" min={0} value={hours} onChange={setHours} />
-                    <NumberInput label="Хранить, штук" description="Старые автоматические удаляются" min={1} value={keep} onChange={setKeep} />
+                    <NumberInput label={t('backup.every_hours')} description={t('backup.every_hours_hint')} min={0} value={hours} onChange={setHours} />
+                    <NumberInput label={t('backup.keep')} description={t('backup.keep_hint')} min={1} value={keep} onChange={setKeep} />
                 </SimpleGrid>
             </SettingsCardShared.Content>
             <SettingsCardShared.Bottom>
@@ -489,10 +510,10 @@ function ScheduleCard() {
                         leftSection={<PiFloppyDiskDuotone size={16} />}
                         loading={save.isPending}
                         mt="md"
-                        onClick={() => save.mutate(undefined, { onSuccess: () => notifyOk('Сохранено'), onError: (e) => notifyError(e) })}
+                        onClick={() => save.mutate(undefined, { onSuccess: () => notifyOk(t('common.saved')), onError: (e) => notifyError(e) })}
                         variant="soft"
                     >
-                        Сохранить
+                        {t('common.save')}
                     </Button>
                 </Group>
             </SettingsCardShared.Bottom>

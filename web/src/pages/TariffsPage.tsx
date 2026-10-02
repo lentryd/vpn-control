@@ -40,7 +40,7 @@ import { useMemo, useState } from 'react'
 import { api } from '@/api/client'
 import { useAddons, useApiMutation, useInvalidateAll, useSquads, useTariffs } from '@/api/hooks'
 import type { Addon, Tariff } from '@/api/types'
-import { durationLabel, fmtBytes, fmtMoney, GB, strategyLabel } from '@/components/format'
+import { durationLabel, fmtBytes, fmtMoney, GB, STRATEGIES, strategyLabel } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { PageHeader } from '@/components/ui'
 import { openAddonModal } from '@/modals/AddonModal'
@@ -50,10 +50,12 @@ import { Page } from '@shared/ui/page'
 import { FormFooter, FormSection } from '@shared/ui/forms/form-section'
 import { DataTableCard } from '@shared/ui/table'
 import { CurrencyIcon } from '@shared/currencies'
+import { useTranslation } from 'react-i18next'
 
 type Draft = Partial<Tariff> & { kind: 'base' | 'addon' }
 
 export function TariffsPage() {
+    const { t } = useTranslation()
     const tariffs = useTariffs()
     const addons = useAddons()
     const [draft, setDraft] = useState<Draft | null>(null)
@@ -61,7 +63,7 @@ export function TariffsPage() {
     const addonTariffs = (tariffs.data ?? []).filter((t) => t.kind === 'addon')
     const invalidate = useInvalidateAll()
     const deleteAddon = (a: Addon) =>
-        confirmDanger(`Удалить аддон «${a.name}»?`, 'Удалить можно только аддон без тарифов и подписок.', async () => {
+        confirmDanger(t('tariffs.delete_addon', { name: a.name }), t('tariffs.delete_addon_hint'), async () => {
             try {
                 await api.del(`addons/${a.id}`)
                 await invalidate()
@@ -71,44 +73,43 @@ export function TariffsPage() {
         })
 
     return (
-        <Page title="Тарифы и аддоны">
+        <Page title={t('menu.tariffs_addons')}>
             <PageHeader
                 icon={<TbTags size={24} />}
-                title="Тарифы и аддоны"
-                description="Цены и параметры пользователей панели для базовых подписок и аддонов"
+                title={t('menu.tariffs_addons')}
+                description={t('tariffs.description')}
                 actions={
                     <Group gap="xs">
                         <Button color="grape" leftSection={<PiPlus size={16} />} onClick={() => openAddonModal()} variant="soft">
-                            Аддон
+                            {t('tariffs.addon')}
                         </Button>
                         <Button color="teal" leftSection={<PiPlus size={16} />} onClick={() => setDraft({ kind: 'base', active: true })} variant="soft">
-                            Тариф
+                            {t('tariffs.tariff')}
                         </Button>
                     </Group>
                 }
             />
             <Tabs defaultValue="base">
                 <Tabs.List mb="md">
-                    <Tabs.Tab value="base">Базовые ({base.length})</Tabs.Tab>
-                    <Tabs.Tab value="addons">Аддоны ({addonTariffs.length})</Tabs.Tab>
+                    <Tabs.Tab value="base">{t('tariffs.tab_base', { count: base.length })}</Tabs.Tab>
+                    <Tabs.Tab value="addons">{t('tariffs.tab_addons', { count: addonTariffs.length })}</Tabs.Tab>
                 </Tabs.List>
                 <Tabs.Panel value="base">
                     <TariffTable
-                        description="Цена и параметры основной подписки"
+                        description={t('tariffs.base_hint')}
                         icon={<PiTagDuotone size={24} />}
                         loading={!tariffs.data}
                         onEdit={(t) => setDraft(t)}
                         rows={base}
                         storageKey="tariffs-base"
-                        title="Базовые тарифы"
+                        title={t('tariffs.base_title')}
                     />
                 </Tabs.Panel>
                 <Tabs.Panel value="addons">
                     <Stack>
                         {(addons.data ?? []).length === 0 && (
                             <Alert color="gray">
-                                Аддонов пока нет. Создайте аддон кнопкой «Аддон» или подключите файл в формате addons.yml сервиса subpage
-                                (переменная ADDONS_CONFIG).
+                                {t('tariffs.no_addons')}
                             </Alert>
                         )}
                         {(addons.data ?? []).map((a) => (
@@ -133,11 +134,11 @@ export function TariffsPage() {
                                             size="xs"
                                             variant="soft"
                                         >
-                                            Тариф аддона
+                                            {t('tariffs.addon_tariff')}
                                         </Button>
                                     </Group>
                                 }
-                                description={`пользователь панели: ${a.prefix}<username>${a.suffix}`}
+                                description={t('tariffs.addon_user', { name: `${a.prefix}<username>${a.suffix}` })}
                                 icon={<PiPuzzlePieceDuotone size={24} />}
                                 onEdit={(t) => setDraft(t)}
                                 rows={addonTariffs.filter((t) => t.addon_id === a.id)}
@@ -147,7 +148,7 @@ export function TariffsPage() {
                                         {a.name}
                                         {a.source === 'file' && (
                                             <Badge color="gray" variant="soft">
-                                                {a.in_config ? 'из файла' : 'удалён из файла'}
+                                                {a.in_config ? t('tariffs.from_file') : t('tariffs.removed_from_file')}
                                             </Badge>
                                         )}
                                     </Group>
@@ -166,7 +167,7 @@ export function TariffsPage() {
                     <BaseOverlayHeader
                         IconComponent={PiTagDuotone}
                         subtitle={draft?.id ? draft.name : undefined}
-                        title={draft?.id ? 'Тариф' : 'Новый тариф'}
+                        title={draft?.id ? t('tariffs.tariff') : t('tariffs.new_tariff')}
                     />
                 }
             >
@@ -195,11 +196,12 @@ function TariffTable({
     actions?: React.ReactNode
     loading?: boolean
 }) {
+    const { t } = useTranslation()
     const invalidate = useInvalidateAll()
-    const remove = (t: Tariff) =>
-        confirmDanger(`Удалить тариф «${t.name}»?`, 'Удалить можно только неиспользуемый тариф.', async () => {
+    const remove = (tf: Tariff) =>
+        confirmDanger(t('tariffs.delete', { name: tf.name }), t('tariffs.delete_hint'), async () => {
             try {
-                await api.del(`tariffs/${t.id}`)
+                await api.del(`tariffs/${tf.id}`)
                 await invalidate()
             } catch (e) {
                 notifyError(e)
@@ -210,7 +212,7 @@ function TariffTable({
         () => [
             {
                 accessorKey: 'name',
-                header: 'Название',
+                header: t('tariffs.col_name'),
                 size: 220,
                 Cell: ({ row }) => (
                     <Group gap="md" pl={10} wrap="nowrap">
@@ -220,11 +222,11 @@ function TariffTable({
                                 {row.original.name}
                             </Text>
                             <Text c="dimmed" fw={600} size="xs" truncate="end">
-                                {row.original.description || (row.original.active ? 'активен' : 'скрыт')}
+                                {row.original.description || (row.original.active ? t('tariffs.active') : t('tariffs.hidden'))}
                             </Text>
                             {row.original.included_addon_tariff_ids?.length > 0 && (
                                 <Badge color="grape" leftSection={<PiPuzzlePieceDuotone size={12} />} mt={2} size="xs" variant="soft">
-                                    + аддонов: {row.original.included_addon_tariff_ids.length}
+                                    {t('tariffs.plus_addons', { count: row.original.included_addon_tariff_ids.length })}
                                 </Badge>
                             )}
                         </Box>
@@ -233,7 +235,7 @@ function TariffTable({
             },
             {
                 accessorKey: 'monthly_price',
-                header: 'Цена/мес',
+                header: t('tariffs.col_price'),
                 mantineTableBodyCellProps: { align: 'center' },
                 Cell: ({ cell }) => (
                     <Text ff="monospace" fw={600} size="sm">
@@ -243,7 +245,7 @@ function TariffTable({
             },
             {
                 id: 'periods',
-                header: 'Периоды',
+                header: t('tariffs.col_periods'),
                 enableSorting: false,
                 accessorFn: (t) => t.periods.length,
                 Cell: ({ row }) =>
@@ -261,40 +263,40 @@ function TariffTable({
             },
             {
                 id: 'rw',
-                header: 'Параметры панели',
+                header: t('tariffs.col_panel'),
                 size: 280,
                 enableSorting: false,
                 accessorFn: (t) => t.manage_rw,
                 Cell: ({ row }) => {
-                    const t = row.original
-                    if (!t.manage_rw) return <Text c="dimmed" size="xs">не управляет</Text>
+                    const tf = row.original
+                    if (!tf.manage_rw) return <Text c="dimmed" size="xs">{t('tariffs.not_managed')}</Text>
                     return (
                         <Group gap={4}>
                             <Badge color="violet" variant="soft">
-                                {t.traffic_limit_bytes ? fmtBytes(t.traffic_limit_bytes) : '∞'}
+                                {tf.traffic_limit_bytes ? fmtBytes(tf.traffic_limit_bytes) : '∞'}
                             </Badge>
                             <Badge color="gray" variant="soft">
-                                {strategyLabel[t.traffic_strategy] ?? t.traffic_strategy}
+                                {strategyLabel(tf.traffic_strategy)}
                             </Badge>
-                            {t.hwid_limit !== null && (
+                            {tf.hwid_limit !== null && (
                                 <Badge color="indigo" variant="soft">
-                                    {t.hwid_limit} устр.
+                                    {t('tariffs.devices', { count: tf.hwid_limit })}
                                 </Badge>
                             )}
-                            <Badge variant="soft">сквадов {t.squad_uuids.length}</Badge>
+                            <Badge variant="soft">{t('tariffs.squads', { count: tf.squad_uuids.length })}</Badge>
                         </Group>
                     )
                 }
             },
             {
                 accessorKey: 'subscribers',
-                header: 'Подписчиков',
+                header: t('tariffs.col_subscribers'),
                 mantineTableBodyCellProps: { align: 'center' },
                 Cell: ({ row }) => (
                     <Text fw={600} size="sm">
                         {row.original.subscribers}
                         {row.original.overridden > 0 && (
-                            <Text c="yellow" component="span" size="xs">{` (${row.original.overridden} инд.)`}</Text>
+                            <Text c="yellow" component="span" size="xs">{` ${t('tariffs.overridden', { count: row.original.overridden })}`}</Text>
                         )}
                     </Text>
                 )
@@ -310,7 +312,7 @@ function TariffTable({
                 )
             }
         ],
-        []
+        [t]
     )
 
     return (
@@ -342,6 +344,7 @@ function TariffTable({
 }
 
 function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; onDone: () => void }) {
+    const { t } = useTranslation()
     const squads = useSquads()
     const tariffs = useTariffs()
     const addonTariffs = (tariffs.data ?? []).filter((t) => t.kind === 'addon')
@@ -366,11 +369,11 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
             price_change: 'keep'
         },
         validate: {
-            name: (v) => (v.trim() ? null : 'Введите название'),
-            addon_id: (v, vals) => (vals.kind === 'addon' && !v ? 'Выберите аддон' : null),
+            name: (v) => (v.trim() ? null : t('tariffs.name_required')),
+            addon_id: (v, vals) => (vals.kind === 'addon' && !v ? t('errors.tariff.addon_required') : null),
             included: (v) => {
                 const ids = v.map((id) => addonTariffs.find((t) => String(t.id) === id)?.addon_id)
-                return new Set(ids).size === ids.length ? null : 'Один аддон — один тариф'
+                return new Set(ids).size === ids.length ? null : t('tariffs.one_per_addon')
             }
         }
     })
@@ -411,7 +414,7 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
             onSubmit={form.onSubmit((v) =>
                 m.mutate(v, {
                     onSuccess: () => {
-                        notifyOk('Тариф сохранён')
+                        notifyOk(t('tariffs.saved'))
                         onDone()
                     },
                     onError: (e) => notifyError(e)
@@ -419,21 +422,21 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
             )}
         >
             <Stack gap="md">
-                <FormSection icon={PiTagDuotone} title="Тариф" description="Название и цена">
+                <FormSection icon={PiTagDuotone} title={t('tariffs.tariff')} description={t('tariffs.section_main')}>
                     <SimpleGrid cols={{ base: 1, xs: 2 }}>
                         <Select
-                            label="Тип"
+                            label={t('tariffs.kind')}
                             leftSection={<PiStackDuotone size={16} />}
                             disabled={!!draft.id}
                             data={[
-                                { value: 'base', label: 'Базовая подписка' },
-                                { value: 'addon', label: 'Аддон' }
+                                { value: 'base', label: t('tariffs.kind_base') },
+                                { value: 'addon', label: t('tariffs.addon') }
                             ]}
                             {...form.getInputProps('kind')}
                         />
                         {form.values.kind === 'addon' && (
                             <Select
-                                label="Аддон"
+                                label={t('tariffs.addon')}
                                 leftSection={<PiPuzzlePieceDuotone size={16} />}
                                 disabled={!!draft.id}
                                 data={addons.map((a) => ({ value: String(a.id), label: a.name }))}
@@ -441,14 +444,14 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                             />
                         )}
                     </SimpleGrid>
-                    <TextInput label="Название" leftSection={<PiTextAa size={16} />} required {...form.getInputProps('name')} />
-                    <Textarea label="Описание" autosize minRows={2} {...form.getInputProps('description')} />
+                    <TextInput label={t('tariffs.col_name')} leftSection={<PiTextAa size={16} />} required {...form.getInputProps('name')} />
+                    <Textarea label={t('tariffs.description_label')} autosize minRows={2} {...form.getInputProps('description')} />
                     {form.values.kind === 'base' && (
                         <MultiSelect
-                            label="Включённые аддоны"
-                            description="Подключаются бесплатно и продлеваются вместе с подпиской; параметры — из тарифа аддона. Уже оформленные подписки получат их при следующей смене тарифа"
+                            label={t('tariffs.included')}
+                            description={t('tariffs.included_hint')}
                             leftSection={<PiPuzzlePieceDuotone size={16} />}
-                            placeholder={addonTariffs.length ? 'Без аддонов' : 'Нет тарифов аддонов'}
+                            placeholder={addonTariffs.length ? t('tariffs.no_included') : t('tariffs.no_addon_tariffs')}
                             data={addonTariffs.map((t) => ({ value: String(t.id), label: `${t.addon_name} · ${t.name}` }))}
                             clearable
                             {...form.getInputProps('included')}
@@ -456,13 +459,13 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                     )}
                     {includedChanged && (
                         <Select
-                            label="Текущие подписчики"
-                            description={`У тарифа ${draft.subscribers} подписок`}
+                            label={t('tariffs.current_subscribers')}
+                            description={t('tariffs.subscribers_count', { count: draft.subscribers })}
                             leftSection={<PiPuzzlePieceDuotone size={16} />}
                             data={[
-                                { value: 'skip', label: 'Не трогать — изменится при смене тарифа' },
-                                { value: 'disable', label: 'Применить, убранные аддоны отключить' },
-                                { value: 'keep_paid', label: 'Применить, убранные аддоны оставить платными' }
+                                { value: 'skip', label: t('tariffs.sync_skip') },
+                                { value: 'disable', label: t('tariffs.sync_disable') },
+                                { value: 'keep_paid', label: t('tariffs.sync_keep') }
                             ]}
                             allowDeselect={false}
                             {...form.getInputProps('sync_included')}
@@ -470,25 +473,25 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                     )}
                     <SimpleGrid cols={{ base: 1, xs: 2 }}>
                         <NumberInput
-                            label="Цена в месяц"
+                            label={t('tariffs.monthly_price')}
                             leftSection={<CurrencyIcon size={16} />}
                             min={0}
                             decimalScale={2}
                             {...form.getInputProps('monthly_price')}
                         />
-                        <NumberInput label="Порядок" leftSection={<PiSortAscending size={16} />} {...form.getInputProps('sort_order')} />
+                        <NumberInput label={t('tariffs.sort_order')} leftSection={<PiSortAscending size={16} />} {...form.getInputProps('sort_order')} />
                     </SimpleGrid>
                     {priceChanged && (
-                        <Radio.Group label={`Цена меняется, у тарифа ${draft.subscribers} подписчиков`} {...form.getInputProps('price_change')}>
+                        <Radio.Group label={t('tariffs.price_changes', { count: draft.subscribers })} {...form.getInputProps('price_change')}>
                             <Stack gap={6} mt={6}>
-                                <Radio value="keep" label="Оставить текущим подписчикам старую цену (запишется как индивидуальная)" />
-                                <Radio value="apply" label="Применить новую цену ко всем" />
+                                <Radio value="keep" label={t('tariffs.price_keep')} />
+                                <Radio value="apply" label={t('tariffs.price_apply')} />
                             </Stack>
                         </Radio.Group>
                     )}
                     <Switch
-                        label="Активен"
-                        description="Доступен для подключения новым подписчикам"
+                        label={t('tariffs.active_label')}
+                        description={t('tariffs.active_hint')}
                         {...form.getInputProps('active', { type: 'checkbox' })}
                     />
                 </FormSection>
@@ -496,8 +499,8 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                 <FormSection
                     icon={PiCalendarDuotone}
                     color="teal"
-                    title="Периоды"
-                    description="Скидка за несколько месяцев или пакет в днях (например пробная неделя)"
+                    title={t('tariffs.col_periods')}
+                    description={t('tariffs.periods_hint')}
                     actions={
                         <Button
                             color="teal"
@@ -506,33 +509,33 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                             size="xs"
                             variant="soft"
                         >
-                            Период
+                            {t('tariffs.period')}
                         </Button>
                     }
                 >
                     {form.values.periods.length === 0 && (
                         <Text c="dimmed" size="sm">
-                            Без периодов: цена = месячная × число месяцев, дни — месячная / 30
+                            {t('tariffs.no_periods')}
                         </Text>
                     )}
                     {form.values.periods.map((_, i) => (
                         <Group key={i} wrap="nowrap" align="flex-end">
                             <NumberInput
-                                label="Месяцев"
+                                label={t('tariffs.months')}
                                 leftSection={<PiCalendarDuotone size={16} />}
                                 min={0}
                                 max={36}
                                 {...form.getInputProps(`periods.${i}.months`)}
                             />
                             <NumberInput
-                                label="Дней"
+                                label={t('tariffs.days')}
                                 leftSection={<PiClockDuotone size={16} />}
                                 min={0}
                                 max={365}
                                 {...form.getInputProps(`periods.${i}.days`)}
                             />
                             <NumberInput
-                                label="Цена за период"
+                                label={t('tariffs.period_price')}
                                 leftSection={<CurrencyIcon size={16} />}
                                 min={0}
                                 decimalScale={2}
@@ -545,42 +548,42 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                     ))}
                 </FormSection>
 
-                <FormSection icon={TbChartLine} color="violet" title="Параметры в панели" description="Что выставлять пользователю при подключении и смене тарифа">
+                <FormSection icon={TbChartLine} color="violet" title={t('tariffs.panel_section')} description={t('tariffs.panel_section_hint')}>
                     <Switch
-                        label="Управлять параметрами пользователя"
-                        description="Лимит трафика, стратегия сброса, HWID и сквады"
+                        label={t('tariffs.manage_rw')}
+                        description={t('tariffs.manage_rw_hint')}
                         {...form.getInputProps('manage_rw', { type: 'checkbox' })}
                     />
                     {form.values.manage_rw && (
                         <>
                             <SimpleGrid cols={{ base: 1, xs: 2 }}>
                                 <NumberInput
-                                    label="Лимит трафика, ГБ"
-                                    description="0 — без лимита"
+                                    label={t('tariffs.traffic_limit')}
+                                    description={t('tariffs.traffic_limit_hint')}
                                     leftSection={<TbChartLine size={16} />}
                                     min={0}
                                     decimalScale={2}
                                     {...form.getInputProps('traffic_gb')}
                                 />
                                 <Select
-                                    label="Сброс трафика"
-                                    description="Когда обнулять счётчик"
+                                    label={t('tariffs.traffic_reset')}
+                                    description={t('tariffs.traffic_reset_hint')}
                                     leftSection={<PiClockDuotone size={16} />}
-                                    data={Object.entries(strategyLabel).map(([value, label]) => ({ value, label }))}
+                                    data={STRATEGIES.map((value) => ({ value, label: strategyLabel(value) }))}
                                     {...form.getInputProps('traffic_strategy')}
                                 />
                             </SimpleGrid>
                             <NumberInput
-                                label="Лимит устройств (HWID)"
-                                description="Пусто — как в панели по умолчанию"
+                                label={t('tariffs.hwid')}
+                                description={t('tariffs.hwid_hint')}
                                 leftSection={<TbDevices size={16} />}
                                 min={0}
                                 {...form.getInputProps('hwid_limit')}
                             />
                             <MultiSelect
-                                label="Внутренние сквады"
+                                label={t('tariffs.squads_label')}
                                 leftSection={<TbCirclesRelation size={16} />}
-                                placeholder={squads.isPending ? 'Загрузка…' : 'Выберите'}
+                                placeholder={squads.isPending ? t('common.loading') : t('tariffs.choose')}
                                 data={(squads.data ?? []).map((s) => ({ value: s.uuid, label: s.name, members: s.info.membersCount }))}
                                 renderOption={({ option }) => {
                                     const sq = squads.data?.find((x) => x.uuid === option.value)

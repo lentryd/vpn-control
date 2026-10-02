@@ -10,6 +10,7 @@ import { PiFloppyDiskDuotone } from 'react-icons/pi'
 import { ModalFooter } from '../modal-footer'
 import { BaseOverlayHeader } from '../overlays/base-overlay-header'
 import { SectionCard } from '../section-card'
+import { useTranslation } from 'react-i18next'
 
 const MotionStack = motion.create(Stack)
 const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }
@@ -80,7 +81,7 @@ export function FormSection({
 export function FormFooter({
     onCancel,
     loading,
-    submitLabel = 'Сохранить',
+    submitLabel,
     submitIcon,
     disabled,
     onSubmit,
@@ -96,6 +97,7 @@ export function FormFooter({
     inline?: boolean
     children?: ReactNode
 }) {
+    const { t } = useTranslation()
     const isMobile = useMediaQuery('(max-width: 40em)') ?? false
     const inStack = useContext(StaggerContext)
     const buttons = (
@@ -103,7 +105,7 @@ export function FormFooter({
             {children}
             {onCancel && (
                 <Button color="gray" onClick={onCancel} size="md" variant="subtle">
-                    Отмена
+                    {t('common.cancel')}
                 </Button>
             )}
             <Button
@@ -116,7 +118,7 @@ export function FormFooter({
                 type={onSubmit ? 'button' : 'submit'}
                 variant="light"
             >
-                {submitLabel}
+                {submitLabel ?? t('common.save')}
             </Button>
         </>
     )

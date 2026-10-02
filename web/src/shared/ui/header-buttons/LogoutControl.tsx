@@ -2,6 +2,7 @@
 import { rem, Tooltip } from '@mantine/core'
 import { useQueryClient } from '@tanstack/react-query'
 import { PiSignOut } from 'react-icons/pi'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
 import { api } from '@/api/client'
@@ -10,6 +11,7 @@ import { HeaderControl } from './HeaderControl'
 import classes from './LogoutControl.module.css'
 
 export function LogoutControl() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const qc = useQueryClient()
 
@@ -20,7 +22,7 @@ export function LogoutControl() {
     }
 
     return (
-        <Tooltip label="Выйти">
+        <Tooltip label={t('header.logout')}>
             <HeaderControl className={classes.logout} onClick={handleLogout}>
                 <PiSignOut style={{ width: rem(22), height: rem(22) }} />
             </HeaderControl>

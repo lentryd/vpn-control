@@ -204,6 +204,7 @@ type PlannedItem struct {
 	MonthlyRub  int64      `json:"monthly_rub"`
 	NextDueDate *time.Time `json:"next_due_date"`
 	Error       string     `json:"error,omitempty"`
+	Err         error      `json:"-"`
 }
 
 func (s *Service) Planned(ctx context.Context) ([]PlannedItem, int64, error) {
@@ -218,7 +219,7 @@ func (s *Service) Planned(ctx context.Context) ([]PlannedItem, int64, error) {
 		p := PlannedItem{ID: it.ID, Name: it.Name, Provider: it.Provider, Pricing: it.Pricing.String(), Currency: it.Currency, NextDueDate: it.NextDueDate}
 		rate, err := s.fx.Rate(ctx, it.Currency, now)
 		if err != nil {
-			p.Error = err.Error()
+			p.Error, p.Err = err.Error(), err
 			out = append(out, p)
 			continue
 		}
@@ -227,7 +228,7 @@ func (s *Service) Planned(ctx context.Context) ([]PlannedItem, int64, error) {
 		if it.Pricing == expenseitem.PricingMetered {
 			sum, err := s.MeteredSummary(ctx, it, now)
 			if err != nil {
-				p.Error = err.Error()
+				p.Error, p.Err = err.Error(), err
 			} else {
 				orig = sum.ForecastCost
 			}

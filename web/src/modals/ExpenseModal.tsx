@@ -19,7 +19,7 @@ import { useEffect } from 'react'
 import { api } from '@/api/client'
 import { useApiMutation, useExpenseItems, useExpenses, useSettings } from '@/api/hooks'
 import type { Expense } from '@/api/types'
-import { fmtMoney, baseCurrency } from '@/components/format'
+import { fmtMoney, baseCurrency, dateLayout } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { FormColumns, FormFooter, FormSection } from '@shared/ui/forms/form-section'
 import { ProviderInput } from '@shared/ui/infra/provider'
@@ -27,15 +27,18 @@ import { ProviderInput } from '@shared/ui/infra/provider'
 import { openModal } from './open'
 import { SearchSelect } from '@shared/ui/forms/search-select'
 import { CurrencyIcon, CURRENCIES } from '@shared/currencies'
+import i18n from '@/app/i18n/i18n'
+import { useTranslation } from 'react-i18next'
 
 
 export function openExpenseForm(p: { expense?: Expense; refundOf?: Expense }) {
-    const title = p.expense ? 'Трата' : p.refundOf ? 'Возврат средств' : 'Новая трата'
-    const subtitle = p.expense ? `${p.expense.provider} · ${dayjs(p.expense.date).format('DD.MM.YYYY')}` : p.refundOf?.provider
+    const title = p.expense ? i18n.t('expenses.expense') : p.refundOf ? i18n.t('expense_modal.refund') : i18n.t('expense_modal.new')
+    const subtitle = p.expense ? `${p.expense.provider} · ${dayjs(p.expense.date).format(dateLayout())}` : p.refundOf?.provider
     openModal({ icon: PiReceiptDuotone, color: 'orange', title, subtitle }, (close) => <ExpenseForm {...p} onDone={close} />, '1000px')
 }
 
 function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundOf?: Expense; onDone: () => void }) {
+    const { t } = useTranslation()
     const items = useExpenseItems()
     const all = useExpenses()
     const settings = useSettings()
@@ -91,7 +94,7 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
             onSubmit={form.onSubmit((vals) =>
                 m.mutate(vals, {
                     onSuccess: () => {
-                        notifyOk('Сохранено')
+                        notifyOk(t('common.saved'))
                         onDone()
                     },
                     onError: (e) => notifyError(e)
@@ -100,30 +103,30 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
         >
             <FormColumns
                 left={
-                    <FormSection icon={PiReceiptDuotone} color="orange" title="Платёж" description="Когда, кому и по какой статье">
+                    <FormSection icon={PiReceiptDuotone} color="orange" title={t('payment.title')} description={t('expense_modal.payment_hint')}>
                         <SimpleGrid cols={{ base: 1, xs: 2 }}>
-                            <DateInput label="Дата" leftSection={<PiCalendarDuotone size={16} />} valueFormat="DD.MM.YYYY" {...form.getInputProps('date')} />
+                            <DateInput label={t('customer.col_date')} leftSection={<PiCalendarDuotone size={16} />} valueFormat={dateLayout()} {...form.getInputProps('date')} />
                             <Select
-                                label="Тип"
+                                label={t('backup.col_kind')}
                                 leftSection={v.kind === 'refund' ? <PiArrowUDownLeft size={16} /> : <PiArrowUpRight size={16} />}
                                 data={[
-                                    { value: 'charge', label: 'Списание' },
-                                    { value: 'refund', label: 'Возврат средств' }
+                                    { value: 'charge', label: t('expenses.charge') },
+                                    { value: 'refund', label: t('expense_modal.refund') }
                                 ]}
                                 {...form.getInputProps('kind')}
                             />
                         </SimpleGrid>
                         <ProviderInput
-                            label="Провайдер"
-                            placeholder="Из Infra Billing панели или любой другой"
+                            label={t('expense_items.provider')}
+                            placeholder={t('expense_items.provider_placeholder')}
                             extra={providers}
                             value={v.provider}
                             onChange={(name, uuid) => form.setValues({ provider: name, provider_uuid: uuid })}
                         />
                         <Select
-                            label="Статья расходов"
+                            label={t('expense_items.item_title')}
                             leftSection={<PiBuildingsDuotone size={16} />}
-                            placeholder="Без статьи"
+                            placeholder={t('expense_modal.no_item')}
                             clearable
                             allowDeselect
                             data={(items.data?.items ?? []).map((i) => ({ value: String(i.id), label: i.name }))}
@@ -145,8 +148,8 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
                         />
                         {v.kind === 'refund' && (
                             <SearchSelect
-                                label="Возврат по трате"
-                                description="Необязательно: свяжите возврат с исходным платежом"
+                                label={t('expense_modal.refund_of')}
+                                description={t('expense_modal.refund_of_hint')}
                                 leftSection={<PiArrowUDownLeft size={16} />}
                                 clearable
                                 allowDeselect
@@ -154,7 +157,7 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
                                     .filter((e) => e.kind === 'charge')
                                     .map((e) => ({
                                         value: String(e.id),
-                                        label: `${dayjs(e.date).format('DD.MM.YY')} · ${e.provider} · ${fmtMoney(e.rub_amount, 2)}`
+                                        label: `${dayjs(e.date).format(dateLayout())} · ${e.provider} · ${fmtMoney(e.rub_amount, 2)}`
                                     }))}
                                 value={v.refund_of_id ? String(v.refund_of_id) : null}
                                 onChange={(val) => form.setFieldValue('refund_of_id', val ? Number(val) : null)}
@@ -164,11 +167,11 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
                 }
                 right={
                     <>
-                        <FormSection icon={PiCoinsDuotone} color="teal" title="Сумма" description={`Сумма в ${baseCurrency()} считается по курсу на дату и фиксируется`}>
+                        <FormSection icon={PiCoinsDuotone} color="teal" title={t('customer.col_amount')} description={t('expense_modal.amount_hint', { currency: baseCurrency() })}>
                             <SimpleGrid cols={{ base: 1, xs: 2 }}>
-                                <NumberInput label="Сумма" leftSection={<PiCoinsDuotone size={16} />} min={0} decimalScale={2} {...form.getInputProps('orig_amount')} />
+                                <NumberInput label={t('customer.col_amount')} leftSection={<PiCoinsDuotone size={16} />} min={0} decimalScale={2} {...form.getInputProps('orig_amount')} />
                                 <SearchSelect
-                                    label="Валюта"
+                                    label={t('expense_items.currency')}
                                     leftSection={<PiCurrencyCircleDollar size={16} />}
                                     data={CURRENCIES}
                                     {...form.getInputProps('orig_currency')}
@@ -177,16 +180,16 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
                             {v.orig_currency !== baseCurrency() && (
                                 <SimpleGrid cols={{ base: 1, xs: 2 }}>
                                     <NumberInput
-                                        label={`Курс, ${baseCurrency()} за 1 ${v.orig_currency}`}
-                                        description={rate.isFetching ? 'загрузка…' : 'на дату, можно изменить'}
+                                        label={t('expense_modal.rate', { base: baseCurrency(), currency: v.orig_currency })}
+                                        description={rate.isFetching ? t('common.loading') : t('expense_modal.rate_hint')}
                                         leftSection={<CurrencyIcon size={16} />}
                                         decimalScale={4}
                                         min={0}
                                         {...form.getInputProps('fx_rate')}
                                     />
                                     <NumberInput
-                                        label="Комиссия банка, %"
-                                        description="Наценка карты за валюту"
+                                        label={t('expense_items.fee')}
+                                        description={t('expense_modal.fee_hint')}
                                         leftSection={<PiPercent size={16} />}
                                         decimalScale={2}
                                         {...form.getInputProps('fee_percent')}
@@ -194,8 +197,8 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
                                 </SimpleGrid>
                             )}
                             <NumberInput
-                                label="Наша доля, %"
-                                description="Если расход делится с кем-то: 30% — платим треть"
+                                label={t('expense_items.share')}
+                                description={t('expense_items.share_hint')}
                                 leftSection={<PiPercent size={16} />}
                                 min={0}
                                 max={100}
@@ -210,7 +213,7 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
                             <Paper bd="1px solid rgba(251, 146, 60, 0.25)" bg="rgba(251, 146, 60, 0.08)" p="sm" radius="md">
                                 <Group justify="space-between">
                                     <Text c="dimmed" size="sm">
-                                        Итого в {baseCurrency()} (зафиксируется)
+                                        {t('expense_modal.total', { currency: baseCurrency() })}
                                     </Text>
                                     <Text c={v.kind === 'refund' ? 'teal' : 'orange'} ff="monospace" fw={700}>
                                         {v.kind === 'refund' ? '−' : ''}
@@ -219,8 +222,8 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
                                 </Group>
                             </Paper>
                         </FormSection>
-                        <FormSection icon={PiNotePencil} color="gray" title="Комментарий">
-                            <TextInput placeholder="Например, номер счёта" {...form.getInputProps('note')} />
+                        <FormSection icon={PiNotePencil} color="gray" title={t('payment.comment')}>
+                            <TextInput placeholder={t('expense_modal.note_placeholder')} {...form.getInputProps('note')} />
                         </FormSection>
                     </>
                 }

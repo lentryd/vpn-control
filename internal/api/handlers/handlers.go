@@ -61,19 +61,28 @@ func badRequest(err error) error {
 		return nil
 	}
 	var fe *fiber.Error
+	if errors.As(err, &fe) {
+		return err
+	}
+	var apiErr *remnawave.APIError
 	var ae *apperr.Error
-	if errors.As(err, &fe) || errors.As(err, &ae) {
+	if errors.As(err, &ae) {
+		// A coded error caused by the panel is the panel's fault.
+		if ae.Status == fiber.StatusBadRequest && errors.As(err, &apiErr) {
+			c := *ae // copy: package-level errors are shared
+			c.Status = fiber.StatusBadGateway
+			return &c
+		}
 		return err
 	}
 	if ent.IsNotFound(err) {
 		return apperr.Status(fiber.StatusNotFound, "not_found", "not found")
 	}
 	if ent.IsConstraintError(err) {
-		return apperr.Wrap(err, "conflict", "data conflict: {{error}}")
+		return apperr.Wrap(err, "conflict", "data conflict: {{error}}").WithStatus(fiber.StatusConflict)
 	}
-	var apiErr *remnawave.APIError
 	if errors.As(err, &apiErr) {
-		return apperr.Wrap(err, "panel.error", "Remnawave: {{error}}")
+		return apperr.Wrap(err, "panel.error", "Remnawave: {{error}}").WithStatus(fiber.StatusBadGateway)
 	}
 	return fiber.NewError(fiber.StatusBadRequest, err.Error())
 }

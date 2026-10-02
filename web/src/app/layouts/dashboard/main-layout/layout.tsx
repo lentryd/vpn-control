@@ -2,7 +2,7 @@
 import { Group } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 
-import { LogoutControl } from '@shared/ui/header-buttons'
+import { LanguageControl, LogoutControl } from '@shared/ui/header-buttons'
 
 import { SyncControl } from './header/sync-control'
 import { CompactLayout } from './layout-variants/compact.layout'
@@ -17,6 +17,7 @@ export function MainLayout() {
     const headerControls = (
         <Group gap="xs" wrap="nowrap">
             <SyncControl />
+            <LanguageControl />
             <LogoutControl />
         </Group>
     )

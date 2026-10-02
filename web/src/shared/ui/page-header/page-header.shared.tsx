@@ -6,6 +6,7 @@ import { motion } from 'motion/react'
 import { forwardRef, ReactNode } from 'react'
 
 import classes from './page-header.module.css'
+import i18n from '@/app/i18n/i18n'
 
 export interface PageHeaderSharedProps extends Omit<CardProps, 'c' | 'fw' | 'size' | 'tt'> {
     actions?: ReactNode
@@ -37,7 +38,7 @@ export const PageHeaderShared = forwardRef<HTMLDivElement, PageHeaderSharedProps
                 copy(description)
                 notifications.show({
                     message: description,
-                    title: 'Скопировано',
+                    title: i18n.t('common.copied'),
                     color: 'teal'
                 })
             }

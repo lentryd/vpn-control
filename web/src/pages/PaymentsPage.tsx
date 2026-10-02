@@ -9,11 +9,13 @@ import { paymentColumns, paymentTableProps } from '@/components/PaymentTable'
 import { PageHeader, StatCard } from '@/components/ui'
 import { Page } from '@shared/ui/page'
 import { DataTableCard } from '@shared/ui/table'
+import { useTranslation } from 'react-i18next'
 
-const columns = paymentColumns(true)
 
 export function PaymentsPage() {
+    const { t } = useTranslation()
     const { data, isFetching } = usePayments()
+    const columns = useMemo(() => paymentColumns(true), [t])
     const stats = useMemo(() => {
         const rows = data ?? []
         const month = dayjs().startOf('month')
@@ -23,32 +25,32 @@ export function PaymentsPage() {
     }, [data])
 
     return (
-        <Page title="Платежи">
+        <Page title={t('menu.payments')}>
             <PageHeader
-                description="Поступления от клиентов. Нажмите на строку, чтобы изменить платёж"
+                description={t('payments.description')}
                 icon={<PiCreditCardDuotone size={24} />}
-                title="Платежи"
+                title={t('menu.payments')}
             />
             <SimpleGrid cols={{ base: 1, sm: 3 }} mb="md">
-                <StatCard color="teal" icon={PiCoinsDuotone} title="Всего поступлений" value={fmtMoney(stats.total, 2)} />
+                <StatCard color="teal" icon={PiCoinsDuotone} title={t('payments.total')} value={fmtMoney(stats.total, 2)} />
                 <StatCard
                     color="cyan"
-                    hint={`${stats.monthCount} платежей`}
+                    hint={t('payments.count', { count: stats.monthCount })}
                     icon={PiCalendarCheckDuotone}
-                    title={`За ${dayjs().format('MMMM')}`}
+                    title={t('payments.for_month', { month: dayjs().format('MMMM') })}
                     value={fmtMoney(stats.month, 2)}
                 />
-                <StatCard color="violet" icon={PiReceiptDuotone} title="Платежей" value={stats.count} />
+                <StatCard color="violet" icon={PiReceiptDuotone} title={t('payments.payments')} value={stats.count} />
             </SimpleGrid>
             <DataTableCard
                 {...paymentTableProps}
                 columns={columns}
                 data={data ?? []}
-                description="Изменение платежа поправит и баланс клиента"
+                description={t('payments.table_hint')}
                 icon={<PiCreditCardDuotone size={24} />}
                 state={{ showProgressBars: isFetching, isLoading: !data }}
                 storageKey="payments"
-                title="Поступления"
+                title={t('payments.table_title')}
             />
         </Page>
     )

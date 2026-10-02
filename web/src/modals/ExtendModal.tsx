@@ -13,6 +13,8 @@ import { PaymentSection, tariffPresets, type Term, TermSection } from '@/compone
 import { FormColumns, FormFooter } from '@shared/ui/forms/form-section'
 
 import { openModal } from './open'
+import i18n from '@/app/i18n/i18n'
+import { useTranslation } from 'react-i18next'
 
 type Kind = 'subscription' | 'addon'
 
@@ -26,10 +28,11 @@ interface ExtendQuote {
 }
 
 export function openExtendModal(p: { kind: Kind; id: number; title: string }) {
-    openModal({ icon: PiCalendarPlusDuotone, color: 'teal', title: 'Продление', subtitle: p.title }, (close) => <ExtendForm {...p} onDone={close} />, '1000px')
+    openModal({ icon: PiCalendarPlusDuotone, color: 'teal', title: i18n.t('sub.renewal'), subtitle: p.title }, (close) => <ExtendForm {...p} onDone={close} />, '1000px')
 }
 
 function ExtendForm({ kind, id, onDone }: { kind: Kind; id: number; onDone: () => void }) {
+    const { t } = useTranslation()
     const [term, setTerm] = useState<Term>({ months: 1, days: 0, until: null })
     const [amount, setAmount] = useState<number | null>(null)
     const [touched, setTouched] = useState(false)
@@ -51,7 +54,7 @@ function ExtendForm({ kind, id, onDone }: { kind: Kind; id: number; onDone: () =
     const submit = () =>
         m.mutate(undefined, {
             onSuccess: (r) => {
-                notifyOk(`Продлено до ${fmtDate(r.to)}`)
+                notifyOk(t('extend.done', { date: fmtDate(r.to) }))
                 onDone()
             },
             onError: (e) => notifyError(e)
@@ -97,7 +100,7 @@ function ExtendForm({ kind, id, onDone }: { kind: Kind; id: number; onDone: () =
                 onCancel={onDone}
                 onSubmit={submit}
                 submitIcon={<PiCalendarPlus size={16} />}
-                submitLabel="Продлить в панели"
+                submitLabel={t('extend.submit')}
             />
         </>
     )

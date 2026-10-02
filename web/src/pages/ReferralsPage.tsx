@@ -12,8 +12,10 @@ import { fmtDate, fmtMoney } from '@/components/format'
 import { Money, PageHeader } from '@/components/ui'
 import { Page } from '@shared/ui/page'
 import { DataTableCard, DataTableShared } from '@shared/ui/table'
+import { useTranslation } from 'react-i18next'
 
 function Node({ node, depth }: { node: ReferralNode; depth: number }) {
+    const { t } = useTranslation()
     const [opened, { toggle }] = useDisclosure(depth < 1)
     const has = node.children.length > 0
     return (
@@ -30,7 +32,7 @@ function Node({ node, depth }: { node: ReferralNode; depth: number }) {
                 }}
             >
                 {has ? (
-                    <ActionIcon variant="subtle" color="gray" size="sm" onClick={toggle} aria-label="Раскрыть">
+                    <ActionIcon variant="subtle" color="gray" size="sm" onClick={toggle} aria-label={t('referrals.expand')}>
                         {opened ? <TbChevronDown size={14} /> : <TbChevronRight size={14} />}
                     </ActionIcon>
                 ) : (
@@ -41,25 +43,25 @@ function Node({ node, depth }: { node: ReferralNode; depth: number }) {
                 </Anchor>
                 {node.monthly > 0 && (
                     <Badge size="xs" variant="soft" color="teal">
-                        {fmtMoney(node.monthly)}/мес
+                        {t('customer.ref_monthly', { amount: fmtMoney(node.monthly) })}
                     </Badge>
                 )}
                 {has && (
-                    <Tooltip label={`Прямых: ${node.direct_count} (активных ${node.direct_active}), вся ветка: ${node.branch_count}`}>
+                    <Tooltip label={t('referrals.counts', { direct: node.direct_count, active: node.direct_active, branch: node.branch_count })}>
                         <Badge size="xs" variant="soft" color="indigo">
-                            привёл {node.direct_count}
-                            {node.branch_count > node.direct_count ? ` · ветка ${node.branch_count}` : ''}
+                            {t('referrals.referred', { count: node.direct_count })}
+                            {node.branch_count > node.direct_count ? ` · ${t('referrals.branch', { count: node.branch_count })}` : ''}
                         </Badge>
                     </Tooltip>
                 )}
                 {has && (
                     <Text size="xs" c="dimmed">
-                        ветка: {fmtMoney(node.branch_monthly)}/мес · оплатила {fmtMoney(node.branch_paid)}
+                        {t('referrals.branch_totals', { monthly: fmtMoney(node.branch_monthly), paid: fmtMoney(node.branch_paid) })}
                     </Text>
                 )}
                 {node.accrued_total > 0 && (
                     <Text size="xs" c="grape">
-                        начислено {fmtMoney(node.accrued_total, 2)}
+                        {t('referrals.accrued', { amount: fmtMoney(node.accrued_total, 2) })}
                     </Text>
                 )}
             </Group>
@@ -75,6 +77,7 @@ function Node({ node, depth }: { node: ReferralNode; depth: number }) {
 }
 
 export function ReferralsPage() {
+    const { t } = useTranslation()
     const tree = useReferralTree()
     const accruals = useAccruals()
     const settings = useSettings()
@@ -82,34 +85,34 @@ export function ReferralsPage() {
 
     const columns = useMemo<MRT_ColumnDef<Accrual>[]>(
         () => [
-            { id: 'date', header: 'Дата', sortingFn: 'datetime', accessorFn: (r) => new Date(r.date), enableColumnFilter: false, Cell: ({ row }) => fmtDate(row.original.date) },
-            { accessorKey: 'referrer_name', header: 'Кому', filterVariant: 'multi-select' },
-            { accessorKey: 'referee_name', header: 'За кого' },
+            { id: 'date', header: t('customer.col_date'), sortingFn: 'datetime', accessorFn: (r) => new Date(r.date), enableColumnFilter: false, Cell: ({ row }) => fmtDate(row.original.date) },
+            { accessorKey: 'referrer_name', header: t('referrals.col_to'), filterVariant: 'multi-select' },
+            { accessorKey: 'referee_name', header: t('referrals.col_for') },
             { accessorKey: 'percent', header: '%' },
-            { accessorKey: 'amount', header: 'Сумма', Cell: ({ cell }) => <Money value={cell.getValue<number>()} digits={2} /> },
-            { accessorKey: 'status', header: 'Статус', Cell: () => <Badge variant="soft" color="gray">учтено</Badge> }
+            { accessorKey: 'amount', header: t('customer.col_amount'), Cell: ({ cell }) => <Money value={cell.getValue<number>()} digits={2} /> },
+            { accessorKey: 'status', header: t('dashboard.col_status'), Cell: () => <Badge variant="soft" color="gray">{t('referrals.recorded')}</Badge> }
         ],
-        []
+        [t]
     )
 
     return (
-        <Page title="Рефералы">
+        <Page title={t('menu.referrals')}>
             <PageHeader
                 icon={<PiTreeStructureDuotone size={24} />}
-                title="Рефералы"
-                description={`Учёт без списаний: пригласившему начисляется ${settings.data?.referral_percent ?? '…'}% от платежей приглашённых (можно переопределить у клиента). Всего начислено ${fmtMoney(totals, 2)}.`}
+                title={t('menu.referrals')}
+                description={t('referrals.description', { pct: settings.data?.referral_percent ?? '…', total: fmtMoney(totals, 2) })}
             />
             <Tabs defaultValue="tree">
                 <Tabs.List mb="md">
-                    <Tabs.Tab value="tree">Кто кого привёл</Tabs.Tab>
-                    <Tabs.Tab value="accruals">Начисления</Tabs.Tab>
+                    <Tabs.Tab value="tree">{t('referrals.tree')}</Tabs.Tab>
+                    <Tabs.Tab value="accruals">{t('referrals.accruals')}</Tabs.Tab>
                 </Tabs.List>
                 <Tabs.Panel value="tree">
                     <DataTableShared.Container>
                         <DataTableShared.Title
                             icon={<PiTreeStructureDuotone size={24} />}
-                            title="Кто кого привёл"
-                            description="Ветки раскрываются; цифры — по приглашённым и всей ветке"
+                            title={t('referrals.tree')}
+                            description={t('referrals.tree_hint')}
                         />
                         <Card.Section p="md">
                             <Stack gap={0}>
@@ -124,8 +127,8 @@ export function ReferralsPage() {
                     <DataTableCard
                         storageKey="accruals"
                         icon={<PiCoinsDuotone size={24} />}
-                        title="Начисления"
-                        description="Только учёт: баланс клиентов не меняется"
+                        title={t('referrals.accruals')}
+                        description={t('referrals.accruals_hint')}
                         columns={columns}
                         data={accruals.data ?? []}
                         state={{ isLoading: !accruals.data }}

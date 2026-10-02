@@ -13,8 +13,10 @@ import { Page } from '@shared/ui/page'
 import { DataTableCard } from '@shared/ui/table'
 import { openCustomerForm } from '@/modals/CustomerModals'
 import { openPaymentModal } from '@/modals/PaymentModal'
+import { useTranslation } from 'react-i18next'
 
 export function CustomersPage() {
+    const { t } = useTranslation()
     const { data, isFetching } = useCustomers()
     const navigate = useNavigate()
     const [scope, setScope] = useState('active')
@@ -27,7 +29,7 @@ export function CustomersPage() {
         () => [
             {
                 accessorKey: 'name',
-                header: 'Клиент',
+                header: t('sub.customer'),
                 Cell: ({ row }) => (
                     <Group gap={6} wrap="nowrap" pl={10}>
                         <Text fw={500} size="sm">
@@ -35,16 +37,16 @@ export function CustomersPage() {
                         </Text>
                         {row.original.archived && (
                             <Badge size="xs" color="gray" variant="soft">
-                                архив
+                                {t('customer.archived')}
                             </Badge>
                         )}
                     </Group>
                 )
             },
-            { accessorKey: 'referrer_name', header: 'Кто привёл', Cell: ({ cell }) => cell.getValue<string>() || <Text c="dimmed" size="sm">—</Text> },
+            { accessorKey: 'referrer_name', header: t('customers.referrer'), Cell: ({ cell }) => cell.getValue<string>() || <Text c="dimmed" size="sm">—</Text> },
             {
                 accessorKey: 'nearest_expire_at',
-                header: 'Ближайшее окончание',
+                header: t('customers.col_next_expiry'),
                 sortingFn: 'datetime',
                 accessorFn: (r) => (r.nearest_expire_at ? new Date(r.nearest_expire_at) : undefined),
                 sortDescFirst: false,
@@ -53,60 +55,60 @@ export function CustomersPage() {
                 mantineTableBodyCellProps: { align: 'center' },
                 Cell: ({ row }) => <ExpireCell date={row.original.nearest_expire_at} />
             },
-            { accessorKey: 'monthly', header: 'В месяц', enableColumnFilter: false, Cell: ({ cell }) => <Money value={cell.getValue<number>()} /> },
-            { accessorKey: 'balance', header: 'Баланс', enableColumnFilter: false, Cell: ({ cell }) => <Money value={cell.getValue<number>()} signed digits={2} /> },
+            { accessorKey: 'monthly', header: t('sub.per_month'), enableColumnFilter: false, Cell: ({ cell }) => <Money value={cell.getValue<number>()} /> },
+            { accessorKey: 'balance', header: t('dashboard.col_balance'), enableColumnFilter: false, Cell: ({ cell }) => <Money value={cell.getValue<number>()} signed digits={2} /> },
             {
                 accessorKey: 'subscriptions_count',
-                header: 'Подписки',
+                header: t('menu.subscriptions'),
                 enableColumnFilter: false,
                 Cell: ({ row }) => (
                     <Text size="sm">
                         {row.original.subscriptions_count}
-                        {row.original.addons_count > 0 && <Text span c="grape" size="sm">{` + ${row.original.addons_count} адд.`}</Text>}
+                        {row.original.addons_count > 0 && <Text span c="grape" size="sm">{` ${t('customers.plus_addons', { count: row.original.addons_count })}`}</Text>}
                     </Text>
                 )
             },
-            { accessorKey: 'referrals_count', header: 'Привёл', enableColumnFilter: false },
-            { accessorKey: 'total_paid', header: 'Оплатил всего', enableColumnFilter: false, Cell: ({ cell }) => <Money value={cell.getValue<number>()} /> },
+            { accessorKey: 'referrals_count', header: t('customers.col_referred'), enableColumnFilter: false },
+            { accessorKey: 'total_paid', header: t('customer.total_paid'), enableColumnFilter: false, Cell: ({ cell }) => <Money value={cell.getValue<number>()} /> },
             {
                 accessorKey: 'last_payment_at',
-                header: 'Посл. платёж',
+                header: t('customers.col_last_payment'),
                 sortingFn: 'datetime',
                 accessorFn: (r) => (r.last_payment_at ? new Date(r.last_payment_at) : undefined),
                 sortUndefined: 'last',
                 enableColumnFilter: false,
                 Cell: ({ row }) => <Text size="sm">{fmtDate(row.original.last_payment_at)}</Text>
             },
-            { accessorKey: 'contact', header: 'Контакт' }
+            { accessorKey: 'contact', header: t('customers.contact') }
         ],
-        []
+        [t]
     )
 
     return (
-        <Page title="Клиенты">
+        <Page title={t('menu.customers')}>
             <PageHeader
                 icon={<PiUsersDuotone size={24} />}
-                title="Клиенты"
-                description="Плательщики: у каждого может быть несколько подписок и аддонов"
+                title={t('menu.customers')}
+                description={t('customers.description')}
                 actions={
                     <Button color="teal" leftSection={<PiUserPlus size={16} />} onClick={() => openCustomerForm()} variant="soft">
-                        Новый клиент
+                        {t('customers.new')}
                     </Button>
                 }
             />
             <DataTableCard
                 storageKey="customers"
                 icon={<PiUsersDuotone size={24} />}
-                title="Список клиентов"
+                title={t('customers.list')}
                 actions={
                     <SegmentedControl
                         size="xs"
                         value={scope}
                         onChange={setScope}
                         data={[
-                            { value: 'active', label: 'Активные' },
-                            { value: 'archived', label: 'Архив' },
-                            { value: 'all', label: 'Все' }
+                            { value: 'active', label: t('customers.scope_active') },
+                            { value: 'archived', label: t('customers.scope_archived') },
+                            { value: 'all', label: t('common.all') }
                         ]}
                     />
                 }
@@ -117,7 +119,7 @@ export function CustomersPage() {
                 enableRowActions
                 renderRowActions={({ row }) => (
                     <Group gap={6} wrap="nowrap">
-                        <Tooltip label="Редактировать" withArrow>
+                        <Tooltip label={t('common.edit')} withArrow>
                             <ActionIcon color="gray" size="md" variant="soft" onClick={() => openCustomerForm(row.original)}>
                                 <PiPencilSimple size={14} />
                             </ActionIcon>
@@ -129,7 +131,7 @@ export function CustomersPage() {
                             leftSection={<PiCreditCard size={14} />}
                             onClick={() => openPaymentModal({ customerId: row.original.id, name: row.original.name })}
                         >
-                            Платёж
+                            {t('payment.title')}
                         </Button>
                     </Group>
                 )}

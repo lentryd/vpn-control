@@ -5,7 +5,7 @@ import { ElementType, Fragment } from 'react'
 import { PiCaretDownBold } from 'react-icons/pi'
 import { Link, matchPath, useLocation, useNavigate } from 'react-router'
 
-import { MENU } from '../menu-sections/menu'
+import { useMenu } from '../menu-sections/menu'
 import classes from './desktop-navigation.module.css'
 
 const NavIcon = ({ icon: Icon }: { icon?: ElementType }) =>
@@ -24,7 +24,7 @@ const externalLinkProps = (newTab?: boolean) =>
 export const DesktopNavigation = () => {
     const { pathname } = useLocation()
     const navigate = useNavigate()
-    const menu = MENU
+    const menu = useMenu()
 
     return (
         <Menubar className={classes.navBar} trigger="hover">

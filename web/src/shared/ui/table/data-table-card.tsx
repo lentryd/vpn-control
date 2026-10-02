@@ -11,6 +11,7 @@ import {
     type MRT_TableState,
     type MRT_Updater
 } from '@kastov/mantine-react-table-open'
+import { MRT_Localization_EN } from '@kastov/mantine-react-table-open/locales/en/index.esm.mjs'
 import { MRT_Localization_RU } from '@kastov/mantine-react-table-open/locales/ru/index.esm.mjs'
 import { ActionIconGroup, Badge } from '@mantine/core'
 import { ReactNode, useCallback, useEffect, useState } from 'react'
@@ -18,6 +19,7 @@ import { ReactNode, useCallback, useEffect, useState } from 'react'
 import { CardTitle } from './table.card-titile'
 import { TableContainerShared } from './table.container.shared'
 import { DataTableContent } from './table.table-content'
+import { useTranslation } from 'react-i18next'
 
 const TOOLBAR_BG = { '--mrt-base-background-color': '#1b2027' } as React.CSSProperties
 
@@ -73,6 +75,7 @@ export interface DataTableCardProps<T extends MRT_RowData> extends MRT_TableOpti
 }
 
 export function DataTableCard<T extends MRT_RowData>(props: DataTableCardProps<T>) {
+    const { t, i18n } = useTranslation()
     const {
         actions,
         compact,
@@ -105,7 +108,7 @@ export function DataTableCard<T extends MRT_RowData>(props: DataTableCardProps<T
     const [pageIndex, setPageIndex] = useState(0)
 
     const table = useMantineReactTable<T>({
-        localization: MRT_Localization_RU,
+        localization: i18n.resolvedLanguage === 'ru' ? MRT_Localization_RU : MRT_Localization_EN,
         columnFilterDisplayMode: 'subheader',
         enableFacetedValues: true,
         enableFullScreenToggle: true,
@@ -123,7 +126,7 @@ export function DataTableCard<T extends MRT_RowData>(props: DataTableCardProps<T
         displayColumnDefOptions: {
             'mrt-row-actions': { header: '', size: 60, enableColumnOrdering: false }
         },
-        mantineFilterTextInputProps: () => ({ placeholder: 'Фильтр…' }),
+        mantineFilterTextInputProps: () => ({ placeholder: t('common.filter') }),
         mantineFilterSelectProps: ({ column }) => {
             const value = column.getFilterValue()
             return { clearable: value !== undefined && value !== null && value !== '' }

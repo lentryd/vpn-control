@@ -11,24 +11,24 @@ import '@mantine/nprogress/styles.css'
 import '@kastov/mantine-react-table-open/styles.css'
 import './app/global.css'
 
+import './app/i18n/i18n'
+
 import { MantineProvider, v8CssVariablesResolver } from '@mantine/core'
-import { DatesProvider } from '@mantine/dates'
-import { ModalsProvider } from '@mantine/modals'
 import { Notifications } from '@mantine/notifications'
 import { NavigationProgress } from '@mantine/nprogress'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import 'dayjs/locale/ru'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import { StrictMode } from 'react'
+import { StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HashRouter } from 'react-router'
 
 import { App } from './app/App'
+import { LocaleProvider } from './app/i18n/locale-provider'
 import { theme } from '@shared/constants/theme'
+import { LoadingScreen } from '@shared/ui/loading-screen'
 
 dayjs.extend(relativeTime)
-dayjs.locale('ru')
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -44,17 +44,17 @@ createRoot(document.getElementById('root')!).render(
             forceColorScheme="dark"
             theme={theme}
         >
-            <DatesProvider settings={{ locale: 'ru', firstDayOfWeek: 1 }}>
+            <Suspense fallback={<LoadingScreen height="60vh" />}>
                 <QueryClientProvider client={queryClient}>
                     <HashRouter>
-                        <ModalsProvider labels={{ confirm: 'Подтвердить', cancel: 'Отмена' }}>
+                        <LocaleProvider>
                             <Notifications position="top-right" />
                             <NavigationProgress />
                             <App />
-                        </ModalsProvider>
+                        </LocaleProvider>
                     </HashRouter>
                 </QueryClientProvider>
-            </DatesProvider>
+            </Suspense>
         </MantineProvider>
     </StrictMode>
 )

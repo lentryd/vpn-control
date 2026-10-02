@@ -33,7 +33,7 @@ import { api } from '@/api/client'
 import { useCustomer, useInvalidateAll } from '@/api/hooks'
 import type { CustomerDetail, Extension, LedgerEntry } from '@/api/types'
 import { durationLabel, fmtDate, fmtDateTime, fmtMoney } from '@/components/format'
-import { notifyError } from '@/components/notify'
+import { notifyError, errorText } from '@/components/notify'
 import { paymentColumns, paymentTableProps } from '@/components/PaymentTable'
 import { SubscriptionCard } from '@/components/SubscriptionCard'
 import { Money, PageHeader, StatCard } from '@/components/ui'
@@ -44,15 +44,15 @@ import { openProvisionModal, openSubscriptionForm } from '@/modals/SubscriptionM
 import { LoadingScreen } from '@shared/ui/loading-screen'
 import { Page } from '@shared/ui/page'
 import { DataTableCard } from '@shared/ui/table'
+import i18n from '@/app/i18n/i18n'
+import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
-const ledgerLabel: Record<string, { label: string; color: string }> = {
-    payment: { label: 'Платёж', color: 'teal' },
-    charge: { label: 'Списание', color: 'orange' },
-    adjustment: { label: 'Корректировка', color: 'blue' },
-    refund: { label: 'Возврат', color: 'grape' }
-}
-
-const extKind: Record<string, string> = { extend: 'Продление', connect: 'Подключение', tariff_change: 'Смена тарифа' }
+const ledgerColor: Record<string, string> = { payment: 'teal', charge: 'orange', adjustment: 'blue', refund: 'grape' }
+const ledgerLabel = (type: string) =>
+    ['payment', 'charge', 'adjustment', 'refund'].includes(type) ? i18n.t(`customer.ledger.${type as 'payment'}`) : type
+const extKind = (kind: string) =>
+    ['extend', 'connect', 'tariff_change'].includes(kind) ? i18n.t(`customer.ext.${kind as 'extend'}`) : kind
 
 const mono = (v: string) => (
     <Text ff="monospace" size="sm">
@@ -60,22 +60,21 @@ const mono = (v: string) => (
     </Text>
 )
 
-const customerPaymentColumns = paymentColumns(false)
-
-const ledgerColumns: MRT_ColumnDef<LedgerEntry>[] = [
-    { id: 'date', header: 'Дата', sortingFn: 'datetime', accessorFn: (r) => new Date(r.date), Cell: ({ row }) => mono(fmtDateTime(row.original.date)) },
+// Columns are built per render language (see CustomerPage).
+const ledgerColumns = (): MRT_ColumnDef<LedgerEntry>[] => [
+    { id: 'date', header: i18n.t('customer.col_date'), sortingFn: 'datetime', accessorFn: (r) => new Date(r.date), Cell: ({ row }) => mono(fmtDateTime(row.original.date)) },
     {
         accessorKey: 'type',
-        header: 'Операция',
+        header: i18n.t('customer.col_operation'),
         Cell: ({ row }) => (
-            <Badge color={ledgerLabel[row.original.type]?.color} size="lg" variant="soft">
-                {ledgerLabel[row.original.type]?.label ?? row.original.type}
+            <Badge color={ledgerColor[row.original.type]} size="lg" variant="soft">
+                {ledgerLabel(row.original.type)}
             </Badge>
         )
     },
     {
         accessorKey: 'amount',
-        header: 'Сумма',
+        header: i18n.t('customer.col_amount'),
         Cell: ({ cell }) => (
             <Text c={cell.getValue<number>() > 0 ? 'teal' : 'red'} ff="monospace" fw={600} size="sm">
                 {cell.getValue<number>() > 0 ? '+' : ''}
@@ -83,28 +82,28 @@ const ledgerColumns: MRT_ColumnDef<LedgerEntry>[] = [
             </Text>
         )
     },
-    { accessorKey: 'note', header: 'Описание', size: 320 }
+    { accessorKey: 'note', header: i18n.t('customer.col_note'), size: 320 }
 ]
 
-const extColumns: MRT_ColumnDef<Extension>[] = [
+const extColumns = (): MRT_ColumnDef<Extension>[] => [
     {
         accessorKey: 'created_at',
-        header: 'Когда',
+        header: i18n.t('customer.col_when'),
         sortingFn: 'datetime',
         accessorFn: (r) => new Date(r.created_at),
         Cell: ({ row }) => mono(fmtDateTime(row.original.created_at))
     },
     {
         accessorKey: 'kind',
-        header: 'Действие',
+        header: i18n.t('customer.col_action'),
         Cell: ({ row }) => (
             <Group gap={6} wrap="nowrap">
                 <Badge color={row.original.status === 'failed' ? 'red' : 'teal'} variant="soft">
-                    {extKind[row.original.kind]}
+                    {extKind(row.original.kind)}
                 </Badge>
                 {row.original.subscription_addon_id && (
                     <Badge color="grape" size="xs" variant="soft">
-                        аддон
+                        {i18n.t('dashboard.addon_badge')}
                     </Badge>
                 )}
                 {row.original.status === 'failed' && (
@@ -115,32 +114,34 @@ const extColumns: MRT_ColumnDef<Extension>[] = [
             </Group>
         )
     },
-    { id: 'term', header: 'Срок', accessorFn: (r) => durationLabel(r.months, r.days) },
-    { accessorKey: 'amount', header: 'Сумма', Cell: ({ cell }) => mono(fmtMoney(cell.getValue<number>(), 2)) },
+    { id: 'term', header: i18n.t('dashboard.col_term'), accessorFn: (r) => durationLabel(r.months, r.days) },
+    { accessorKey: 'amount', header: i18n.t('customer.col_amount'), Cell: ({ cell }) => mono(fmtMoney(cell.getValue<number>(), 2)) },
     {
         id: 'period',
-        header: 'Период',
+        header: i18n.t('expense_items.period'),
         size: 220,
         accessorFn: (r) => r.to_at,
         Cell: ({ row }) => (row.original.from_at ? mono(`${fmtDate(row.original.from_at)} → ${fmtDate(row.original.to_at)}`) : '–')
     },
-    { accessorKey: 'actor', header: 'Кто' }
+    { accessorKey: 'actor', header: i18n.t('customer.col_actor') }
 ]
 
 export function CustomerPage() {
+    const { t } = useTranslation()
     const id = Number(useParams().id)
     const { data, isPending, error } = useCustomer(id)
     const navigate = useNavigate()
     const invalidate = useInvalidateAll()
+    const cols = useMemo(() => ({ payments: paymentColumns(false), ledger: ledgerColumns(), ext: extColumns() }), [t])
 
     if (isPending) {
         return <LoadingScreen height="60vh" />
     }
-    if (error || !data) return <Alert color="red">{error?.message ?? 'Клиент не найден'}</Alert>
+    if (error || !data) return <Alert color="red">{error ? errorText(error) : t('errors.customer.not_found')}</Alert>
     const c: CustomerDetail = data
 
     const remove = () =>
-        confirmDanger('Удалить клиента?', 'Удалить можно только клиента без платежей и подписок. Остальных — в архив.', async () => {
+        confirmDanger(t('customer.delete'), t('customer.delete_hint'), async () => {
             try {
                 await api.del(`customers/${c.id}`)
                 await invalidate()
@@ -159,18 +160,18 @@ export function CustomerPage() {
                     <Group gap="xs" component="span">
                         {c.archived && (
                             <Badge color="gray" variant="soft">
-                                архив
+                                {t('customer.archived')}
                             </Badge>
                         )}
                         {c.referrer_id ? (
                             <span>
-                                Привёл:{' '}
+                                {t('customer.referred_by')}{' '}
                                 <Anchor component={Link} to={`/customers/${c.referrer_id}`} size="sm">
                                     {c.referrer_name}
                                 </Anchor>
                             </span>
                         ) : (
-                            <span>Пришёл сам</span>
+                            <span>{t('customer.came_alone')}</span>
                         )}
                         {c.contact && <span>· {c.contact}</span>}
                     </Group>
@@ -178,30 +179,30 @@ export function CustomerPage() {
                 actions={
                     <>
                         <Button color="teal" variant="soft" leftSection={<PiCreditCardDuotone size={16} />} onClick={() => openPaymentModal({ customerId: c.id, name: c.name })}>
-                            Записать платёж
+                            {t('customer.record_payment')}
                         </Button>
                         <Menu position="bottom-end">
                             <Menu.Target>
                                 <Button color="gray" rightSection={<TbChevronDown size={14} />}>
-                                    Ещё
+                                    {t('customer.more')}
                                 </Button>
                             </Menu.Target>
                             <Menu.Dropdown>
                                 <Menu.Item leftSection={<PiUserPlus size={16} />} onClick={() => openProvisionModal(c)}>
-                                    Создать подписку в панели
+                                    {t('customer.create_subscription')}
                                 </Menu.Item>
                                 <Menu.Item leftSection={<PiLink size={16} />} onClick={() => openSubscriptionForm({ customerId: c.id })}>
-                                    Привязать пользователя панели
+                                    {t('sub.link_title')}
                                 </Menu.Item>
                                 <Menu.Item leftSection={<PiScales size={16} />} onClick={() => openAdjustModal(c)}>
-                                    Корректировка баланса
+                                    {t('customer.adjust_balance')}
                                 </Menu.Item>
                                 <Menu.Item leftSection={<PiPencilSimple size={16} />} onClick={() => openCustomerForm(c)}>
-                                    Редактировать
+                                    {t('common.edit')}
                                 </Menu.Item>
                                 <Menu.Divider />
                                 <Menu.Item color="red" leftSection={<PiTrash size={16} />} onClick={remove}>
-                                    Удалить
+                                    {t('common.delete')}
                                 </Menu.Item>
                             </Menu.Dropdown>
                         </Menu>
@@ -210,10 +211,10 @@ export function CustomerPage() {
             />
 
             <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }} spacing="xs" mb="md">
-                <StatCard title="Баланс" value={<Money value={c.balance} signed digits={2} />} icon={PiWalletDuotone} color={c.balance < 0 ? 'red' : 'teal'} />
-                <StatCard title="В месяц" value={<Money value={c.monthly} />} icon={PiCoinsDuotone} />
-                <StatCard title="Оплатил всего" value={<Money value={c.total_paid} />} hint={`посл. ${fmtDate(c.last_payment_at)}`} icon={PiCreditCardDuotone} color="grape" />
-                <StatCard title="Привёл клиентов" value={c.referrals_count} icon={PiUsersThreeDuotone} color="indigo" />
+                <StatCard title={t('dashboard.col_balance')} value={<Money value={c.balance} signed digits={2} />} icon={PiWalletDuotone} color={c.balance < 0 ? 'red' : 'teal'} />
+                <StatCard title={t('sub.per_month')} value={<Money value={c.monthly} />} icon={PiCoinsDuotone} />
+                <StatCard title={t('customer.total_paid')} value={<Money value={c.total_paid} />} hint={t('customer.last_payment', { date: fmtDate(c.last_payment_at) })} icon={PiCreditCardDuotone} color="grape" />
+                <StatCard title={t('customer.referred_count')} value={c.referrals_count} icon={PiUsersThreeDuotone} color="indigo" />
             </SimpleGrid>
 
             {c.notes && (
@@ -224,11 +225,11 @@ export function CustomerPage() {
 
             <Tabs defaultValue="subs" keepMounted={false}>
                 <Tabs.List mb="md">
-                    <Tabs.Tab value="subs">Подписки ({c.subscriptions.length})</Tabs.Tab>
-                    <Tabs.Tab value="payments">Платежи ({c.payments?.length ?? 0})</Tabs.Tab>
-                    <Tabs.Tab value="ledger">Баланс</Tabs.Tab>
-                    <Tabs.Tab value="refs">Рефералы ({c.referrals?.length ?? 0})</Tabs.Tab>
-                    <Tabs.Tab value="ext">Продления</Tabs.Tab>
+                    <Tabs.Tab value="subs">{t('customer.tab_subs', { count: c.subscriptions.length })}</Tabs.Tab>
+                    <Tabs.Tab value="payments">{t('customer.tab_payments', { count: c.payments?.length ?? 0 })}</Tabs.Tab>
+                    <Tabs.Tab value="ledger">{t('dashboard.col_balance')}</Tabs.Tab>
+                    <Tabs.Tab value="refs">{t('customer.tab_refs', { count: c.referrals?.length ?? 0 })}</Tabs.Tab>
+                    <Tabs.Tab value="ext">{t('customer.tab_ext')}</Tabs.Tab>
                 </Tabs.List>
 
                 <Tabs.Panel value="subs">
@@ -237,14 +238,14 @@ export function CustomerPage() {
                             <SubscriptionCard key={s.id} sub={s} />
                         ))}
                         {c.subscriptions.length === 0 && (
-                            <Text c="dimmed">У клиента пока нет подписок.</Text>
+                            <Text c="dimmed">{t('customer.no_subs')}</Text>
                         )}
                         <Group>
                             <Button color="teal" leftSection={<PiPlus size={16} />} onClick={() => openProvisionModal(c)} variant="soft">
-                                Создать в панели
+                                {t('sub.create_in_panel')}
                             </Button>
                             <Button leftSection={<PiLink size={16} />} color="gray" onClick={() => openSubscriptionForm({ customerId: c.id })}>
-                                Привязать существующего
+                                {t('customer.link_existing')}
                             </Button>
                         </Group>
                     </Stack>
@@ -255,9 +256,9 @@ export function CustomerPage() {
                         compact
                         storageKey="customer-payments"
                         icon={<PiCreditCardDuotone size={24} />}
-                        title="Платежи"
+                        title={t('menu.payments')}
                         {...paymentTableProps}
-                        columns={customerPaymentColumns}
+                        columns={cols.payments}
                         data={(c.payments ?? []).map((p) => ({ ...p, customer_name: c.name }))}
                     />
                 </Tabs.Panel>
@@ -267,9 +268,9 @@ export function CustomerPage() {
                         compact
                         storageKey="customer-ledger"
                         icon={<PiWalletDuotone size={24} />}
-                        title="Движения по балансу"
-                        description="Импортированные платежи баланс не меняют"
-                        columns={ledgerColumns}
+                        title={t('customer.ledger_title')}
+                        description={t('customer.ledger_hint')}
+                        columns={cols.ledger}
                         data={c.ledger ?? []}
                         initialState={{ sorting: [{ id: 'date', desc: true }] }}
                     />
@@ -279,7 +280,7 @@ export function CustomerPage() {
                     <SimpleGrid cols={{ base: 1, md: 2 }}>
                         <Card>
                             <Text fw={600} mb="sm">
-                                Кого привёл
+                                {t('customer.referred')}
                             </Text>
                             <Stack gap={6}>
                                 {(c.referrals ?? []).map((r) => (
@@ -288,26 +289,26 @@ export function CustomerPage() {
                                             {r.name}
                                         </Anchor>
                                         <Text size="xs" c="dimmed">
-                                            {r.monthly ? `${fmtMoney(r.monthly)}/мес` : 'неактивен'} · оплатил {fmtMoney(r.total_paid)}
+                                            {r.monthly ? t('customer.ref_monthly', { amount: fmtMoney(r.monthly) }) : t('customer.ref_inactive')} · {t('customer.ref_paid', { amount: fmtMoney(r.total_paid) })}
                                         </Text>
                                     </Group>
                                 ))}
                                 {!c.referrals?.length && (
                                     <Text c="dimmed" size="sm">
-                                        Никого
+                                        {t('customer.nobody')}
                                     </Text>
                                 )}
                             </Stack>
                         </Card>
                         <Card>
                             <Text fw={600} mb="sm">
-                                Начисления (учётно)
+                                {t('customer.accruals')}
                             </Text>
                             <Stack gap={6}>
                                 {(c.accruals ?? []).map((a) => (
                                     <Group key={a.id} justify="space-between" wrap="nowrap">
                                         <Text size="sm">
-                                            {fmtDate(a.date)} · {a.referrer_id === c.id ? `от ${a.referee_name}` : `для ${a.referrer_name}`}
+                                            {fmtDate(a.date)} · {a.referrer_id === c.id ? t('customer.accrual_from', { name: a.referee_name }) : t('customer.accrual_for', { name: a.referrer_name })}
                                         </Text>
                                         <Text size="sm" c={a.referrer_id === c.id ? 'teal' : 'dimmed'}>
                                             {fmtMoney(a.amount, 2)} ({a.percent}%)
@@ -316,7 +317,7 @@ export function CustomerPage() {
                                 ))}
                                 {!c.accruals?.length && (
                                     <Text c="dimmed" size="sm">
-                                        Нет
+                                        {t('common.none')}
                                     </Text>
                                 )}
                             </Stack>
@@ -329,9 +330,9 @@ export function CustomerPage() {
                         compact
                         storageKey="customer-extensions"
                         icon={<PiCalendarPlusDuotone size={24} />}
-                        title="Продления"
-                        description="Что и когда продлевалось в панели"
-                        columns={extColumns}
+                        title={t('customer.tab_ext')}
+                        description={t('customer.ext_hint')}
+                        columns={cols.ext}
                         data={c.extensions ?? []}
                         initialState={{ sorting: [{ id: 'created_at', desc: true }] }}
                     />

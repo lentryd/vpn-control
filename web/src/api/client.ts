@@ -2,10 +2,14 @@
 // BASE_PATH like "/control/", and the API is always "<that>/api/".
 export const API_BASE = new URL('api/', document.baseURI).toString()
 
+// ApiError carries the server's error code and params (translated by
+// errorText) next to its English message.
 export class ApiError extends Error {
     constructor(
         public status: number,
-        message: string
+        message: string,
+        public code?: string,
+        public params?: Record<string, unknown>
     ) {
         super(message)
     }
@@ -30,13 +34,17 @@ async function send(method: string, path: string, body?: unknown): Promise<Respo
     }
     if (!res.ok) {
         let message = `${res.status} ${res.statusText}`
+        let code: string | undefined
+        let params: Record<string, unknown> | undefined
         try {
             const data = await res.json()
             if (data?.message) message = data.message
+            code = data?.code
+            params = data?.params
         } catch {
             /* not JSON */
         }
-        throw new ApiError(res.status, message)
+        throw new ApiError(res.status, message, code, params)
     }
     return res
 }

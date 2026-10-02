@@ -9,8 +9,11 @@ import { useNavigate } from 'react-router'
 import { api } from '@/api/client'
 import { Logo } from '@shared/ui/logo'
 import { Page } from '@shared/ui/page'
+import { errorText } from '@/components/notify'
+import { useTranslation } from 'react-i18next'
 
 export function LoginPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const qc = useQueryClient()
     const [error, setError] = useState<string | null>(null)
@@ -25,14 +28,14 @@ export function LoginPage() {
             qc.setQueryData(['me'], me)
             navigate('/', { replace: true })
         } catch (e) {
-            setError(e instanceof Error ? e.message : String(e))
+            setError(errorText(e))
         } finally {
             setLoading(false)
         }
     })
 
     return (
-        <Page title="Вход">
+        <Page title={t('login.title')}>
             <Stack align="center" gap="xs">
                 <Group align="center" gap={4} justify="center">
                     <Logo c="cyan" w="3rem" />
@@ -46,7 +49,7 @@ export function LoginPage() {
                     </Title>
                 </Group>
                 <Text c="dimmed" size="sm" ta="center">
-                    Вход учётной записью администратора панели Remnawave
+                    {t('login.hint')}
                 </Text>
 
                 <Box maw={800} p={30} w={{ base: 440, sm: 500, md: 500 }}>
@@ -55,16 +58,16 @@ export function LoginPage() {
                             <Paper>
                                 <TextInput
                                     autoComplete="username"
-                                    label="Логин"
-                                    placeholder="Логин"
+                                    label={t('login.username')}
+                                    placeholder={t('login.username')}
                                     required
                                     {...form.getInputProps('username')}
                                 />
                                 <PasswordInput
                                     autoComplete="current-password"
-                                    label="Пароль"
+                                    label={t('login.password')}
                                     mt="md"
-                                    placeholder="Ваш пароль"
+                                    placeholder={t('login.password_placeholder')}
                                     required
                                     {...form.getInputProps('password')}
                                 />
@@ -81,7 +84,7 @@ export function LoginPage() {
                                     type="submit"
                                     variant="default"
                                 >
-                                    Войти
+                                    {t('login.submit')}
                                 </Button>
                             </Paper>
                         </Container>

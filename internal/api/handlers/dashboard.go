@@ -9,6 +9,7 @@ import (
 
 	"vpn-control/ent"
 	"vpn-control/ent/expenseitem"
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/money"
 	"vpn-control/internal/remnawave"
 	"vpn-control/internal/settings"
@@ -171,7 +172,8 @@ func (h *Handlers) Dashboard(c *fiber.Ctx) error {
 	for _, it := range items {
 		sum, err := h.Expenses.MeteredSummary(ctx, it, now)
 		if err != nil {
-			metered = append(metered, fiber.Map{"item_id": it.ID, "name": it.Name, "error": err.Error()})
+			code, params := apperr.Fields(err)
+			metered = append(metered, fiber.Map{"item_id": it.ID, "name": it.Name, "error": err.Error(), "error_code": code, "error_params": params})
 			continue
 		}
 		h.Expenses.WithConsumers(ctx, sum, 5)

@@ -42,6 +42,8 @@ import { SectionCard } from '@shared/ui/section-card'
 import { openModal } from './open'
 import { SearchSelect } from '@shared/ui/forms/search-select'
 import { CurrencyIcon } from '@shared/currencies'
+import i18n from '@/app/i18n/i18n'
+import { useTranslation } from 'react-i18next'
 
 const cardVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.3 } } }
 
@@ -83,6 +85,7 @@ function Pill({ tip, style, icon, children }: { tip: string; style: ReturnType<t
 // IdentityCard is the panel's user identification card for the RW user
 // behind a subscription or add-on.
 function IdentityCard({ title, rw, icon }: { title: string; rw: RwUser | null; icon: React.ComponentType<{ size: number }> }) {
+    const { t } = useTranslation()
     const { copyLink } = useItemActions()
     const used = rw?.used_traffic_bytes ?? 0
     const limit = rw?.traffic_limit_bytes ?? 0
@@ -98,7 +101,7 @@ function IdentityCard({ title, rw, icon }: { title: string; rw: RwUser | null; i
                         <BaseOverlayHeader
                             iconColor={rw ? statusIconColor[rw.status] ?? 'gray' : 'yellow'}
                             IconComponent={icon}
-                            subtitle={rw ? `${rw.username} · ID ${rw.id}` : 'не привязана к панели'}
+                            subtitle={rw ? `${rw.username} · ID ${rw.id}` : t('view.not_linked')}
                             title={title}
                             titleOrder={5}
                         />
@@ -109,13 +112,13 @@ function IdentityCard({ title, rw, icon }: { title: string; rw: RwUser | null; i
                 {rw && (
                     <SectionCard.Section>
                         <Group gap={5} justify="flex-end">
-                            <Tooltip label="Скопировать ссылку подписки">
+                            <Tooltip label={t('view.copy_link')}>
                                 <ActionIcon color="teal" onClick={() => copyLink(rw.subscription_url)} size="lg" variant="soft">
                                     <PiCopy size={22} />
                                 </ActionIcon>
                             </Tooltip>
                             {rw.subscription_url && (
-                                <Tooltip label="Открыть страницу подписки">
+                                <Tooltip label={t('view.open_page')}>
                                     <ActionIcon
                                         color="cyan"
                                         component="a"
@@ -155,15 +158,15 @@ function IdentityCard({ title, rw, icon }: { title: string; rw: RwUser | null; i
                 {rw && (
                     <SectionCard.Section>
                         <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="xs">
-                            <Pill icon={<TbCalendar color={exp.icon} size={18} />} style={exp} tip="Оплачено до">
-                                {rw.unlimited ? '∞ бессрочно' : fmtDateTime(rw.expire_at)}
+                            <Pill icon={<TbCalendar color={exp.icon} size={18} />} style={exp} tip={t('sub.paid_until')}>
+                                {rw.unlimited ? `∞ ${t('expiry.forever')}` : fmtDateTime(rw.expire_at)}
                             </Pill>
                             <Pill
                                 icon={<TbWifi color={onlineStyle.icon} size={18} />}
                                 style={onlineStyle}
-                                tip={rw.online_at ? fmtDateTime(rw.online_at) : 'Ещё не подключался'}
+                                tip={rw.online_at ? fmtDateTime(rw.online_at) : t('users.never_connected')}
                             >
-                                {rw.online_at ? fromNow(rw.online_at) : 'не подключался'}
+                                {rw.online_at ? fromNow(rw.online_at) : t('users.never_connected')}
                             </Pill>
                         </SimpleGrid>
                     </SectionCard.Section>
@@ -219,18 +222,20 @@ function useSyncedForm<T extends Record<string, unknown>>(server: T) {
 }
 
 function CustomerLink({ id, onNavigate }: { id: number; onNavigate: () => void }) {
+    const { t } = useTranslation()
     return (
         <Button color="indigo" component={Link} onClick={onNavigate} rightSection={<PiArrowSquareOut size={14} />} size="xs" to={`/customers/${id}`} variant="subtle">
-            Клиент
+            {t('sub.customer')}
         </Button>
     )
 }
 
 function SwitchAutoExtend(props: ReturnType<ReturnType<typeof useForm>['getInputProps']>) {
+    const { t } = useTranslation()
     return (
         <Switch
-            description="Продлевать из платежей клиента"
-            label="Автопродление"
+            description={t('sub.auto_extend_hint')}
+            label={t('sub.auto_extend')}
             thumbIcon={<PiArrowsClockwise size={10} />}
             {...props}
         />
@@ -238,12 +243,13 @@ function SwitchAutoExtend(props: ReturnType<ReturnType<typeof useForm>['getInput
 }
 
 function AddonsCard({ sub }: { sub: Subscription }) {
+    const { t } = useTranslation()
     return (
         <motion.div variants={cardVariants}>
             <SectionCard.Root>
                 <SectionCard.Section>
                     <Group justify="space-between" wrap="nowrap">
-                        <BaseOverlayHeader IconComponent={PiPuzzlePieceDuotone} iconColor="grape" title="Аддоны" titleOrder={5} />
+                        <BaseOverlayHeader IconComponent={PiPuzzlePieceDuotone} iconColor="grape" title={t('view.addons')} titleOrder={5} />
                         <Button
                             color="grape"
                             disabled={!sub.rw_user}
@@ -252,13 +258,13 @@ function AddonsCard({ sub }: { sub: Subscription }) {
                             size="xs"
                             variant="soft"
                         >
-                            Подключить
+                            {t('sub.connect')}
                         </Button>
                     </Group>
                 </SectionCard.Section>
                 {sub.addons.length === 0 && (
                     <Text c="dimmed" size="sm">
-                        Аддонов нет
+                        {t('view.no_addons')}
                     </Text>
                 )}
                 {sub.addons.map((a) => (
@@ -275,11 +281,11 @@ function AddonsCard({ sub }: { sub: Subscription }) {
                                     {a.addon_name}
                                 </Badge>
                                 <Text size="sm" truncate="end">
-                                    {a.tariff_name || 'без тарифа'}
+                                    {a.tariff_name || t('view.no_tariff')}
                                 </Text>
                             </Group>
                             <Text c="dimmed" size="xs">
-                                {a.rw_user?.unlimited ? 'бессрочно' : `до ${fmtDate(a.rw_user?.expire_at)}`} · <Money value={a.price} />
+                                {a.rw_user?.unlimited ? t('expiry.forever') : t('view.until', { date: fmtDate(a.rw_user?.expire_at) })} · <Money value={a.price} />
                             </Text>
                         </Stack>
                         <StatusBadge size="md" user={a.rw_user} />
@@ -291,11 +297,12 @@ function AddonsCard({ sub }: { sub: Subscription }) {
 }
 
 function MoreMenu({ children }: { children: ReactNode }) {
+    const { t } = useTranslation()
     return (
         <Menu keepMounted position="top-end" shadow="md">
             <Menu.Target>
                 <Button color="gray" leftSection={<TbDots size={18} />} size="md">
-                    Ещё
+                    {t('customer.more')}
                 </Button>
             </Menu.Target>
             <Menu.Dropdown>{children}</Menu.Dropdown>
@@ -304,13 +311,14 @@ function MoreMenu({ children }: { children: ReactNode }) {
 }
 
 function ViewSubscription({ id, close }: { id: number; close: () => void }) {
+    const { t } = useTranslation()
     const { data } = useSubscriptions()
     const sub = data?.find((s) => s.id === id)
     if (!data) return <LoadingScreen height="40vh" />
     if (!sub)
         return (
             <Text c="dimmed" p="md">
-                Подписка удалена
+                {t('view.sub_deleted')}
             </Text>
         )
     return <SubscriptionEditor close={close} sub={sub} />
@@ -319,6 +327,7 @@ function ViewSubscription({ id, close }: { id: number; close: () => void }) {
 // SubscriptionEditor is the subscription modal: like the panel's user
 // modal, the cards are the edit form and the footer saves them.
 function SubscriptionEditor({ sub, close }: { sub: Subscription; close: () => void }) {
+    const { t } = useTranslation()
     const customers = useCustomers()
     const tariffs = useTariffs()
     const rwUsers = useRwUsers()
@@ -342,7 +351,7 @@ function SubscriptionEditor({ sub, close }: { sub: Subscription; close: () => vo
         m.mutate(v, {
             onSuccess: () => {
                 form.resetDirty(v)
-                notifyOk('Сохранено')
+                notifyOk(t('common.saved'))
             },
             onError: (e) => notifyError(e)
         })
@@ -357,25 +366,25 @@ function SubscriptionEditor({ sub, close }: { sub: Subscription; close: () => vo
                         <FormSection
                             actions={<CustomerLink id={sub.customer_id} onNavigate={close} />}
                             color="indigo"
-                            description="Чья подписка и как её отличать"
+                            description={t('view.records_hint')}
                             icon={TbUser}
-                            title="Учёт"
+                            title={t('view.records')}
                         >
                             <SearchSelect
                                 data={(customers.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))}
-                                label="Клиент"
+                                label={t('sub.customer')}
                                 leftSection={<PiUser size={16} />}
                                 {...form.getInputProps('customer_id')}
                             />
                             <TextInput
-                                description="Чтобы отличать подписки одного клиента"
-                                label="Метка"
+                                description={t('sub.label_hint')}
+                                label={t('sub.label')}
                                 leftSection={<PiTag size={16} />}
-                                placeholder="например «Родители»"
+                                placeholder={t('sub.label_placeholder')}
                                 {...form.getInputProps('label')}
                             />
                             <RwUserSelect
-                                description="Только ещё не привязанные"
+                                description={t('sub.panel_user_hint')}
                                 options={rwOptions}
                                 users={rwUsers.data}
                                 {...form.getInputProps('rw_user_id')}
@@ -385,21 +394,21 @@ function SubscriptionEditor({ sub, close }: { sub: Subscription; close: () => vo
                 }
                 right={
                     <>
-                        <FormSection color="teal" description="Сколько стоит месяц" icon={PiTagDuotone} title="Тариф и цена">
+                        <FormSection color="teal" description={t('sub.tariff_price_hint')} icon={PiTagDuotone} title={t('sub.tariff_price')}>
                             <SearchSelect
                                 allowDeselect
                                 clearable
                                 data={(tariffs.data ?? []).filter((t) => t.kind === 'base').map((t) => ({ value: String(t.id), label: tariffLabel(t) }))}
-                                description="Параметры в панели здесь не меняются — для этого «Сменить тариф»"
-                                label="Тариф"
+                                description={t('sub.tariff_no_rw')}
+                                label={t('tariffs.tariff')}
                                 leftSection={<PiTag size={16} />}
-                                placeholder="Без тарифа"
+                                placeholder={t('sub.no_tariff')}
                                 {...form.getInputProps('tariff_id')}
                             />
                             <NumberInput
                                 decimalScale={2}
-                                description={tariff ? `Пусто — цена тарифа, ${fmtMoney(tariff.monthly_price)}` : 'Пусто — цена тарифа'}
-                                label={`Индивидуальная цена, ${currencySymbol()}/мес`}
+                                description={tariff ? t('view.price_override_hint', { price: fmtMoney(tariff.monthly_price) }) : t('sub.price_override_hint')}
+                                label={t('sub.price_override', { currency: currencySymbol() })}
                                 leftSection={<CurrencyIcon size={16} />}
                                 min={0}
                                 {...form.getInputProps('price_override')}
@@ -421,7 +430,7 @@ function SubscriptionEditor({ sub, close }: { sub: Subscription; close: () => vo
                     size="md"
                     variant="soft"
                 >
-                    Сменить тариф
+                    {t('sub.change_tariff')}
                 </Button>
                 <Button
                     color="teal"
@@ -431,7 +440,7 @@ function SubscriptionEditor({ sub, close }: { sub: Subscription; close: () => vo
                     size="md"
                     variant="soft"
                 >
-                    Продлить
+                    {t('dashboard.extend')}
                 </Button>
                 <SaveButton dirty={form.isDirty()} loading={m.isPending} />
             </ModalFooter>
@@ -440,14 +449,16 @@ function SubscriptionEditor({ sub, close }: { sub: Subscription; close: () => vo
 }
 
 function SaveButton({ dirty, loading }: { dirty: boolean; loading: boolean }) {
+    const { t } = useTranslation()
     return (
         <Button color="teal" disabled={!dirty} leftSection={<PiFloppyDiskDuotone size={16} />} loading={loading} size="md" type="submit" variant="light">
-            Сохранить
+            {t('common.save')}
         </Button>
     )
 }
 
 function ViewAddon({ id, subId, close }: { id: number; subId: number; close: () => void }) {
+    const { t } = useTranslation()
     const { data } = useSubscriptions()
     const sub = data?.find((s) => s.id === subId)
     const addon: AddonItem | undefined = sub?.addons.find((a) => a.id === id)
@@ -455,13 +466,14 @@ function ViewAddon({ id, subId, close }: { id: number; subId: number; close: () 
     if (!sub || !addon)
         return (
             <Text c="dimmed" p="md">
-                Аддон удалён
+                {t('view.addon_deleted')}
             </Text>
         )
     return <AddonEditor addon={addon} close={close} sub={sub} />
 }
 
 function AddonEditor({ addon, sub, close }: { addon: AddonItem; sub: Subscription; close: () => void }) {
+    const { t } = useTranslation()
     const tariffs = useTariffs()
     const form = useSyncedForm(addonValues(addon))
     const title = addonTitle(addon, sub.title)
@@ -476,7 +488,7 @@ function AddonEditor({ addon, sub, close }: { addon: AddonItem; sub: Subscriptio
         m.mutate(v, {
             onSuccess: () => {
                 form.resetDirty(v)
-                notifyOk('Сохранено')
+                notifyOk(t('common.saved'))
             },
             onError: (e) => notifyError(e)
         })
@@ -491,20 +503,20 @@ function AddonEditor({ addon, sub, close }: { addon: AddonItem; sub: Subscriptio
                         <FormSection
                             actions={<CustomerLink id={sub.customer_id} onNavigate={close} />}
                             color="grape"
-                            description={`${sub.customer_name} · ${addon.tariff_name || 'без тарифа'}`}
+                            description={`${sub.customer_name} · ${addon.tariff_name || t('view.no_tariff')}`}
                             icon={PiTagDuotone}
-                            title="Цена и продление"
+                            title={t('view.price_renewal')}
                         >
                             {addon.included ? (
                                 <Text c="dimmed" size="sm">
-                                    Аддон входит в тариф подписки: бесплатный, продлевается, включается и отключается вместе с ней.
+                                    {t('view.included_hint')}
                                 </Text>
                             ) : (
                                 <>
                                     <NumberInput
                                         decimalScale={2}
-                                        description={tariff ? `Пусто — цена тарифа, ${fmtMoney(tariff.monthly_price)}` : 'Пусто — цена тарифа'}
-                                        label={`Индивидуальная цена, ${currencySymbol()}/мес`}
+                                        description={tariff ? t('view.price_override_hint', { price: fmtMoney(tariff.monthly_price) }) : t('sub.price_override_hint')}
+                                        label={t('sub.price_override', { currency: currencySymbol() })}
                                         leftSection={<CurrencyIcon size={16} />}
                                         min={0}
                                         {...form.getInputProps('price_override')}
@@ -513,7 +525,7 @@ function AddonEditor({ addon, sub, close }: { addon: AddonItem; sub: Subscriptio
                                 </>
                             )}
                         </FormSection>
-                        <IdentityCard icon={PiHexagonDuotone} rw={sub.rw_user} title={`Основная подписка: ${sub.title}`} />
+                        <IdentityCard icon={PiHexagonDuotone} rw={sub.rw_user} title={t('view.main_subscription', { title: sub.title })} />
                     </>
                 }
             />
@@ -531,7 +543,7 @@ function AddonEditor({ addon, sub, close }: { addon: AddonItem; sub: Subscriptio
                         size="md"
                         variant="soft"
                     >
-                        Сменить тариф
+                        {t('sub.change_tariff')}
                     </Button>
                 )}
                 <Button
@@ -542,7 +554,7 @@ function AddonEditor({ addon, sub, close }: { addon: AddonItem; sub: Subscriptio
                     size="md"
                     variant="soft"
                 >
-                    Продлить
+                    {t('dashboard.extend')}
                 </Button>
                 <SaveButton dirty={form.isDirty()} loading={m.isPending} />
             </ModalFooter>
@@ -560,7 +572,7 @@ export function openViewSubscriptionModal(sub: Pick<Subscription, 'id' | 'title'
 
 export function openViewAddonModal(addonId: number, subId: number) {
     openModal(
-        { icon: PiPuzzlePieceDuotone, color: 'grape', title: 'Аддон' },
+        { icon: PiPuzzlePieceDuotone, color: 'grape', title: i18n.t('tariffs.addon') },
         (close) => <ViewAddon close={close} id={addonId} subId={subId} />,
         '1000px'
     )

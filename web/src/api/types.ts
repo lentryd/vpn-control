@@ -290,6 +290,8 @@ export interface ExpenseItem {
     monthly_rub: number | null
     rate: number | null
     plan_error?: string
+    plan_error_code?: string
+    plan_error_params?: Record<string, unknown>
 }
 
 export interface Consumer {
@@ -332,6 +334,8 @@ export interface MeteredSummary {
     top_consumers: Consumer[]
     consumer_error: string
     error?: string
+    error_code?: string
+    error_params?: Record<string, unknown>
 }
 
 export interface ExpiringItem {

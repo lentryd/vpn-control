@@ -10,6 +10,7 @@ import (
 	"vpn-control/ent"
 	"vpn-control/ent/expense"
 	"vpn-control/ent/expenseitem"
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/audit"
 	"vpn-control/internal/expenses"
 	"vpn-control/internal/metered"
@@ -162,31 +163,33 @@ func (h *Handlers) ProviderReport(c *fiber.Ctx) error {
 }
 
 type ExpenseItemView struct {
-	ID           int        `json:"id"`
-	Name         string     `json:"name"`
-	Provider     string     `json:"provider"`
-	ProviderUUID string     `json:"provider_uuid"`
-	Currency     string     `json:"currency"`
-	Pricing      string     `json:"pricing"`
-	Amount       float64    `json:"amount"`
-	Period       string     `json:"period"`
-	FeePercent   float64    `json:"fee_percent"`
-	SharePercent float64    `json:"share_percent"`
-	PricePerGB   float64    `json:"price_per_gb"`
-	MinCharge    float64    `json:"min_charge"`
-	GBUnit       string     `json:"gb_unit"`
-	MinMode      string     `json:"min_mode"`
-	FreeGB       float64    `json:"free_gb"`
-	Tiers        []tierView `json:"tiers"`
-	BillingDay   int        `json:"billing_day"`
-	RwNodeUUID   string     `json:"rw_node_uuid"`
-	RwSquadUUID  string     `json:"rw_squad_uuid"`
-	NextDueDate  *time.Time `json:"next_due_date"`
-	Active       bool       `json:"active"`
-	Notes        string     `json:"notes"`
-	MonthlyRub   *float64   `json:"monthly_rub"`
-	Rate         *float64   `json:"rate"`
-	PlanError    string     `json:"plan_error,omitempty"`
+	ID           int            `json:"id"`
+	Name         string         `json:"name"`
+	Provider     string         `json:"provider"`
+	ProviderUUID string         `json:"provider_uuid"`
+	Currency     string         `json:"currency"`
+	Pricing      string         `json:"pricing"`
+	Amount       float64        `json:"amount"`
+	Period       string         `json:"period"`
+	FeePercent   float64        `json:"fee_percent"`
+	SharePercent float64        `json:"share_percent"`
+	PricePerGB   float64        `json:"price_per_gb"`
+	MinCharge    float64        `json:"min_charge"`
+	GBUnit       string         `json:"gb_unit"`
+	MinMode      string         `json:"min_mode"`
+	FreeGB       float64        `json:"free_gb"`
+	Tiers        []tierView     `json:"tiers"`
+	BillingDay   int            `json:"billing_day"`
+	RwNodeUUID   string         `json:"rw_node_uuid"`
+	RwSquadUUID  string         `json:"rw_squad_uuid"`
+	NextDueDate  *time.Time     `json:"next_due_date"`
+	Active       bool           `json:"active"`
+	Notes        string         `json:"notes"`
+	MonthlyRub   *float64       `json:"monthly_rub"`
+	Rate         *float64       `json:"rate"`
+	PlanError    string         `json:"plan_error,omitempty"`
+	PlanErrCode  string         `json:"plan_error_code,omitempty"`
+	PlanErrPar   map[string]any `json:"plan_error_params,omitempty"`
 }
 
 // tierView is a metered.Tier with the price in major units.
@@ -236,6 +239,7 @@ func (h *Handlers) ListExpenseItems(c *fiber.Ctx) error {
 				v.MonthlyRub, v.Rate = &m, &r
 			}
 			v.PlanError = p.Error
+			v.PlanErrCode, v.PlanErrPar = apperr.Fields(p.Err)
 		}
 		out = append(out, v)
 	}

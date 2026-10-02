@@ -7,10 +7,12 @@ import { useDashboard, useInvalidateAll } from '@/api/hooks'
 import { fromNow } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { HeaderControl } from '@shared/ui/header-buttons'
+import { useTranslation } from 'react-i18next'
 
 // SyncControl pulls fresh users from the panel; its tooltip shows when the
 // background sync last ran and whether it failed.
 export function SyncControl() {
+    const { t } = useTranslation()
     const invalidate = useInvalidateAll()
     const dashboard = useDashboard()
     const [syncing, setSyncing] = useState(false)
@@ -21,9 +23,9 @@ export function SyncControl() {
         try {
             await api.post('rw/sync')
             await invalidate()
-            notifyOk('Данные из панели обновлены')
+            notifyOk(t('sync.done'))
         } catch (e) {
-            notifyError(e, 'Синхронизация не удалась')
+            notifyError(e, t('sync.failed'))
         } finally {
             setSyncing(false)
         }
@@ -31,7 +33,7 @@ export function SyncControl() {
 
     return (
         <Tooltip
-            label={info?.error ? `Ошибка синхронизации: ${info.error}` : `Синхронизировано с панелью ${fromNow(info?.last_sync)}`}
+            label={info?.error ? t('sync.error', { error: info.error }) : t('sync.synced', { ago: fromNow(info?.last_sync) })}
             maw={320}
             multiline
         >

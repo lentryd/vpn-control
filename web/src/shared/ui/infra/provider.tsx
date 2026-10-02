@@ -5,6 +5,7 @@ import { useMemo } from 'react'
 
 import { useInfra } from '@/api/hooks'
 import type { InfraProvider } from '@/api/types'
+import { useTranslation } from 'react-i18next'
 
 export const faviconResolver = (faviconLink: null | string | undefined) => {
     if (!faviconLink) return null
@@ -74,6 +75,7 @@ type ProviderInputProps = Omit<AutocompleteProps, 'data' | 'onChange' | 'value'>
 // ProviderInput picks a provider from the panel's Infra Billing (with
 // favicons) and still accepts any other name.
 export function ProviderInput({ value, extra = [], onChange, ...props }: ProviderInputProps) {
+    const { t } = useTranslation()
     const { data } = useInfra()
     const lookup = useProviderLookup()
     const providers = data?.providers ?? []
@@ -87,7 +89,7 @@ export function ProviderInput({ value, extra = [], onChange, ...props }: Provide
     return (
         <Autocomplete
             data={[...new Set(names)]}
-            description={data?.error ? 'Провайдеры из панели недоступны: нужен доступ токена к Infra Billing' : undefined}
+            description={data?.error ? t('infra.providers_unavailable') : undefined}
             leftSection={value ? <ProviderAvatar faviconLink={current?.faviconLink} name={value} size={16} /> : undefined}
             onChange={(name) => onChange(name, lookup(null, name)?.uuid ?? '')}
             renderOption={({ option }) => {
@@ -100,7 +102,7 @@ export function ProviderInput({ value, extra = [], onChange, ...props }: Provide
                         </Text>
                         {!p && (
                             <Text c="dimmed" size="xs">
-                                не из панели
+                                {t('infra.not_from_panel')}
                             </Text>
                         )}
                     </Group>

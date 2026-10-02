@@ -12,6 +12,8 @@ import { durationLabel, fmtDate, fmtMoney, currencySymbol } from '@/components/f
 import { periodCost } from '@/components/pricing'
 import { FormSection } from '@shared/ui/forms/form-section'
 import { CurrencyIcon } from '@shared/currencies'
+import { dateLayout } from './format'
+import { useTranslation } from 'react-i18next'
 
 // Term is months+days from the base date; until pins the exact end (e.g.
 // "to the end of the subscription"), months/days then only price it.
@@ -63,7 +65,7 @@ export function TermSection({
     value,
     onChange,
     presets,
-    description = 'Считается от текущей даты окончания (или от сегодня, если уже истекла)',
+    description,
     children
 }: {
     from: string | null | undefined
@@ -73,12 +75,13 @@ export function TermSection({
     description?: ReactNode
     children?: ReactNode
 }) {
+    const { t } = useTranslation()
     const base = from ? dayjs(from) : dayjs()
     const to = termTo(base, value)
     const empty = value.months + value.days <= 0 && !value.until
 
     return (
-        <FormSection color="teal" description={description} icon={PiCalendarPlusDuotone} title="Срок">
+        <FormSection color="teal" description={description ?? t('term.from_expiry')} icon={PiCalendarPlusDuotone} title={t('dashboard.col_term')}>
             {presets.length > 0 && (
                 <Group gap={6}>
                     {presets.map((p) => {
@@ -107,7 +110,7 @@ export function TermSection({
             )}
             <SimpleGrid cols={{ base: 1, xs: 2 }}>
                 <NumberInput
-                    label="Месяцев"
+                    label={t('tariffs.months')}
                     leftSection={<PiCalendarDuotone size={16} />}
                     max={36}
                     min={0}
@@ -115,7 +118,7 @@ export function TermSection({
                     value={value.months}
                 />
                 <NumberInput
-                    label="Дней"
+                    label={t('tariffs.days')}
                     leftSection={<PiClockDuotone size={16} />}
                     max={365}
                     min={0}
@@ -124,8 +127,8 @@ export function TermSection({
                 />
             </SimpleGrid>
             <DatePickerInput
-                description="Или выберите дату — срок пересчитается"
-                label="Дата окончания"
+                description={t('term.pick_date')}
+                label={t('term.end_date')}
                 leftSection={<PiCalendarDuotone size={16} />}
                 minDate={base.add(1, 'day').format('YYYY-MM-DD')}
                 onChange={(d) => {
@@ -134,7 +137,7 @@ export function TermSection({
                     onChange(termBetween(base, target))
                 }}
                 value={empty ? null : to.format('YYYY-MM-DD')}
-                valueFormat="DD.MM.YYYY"
+                valueFormat={dateLayout()}
             />
             <Group gap="xs" grow wrap="nowrap">
                 <Paper bd="1px solid rgba(255,255,255,0.08)" bg="rgba(255,255,255,0.02)" p="xs" radius="md">
@@ -180,7 +183,7 @@ export function PaymentSection({
     onAllowDebt,
     balance,
     monthly,
-    description = 'По тарифу с учётом скидок за период; можно изменить (0 — бесплатно)'
+    description
 }: {
     amount: number | null
     onAmount: (v: number) => void
@@ -190,14 +193,15 @@ export function PaymentSection({
     monthly?: number
     description?: string
 }) {
+    const { t } = useTranslation()
     const after = balance === undefined ? undefined : balance - (amount ?? 0)
     const short = after !== undefined && after < 0 && !allowDebt
     return (
-        <FormSection color="orange" description="Списывается с баланса клиента" icon={PiWalletDuotone} title="Оплата">
+        <FormSection color="orange" description={t('term.charged_hint')} icon={PiWalletDuotone} title={t('term.payment')}>
             <NumberInput
                 decimalScale={2}
-                description={description}
-                label={`Списать с баланса, ${currencySymbol()}`}
+                description={description ?? t('term.amount_hint')}
+                label={t('term.charge', { currency: currencySymbol() })}
                 leftSection={<CurrencyIcon size={16} />}
                 min={0}
                 onChange={(v) => onAmount(Number(v) || 0)}
@@ -206,10 +210,10 @@ export function PaymentSection({
             {(balance !== undefined || monthly !== undefined) && (
                 <Paper bd="1px solid rgba(255,255,255,0.08)" bg="rgba(255,255,255,0.02)" p="sm" radius="md">
                     <Stack gap={6}>
-                        {monthly !== undefined && <SummaryRow label="Цена в месяц">{fmtMoney(monthly)}</SummaryRow>}
-                        {balance !== undefined && <SummaryRow label="Баланс сейчас">{fmtMoney(balance, 2)}</SummaryRow>}
+                        {monthly !== undefined && <SummaryRow label={t('tariffs.monthly_price')}>{fmtMoney(monthly)}</SummaryRow>}
+                        {balance !== undefined && <SummaryRow label={t('term.balance_now')}>{fmtMoney(balance, 2)}</SummaryRow>}
                         {after !== undefined && (
-                            <SummaryRow label="После списания">
+                            <SummaryRow label={t('term.after_charge')}>
                                 <Text c={after < 0 ? 'red.5' : 'teal.5'} ff="monospace" fw={600} size="sm">
                                     {fmtMoney(after, 2)}
                                 </Text>
@@ -220,8 +224,8 @@ export function PaymentSection({
             )}
             <Switch
                 checked={allowDebt}
-                description={short ? `Не хватает ${fmtMoney(-after!, 2)} — без этого операция не пройдёт` : 'Баланс клиента станет отрицательным (долг)'}
-                label="Разрешить уход в минус"
+                description={short ? t('term.short', { amount: fmtMoney(-after!, 2) }) : t('term.debt')}
+                label={t('term.allow_debt')}
                 onChange={(e) => onAllowDebt(e.currentTarget.checked)}
                 styles={short ? { description: { color: 'var(--mantine-color-red-5)' } } : undefined}
             />

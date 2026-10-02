@@ -15,8 +15,10 @@ import { confirmDanger } from '@/modals/open'
 import { ProviderLabel } from '@shared/ui/infra/provider'
 import { Page } from '@shared/ui/page'
 import { DataTableCard } from '@shared/ui/table'
+import { useTranslation } from 'react-i18next'
 
 export function ExpensesPage() {
+    const { t } = useTranslation()
     const expenses = useExpenses()
     const providers = useProviders()
     const invalidate = useInvalidateAll()
@@ -33,42 +35,48 @@ export function ExpensesPage() {
 
     const columns = useMemo<MRT_ColumnDef<Expense>[]>(
         () => [
-            { id: 'date', header: 'Дата', sortingFn: 'datetime', accessorFn: (r) => new Date(r.date), enableColumnFilter: false, Cell: ({ row }) => <Text ff="monospace" size="sm">{fmtDate(row.original.date)}</Text> },
+            { id: 'date', header: t('customer.col_date'), sortingFn: 'datetime', accessorFn: (r) => new Date(r.date), enableColumnFilter: false, Cell: ({ row }) => <Text ff="monospace" size="sm">{fmtDate(row.original.date)}</Text> },
             {
                 accessorKey: 'provider',
-                header: 'Провайдер',
+                header: t('expense_items.provider'),
                 filterVariant: 'multi-select',
                 size: 200,
                 Cell: ({ row }) => <ProviderLabel name={row.original.provider} uuid={row.original.provider_uuid} />
             },
-            { accessorKey: 'item_name', header: 'Статья', filterVariant: 'multi-select' },
+            { accessorKey: 'item_name', header: t('expense_items.col_item'), filterVariant: 'multi-select' },
             {
                 accessorKey: 'kind',
-                header: 'Тип',
+                header: t('backup.col_kind'),
                 filterVariant: 'select',
                 size: 170,
                 mantineTableBodyCellProps: { align: 'center' },
-                mantineFilterSelectProps: { data: [{ value: 'charge', label: 'Списание' }, { value: 'refund', label: 'Возврат' }] },
+                mantineFilterSelectProps: { data: [{ value: 'charge', label: t('expenses.charge') }, { value: 'refund', label: t('expenses.refund') }] },
                 Cell: ({ row }) =>
                     row.original.kind === 'refund' ? (
                         <Badge color="teal" leftSection={<PiArrowUDownLeft size={16} />} size="lg" variant="soft">
-                            возврат
+                            {t('expenses.refund_badge')}
                         </Badge>
                     ) : (
                         <Badge color="orange" leftSection={<PiArrowUpRight size={16} />} size="lg" variant="soft">
-                            списание
+                            {t('expenses.charge_badge')}
                         </Badge>
                     )
             },
             {
                 id: 'orig',
-                header: 'Сумма в валюте',
+                header: t('expenses.col_orig'),
                 accessorFn: (r) => r.orig_amount,
                 Cell: ({ row }) => {
                     const e = row.original
                     return (
                         <Tooltip
-                            label={`курс ${fmtNum(e.fx_rate, 4)}${e.fee_percent ? ` · комиссия ${e.fee_percent}%` : ''}${e.share_percent !== 100 ? ` · доля ${e.share_percent}%` : ''}`}
+                            label={[
+                                t('expenses.rate', { rate: fmtNum(e.fx_rate, 4) }),
+                                e.fee_percent ? t('expenses.fee', { pct: e.fee_percent }) : '',
+                                e.share_percent !== 100 ? t('expense_items.share_badge', { pct: e.share_percent }) : ''
+                            ]
+                                .filter(Boolean)
+                                .join(' · ')}
                         >
                             <Text ff="monospace" size="sm">
                                 {fmtCurrency(e.orig_amount, e.orig_currency)}
@@ -77,10 +85,10 @@ export function ExpensesPage() {
                     )
                 }
             },
-            { accessorKey: 'rub_amount', header: `В ${baseCurrency()}`, enableColumnFilter: false, Cell: ({ cell }) => <Money value={-cell.getValue<number>()} signed digits={2} /> },
+            { accessorKey: 'rub_amount', header: t('expenses.col_base', { currency: baseCurrency() }), enableColumnFilter: false, Cell: ({ cell }) => <Money value={-cell.getValue<number>()} signed digits={2} /> },
             {
                 id: 'extra',
-                header: 'Примечание',
+                header: t('expenses.col_note'),
                 accessorFn: (r) => r.note,
                 Cell: ({ row }) => {
                     const e = row.original
@@ -88,12 +96,12 @@ export function ExpensesPage() {
                         <Group gap={6} wrap="nowrap">
                             {e.refunded_total > 0 && (
                                 <Badge size="xs" color="teal" variant="soft">
-                                    возвращено {fmtMoney(e.refunded_total)}
+                                    {t('expenses.refunded', { amount: fmtMoney(e.refunded_total) })}
                                 </Badge>
                             )}
                             {e.calc_rub_amount !== null && e.calc_rub_amount !== e.rub_amount && (
                                 <Badge size="xs" color="yellow" variant="soft">
-                                    расчёт {fmtMoney(e.calc_rub_amount, 2)}
+                                    {t('expenses.calculated', { amount: fmtMoney(e.calc_rub_amount, 2) })}
                                 </Badge>
                             )}
                             <Text size="sm" truncate maw={280}>
@@ -104,25 +112,25 @@ export function ExpensesPage() {
                 }
             }
         ],
-        []
+        [t]
     )
 
     const providerColumns = useMemo<MRT_ColumnDef<ProviderTotals>[]>(
         () => [
             {
                 accessorKey: 'provider',
-                header: 'Провайдер',
+                header: t('expense_items.provider'),
                 size: 240,
                 Cell: ({ row }) => <ProviderLabel name={row.original.provider} uuid={row.original.provider_uuid} />
             },
             {
                 accessorKey: 'gross',
-                header: 'Потрачено (gross)',
+                header: t('expenses.col_gross'),
                 Cell: ({ cell }) => <Text ff="monospace" size="sm">{fmtMoney(cell.getValue<number>(), 2)}</Text>
             },
             {
                 accessorKey: 'refunded',
-                header: 'Возвращено',
+                header: t('expenses.col_refunded'),
                 Cell: ({ cell }) =>
                     cell.getValue<number>() ? (
                         <Text c="teal" ff="monospace" size="sm">
@@ -134,27 +142,27 @@ export function ExpensesPage() {
             },
             {
                 accessorKey: 'net',
-                header: 'Нетто',
+                header: t('expenses.col_net'),
                 Cell: ({ cell }) => (
                     <Text ff="monospace" fw={700} size="sm">
                         {fmtMoney(cell.getValue<number>(), 2)}
                     </Text>
                 )
             },
-            { accessorKey: 'count', header: 'Операций', mantineTableBodyCellProps: { align: 'center' } },
+            { accessorKey: 'count', header: t('expenses.col_count'), mantineTableBodyCellProps: { align: 'center' } },
             {
                 id: 'last',
-                header: 'Последняя',
+                header: t('expenses.col_last'),
                 sortingFn: 'datetime',
                 accessorFn: (r) => new Date(r.last),
                 Cell: ({ row }) => <Text ff="monospace" size="sm">{fmtDate(row.original.last)}</Text>
             }
         ],
-        []
+        [t]
     )
 
     const remove = (e: Expense) =>
-        confirmDanger('Удалить трату?', `${e.provider} · ${fmtMoney(e.rub_amount, 2)}`, async () => {
+        confirmDanger(t('expenses.delete'), `${e.provider} · ${fmtMoney(e.rub_amount, 2)}`, async () => {
             try {
                 await api.del(`expenses/${e.id}`)
                 await invalidate()
@@ -164,32 +172,32 @@ export function ExpensesPage() {
         })
 
     return (
-        <Page title="Траты">
+        <Page title={t('menu.expenses')}>
             <PageHeader
                 icon={<PiReceiptDuotone size={24} />}
-                title="Траты"
-                description={`Списания и возвраты. Сумма в ${baseCurrency()} фиксируется по курсу на дату и не пересчитывается`}
+                title={t('menu.expenses')}
+                description={t('expenses.description', { currency: baseCurrency() })}
                 actions={
                     <Button color="teal" leftSection={<PiPlus size={16} />} onClick={() => openExpenseForm({})} variant="soft">
-                        Трата
+                        {t('expenses.expense')}
                     </Button>
                 }
             />
             <SimpleGrid cols={{ base: 1, sm: 3 }} mb="md" spacing="xs">
-                <StatCard title="Потрачено всего" value={fmtMoney(totals.gross, 2)} hint="до учёта возвратов" icon={PiReceiptDuotone} color="orange" />
-                <StatCard title="Возвращено" value={fmtMoney(totals.refunded, 2)} icon={PiArrowUDownLeftDuotone} color="teal" />
-                <StatCard title="Итого (нетто)" value={fmtMoney(totals.net, 2)} icon={PiWalletDuotone} />
+                <StatCard title={t('expenses.total_gross')} value={fmtMoney(totals.gross, 2)} hint={t('expenses.before_refunds')} icon={PiReceiptDuotone} color="orange" />
+                <StatCard title={t('expenses.col_refunded')} value={fmtMoney(totals.refunded, 2)} icon={PiArrowUDownLeftDuotone} color="teal" />
+                <StatCard title={t('expenses.total_net')} value={fmtMoney(totals.net, 2)} icon={PiWalletDuotone} />
             </SimpleGrid>
             <Tabs defaultValue="journal">
                 <Tabs.List mb="md">
-                    <Tabs.Tab value="journal">Журнал</Tabs.Tab>
-                    <Tabs.Tab value="providers">По провайдерам</Tabs.Tab>
+                    <Tabs.Tab value="journal">{t('expenses.journal')}</Tabs.Tab>
+                    <Tabs.Tab value="providers">{t('expenses.by_provider')}</Tabs.Tab>
                 </Tabs.List>
                 <Tabs.Panel value="journal">
                     <DataTableCard
                         storageKey="expenses"
                         icon={<PiReceiptDuotone size={24} />}
-                        title="Журнал трат"
+                        title={t('expenses.journal_title')}
                         columns={columns}
                         data={expenses.data ?? []}
                         state={{ showProgressBars: expenses.isFetching, isLoading: !expenses.data }}
@@ -206,16 +214,16 @@ export function ExpensesPage() {
                                 </Menu.Target>
                                 <Menu.Dropdown>
                                     <Menu.Item leftSection={<PiPencilSimple size={16} />} onClick={() => openExpenseForm({ expense: row.original })}>
-                                        Изменить
+                                        {t('common.edit')}
                                     </Menu.Item>
                                     {row.original.kind === 'charge' && (
                                         <Menu.Item leftSection={<PiArrowUDownLeft size={16} />} onClick={() => openExpenseForm({ refundOf: row.original })}>
-                                            Оформить возврат
+                                            {t('expenses.make_refund')}
                                         </Menu.Item>
                                     )}
                                     <Menu.Divider />
                                     <Menu.Item color="red" leftSection={<PiTrash size={16} />} onClick={() => remove(row.original)}>
-                                        Удалить
+                                        {t('common.delete')}
                                     </Menu.Item>
                                 </Menu.Dropdown>
                             </Menu>
@@ -226,8 +234,8 @@ export function ExpensesPage() {
                     <DataTableCard
                         storageKey="providers"
                         icon={<PiBuildingsDuotone size={24} />}
-                        title="По провайдерам"
-                        description="Сколько потрачено до возвратов, сколько вернули и итог"
+                        title={t('expenses.by_provider')}
+                        description={t('expenses.by_provider_hint')}
                         compact
                         columns={providerColumns}
                         data={providers.data ?? []}

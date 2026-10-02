@@ -44,6 +44,22 @@ func Wrap(err error, code, message string, kv ...any) *Error {
 	return build(status, code, message, err, append(kv, "error", err.Error()))
 }
 
+// WithStatus sets the HTTP status.
+func (e *Error) WithStatus(status int) *Error {
+	e.Status = status
+	return e
+}
+
+// Fields returns the code and params of a coded error inside err, for
+// errors reported inside response data rather than as the response.
+func Fields(err error) (string, map[string]any) {
+	var e *Error
+	if errors.As(err, &e) {
+		return e.Code, e.Params
+	}
+	return "", nil
+}
+
 func build(status int, code, message string, cause error, kv []any) *Error {
 	e := &Error{Status: status, Code: code, Params: map[string]any{}, cause: cause}
 	for i := 0; i+1 < len(kv); i += 2 {

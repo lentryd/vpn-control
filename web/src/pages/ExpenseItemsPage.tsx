@@ -48,8 +48,8 @@ import { api } from '@/api/client'
 import { useApiMutation, useExpenseItems, useInfra, useInvalidateAll, useMetered, useNodes, useSettings } from '@/api/hooks'
 import type { ExpenseItem, GBUnit, MinMode, Tier } from '@/api/types'
 import { expiryColor } from '@/components/badges'
-import { fmtCurrency, fmtDate, fmtMoney, fmtNum, baseCurrency, currencySymbol } from '@/components/format'
-import { notifyError, notifyOk } from '@/components/notify'
+import { baseCurrency, currencySymbol, dateLayout, fmtCurrency, fmtDate, fmtMoney, fmtNum } from '@/components/format'
+import { notifyError, notifyOk, codedText } from '@/components/notify'
 import { PageHeader } from '@/components/ui'
 import { confirmDanger, openModal } from '@/modals/open'
 import { MeteredCard } from '@/pages/DashboardPage'
@@ -62,6 +62,8 @@ import { Page } from '@shared/ui/page'
 import { DataTableCard } from '@shared/ui/table'
 import { SearchSelect } from '@shared/ui/forms/search-select'
 import { CurrencyIcon, CURRENCIES } from '@shared/currencies'
+import i18n from '@/app/i18n/i18n'
+import { useTranslation } from 'react-i18next'
 
 // usePanelBilling maps a node to the panel's Infra Billing record for it.
 function usePanelBilling() {
@@ -79,6 +81,7 @@ function dueDate(item: ExpenseItem, billing: ReturnType<typeof usePanelBilling>)
 }
 
 function DueCell({ item }: { item: ExpenseItem }) {
+    const { t } = useTranslation()
     const billing = usePanelBilling()
     const panel = billing(item.rw_node_uuid)
     const date = dueDate(item, billing)
@@ -91,12 +94,12 @@ function DueCell({ item }: { item: ExpenseItem }) {
             </Text>
             <Group gap={4}>
                 <Text c={expiryColor(days)} size="xs">
-                    {days < 0 ? `просрочено на ${-days} дн.` : days === 0 ? 'сегодня' : `через ${days} дн.`}
+                    {days < 0 ? t('expense_items.overdue', { count: -days }) : days === 0 ? t('expense_items.today') : t('expense_items.in_days', { count: days })}
                 </Text>
                 {!item.next_due_date && panel && (
-                    <Tooltip label="Дата из Infra Billing панели">
+                    <Tooltip label={t('expense_items.panel_date')}>
                         <Badge color="gray" size="xs" variant="soft">
-                            панель
+                            {t('dashboard.panel_badge')}
                         </Badge>
                     </Tooltip>
                 )}
@@ -106,6 +109,7 @@ function DueCell({ item }: { item: ExpenseItem }) {
 }
 
 export function ExpenseItemsPage() {
+    const { t } = useTranslation()
     const { data } = useExpenseItems()
     const invalidate = useInvalidateAll()
     const [edit, setEdit] = useState<Partial<ExpenseItem> | null>(null)
@@ -117,7 +121,7 @@ export function ExpenseItemsPage() {
         try {
             await api.post('traffic/sync')
             await invalidate()
-            notifyOk('Трафик нод обновлён')
+            notifyOk(t('expense_items.traffic_synced'))
         } catch (e) {
             notifyError(e)
         } finally {
@@ -130,7 +134,7 @@ export function ExpenseItemsPage() {
         () => [
             {
                 accessorKey: 'name',
-                header: 'Статья',
+                header: t('expense_items.col_item'),
                 size: 220,
                 Cell: ({ row }) => (
                     <Group gap="md" pl={10} wrap="nowrap">
@@ -140,7 +144,7 @@ export function ExpenseItemsPage() {
                                 {row.original.name}
                             </Text>
                             <Text c="dimmed" fw={600} size="xs">
-                                {row.original.active ? (row.original.period === 'year' ? 'ежегодно' : 'ежемесячно') : 'не учитывается'}
+                                {row.original.active ? (row.original.period === 'year' ? t('expense_items.yearly') : t('expense_items.monthly')) : t('expense_items.inactive')}
                             </Text>
                         </Box>
                     </Group>
@@ -148,14 +152,14 @@ export function ExpenseItemsPage() {
             },
             {
                 accessorKey: 'provider',
-                header: 'Провайдер',
+                header: t('expense_items.provider'),
                 filterVariant: 'multi-select',
                 size: 200,
                 Cell: ({ row }) => <ProviderLabel name={row.original.provider} uuid={row.original.provider_uuid} />
             },
             {
                 id: 'node',
-                header: 'Нода',
+                header: t('expense_items.col_node'),
                 size: 220,
                 accessorFn: (r) => r.rw_node_uuid,
                 enableColumnFilter: false,
@@ -171,29 +175,29 @@ export function ExpenseItemsPage() {
             },
             {
                 accessorKey: 'pricing',
-                header: 'Тарификация',
+                header: t('expense_items.pricing'),
                 filterVariant: 'select',
                 mantineFilterSelectProps: {
                     data: [
-                        { value: 'fixed', label: 'Фиксированная' },
-                        { value: 'metered', label: 'По трафику' }
+                        { value: 'fixed', label: t('expense_items.fixed_short') },
+                        { value: 'metered', label: t('expense_items.metered_short') }
                     ]
                 },
                 mantineTableBodyCellProps: { align: 'center' },
                 Cell: ({ row }) =>
                     row.original.pricing === 'metered' ? (
                         <Badge color="cyan" leftSection={<TbCloudDataConnection size={14} />} variant="soft">
-                            по трафику
+                            {t('expense_items.metered_badge')}
                         </Badge>
                     ) : (
                         <Badge color="gray" leftSection={<PiCalendarDuotone size={14} />} variant="soft">
-                            {row.original.period === 'year' ? 'в год' : 'в месяц'}
+                            {row.original.period === 'year' ? t('expense_items.per_year') : t('expense_items.per_month')}
                         </Badge>
                     )
             },
             {
                 id: 'price',
-                header: 'Цена',
+                header: t('dashboard.col_price'),
                 enableColumnFilter: false,
                 accessorFn: (r) => (r.pricing === 'metered' ? r.min_charge : r.amount),
                 Cell: ({ row }) => {
@@ -201,12 +205,12 @@ export function ExpenseItemsPage() {
                     return it.pricing === 'metered' ? (
                         <Stack gap={0}>
                             <Text ff="monospace" fw={500} size="sm">
-                                {it.tiers?.length ? `${it.tiers.length} ступ.` : `${fmtCurrency(it.price_per_gb, it.currency)}/ГБ`}
+                                {it.tiers?.length ? t('expense_items.tiers_count', { count: it.tiers.length }) : t('expense_items.per_gb', { price: fmtCurrency(it.price_per_gb, it.currency) })}
                             </Text>
                             <Text c="dimmed" size="xs">
                                 {it.min_mode === 'free'
-                                    ? `${fmtCurrency(it.min_charge, it.currency)} + ${fmtNum(it.free_gb)} ГБ бесплатно`
-                                    : `мин. ${fmtCurrency(it.min_charge, it.currency)}`}
+                                    ? t('expense_items.fee_free', { fee: fmtCurrency(it.min_charge, it.currency), gb: fmtNum(it.free_gb) })
+                                    : t('expense_items.min_short', { min: fmtCurrency(it.min_charge, it.currency) })}
                             </Text>
                         </Stack>
                     ) : (
@@ -218,7 +222,7 @@ export function ExpenseItemsPage() {
             },
             {
                 id: 'fee',
-                header: 'Курс / комиссия / доля',
+                header: t('expense_items.col_rate'),
                 size: 200,
                 enableColumnFilter: false,
                 enableSorting: false,
@@ -239,7 +243,7 @@ export function ExpenseItemsPage() {
                             )}
                             {it.share_percent !== 100 && (
                                 <Badge color="indigo" variant="soft">
-                                    доля {it.share_percent}%
+                                    {t('expense_items.share_badge', { pct: it.share_percent })}
                                 </Badge>
                             )}
                             {it.currency === baseCurrency() && !it.fee_percent && it.share_percent === 100 && <Text c="dimmed">–</Text>}
@@ -249,14 +253,14 @@ export function ExpenseItemsPage() {
             },
             {
                 accessorKey: 'monthly_rub',
-                header: 'В месяц',
+                header: t('expense_items.col_monthly'),
                 enableColumnFilter: false,
                 mantineTableBodyCellProps: { align: 'center' },
                 Cell: ({ row }) =>
                     row.original.plan_error ? (
-                        <Tooltip label={row.original.plan_error} multiline maw={320}>
+                        <Tooltip label={codedText(row.original.plan_error, row.original.plan_error_code, row.original.plan_error_params)} multiline maw={320}>
                             <Badge color="red" variant="soft">
-                                ошибка
+                                {t('common.error')}
                             </Badge>
                         </Tooltip>
                     ) : (
@@ -266,7 +270,7 @@ export function ExpenseItemsPage() {
                             </Text>
                             {row.original.pricing === 'metered' && (
                                 <Text c="dimmed" size="xs">
-                                    прогноз
+                                    {t('expense_items.forecast_badge')}
                                 </Text>
                             )}
                         </Stack>
@@ -274,7 +278,7 @@ export function ExpenseItemsPage() {
             },
             {
                 id: 'due',
-                header: 'След. оплата',
+                header: t('expense_items.col_next'),
                 enableColumnFilter: false,
                 mantineTableBodyCellProps: { align: 'center' },
                 sortingFn: 'datetime',
@@ -287,19 +291,19 @@ export function ExpenseItemsPage() {
                 Cell: ({ row }) => <DueCell item={row.original} />
             }
         ],
-        [billing]
+        [billing, t]
     )
 
     return (
-        <Page title="Статьи расходов">
+        <Page title={t('menu.expense_items')}>
             <PageHeader
                 icon={<PiBuildingsDuotone size={24} />}
-                title="Статьи расходов"
-                description={`Регулярные платежи за инфраструктуру. Плановые расходы: ${fmtMoney(data?.monthly_total, 2)} в месяц по текущему курсу`}
+                title={t('menu.expense_items')}
+                description={t('expense_items.description', { total: fmtMoney(data?.monthly_total, 2) })}
                 actions={
                     <>
                         <Button color="gray" leftSection={<PiArrowsClockwise size={16} />} loading={syncing} onClick={syncTraffic}>
-                            Обновить трафик
+                            {t('expense_items.sync_traffic')}
                         </Button>
                         <Button
                             color="teal"
@@ -307,7 +311,7 @@ export function ExpenseItemsPage() {
                             leftSection={<PiPlus size={16} />}
                             onClick={() => setEdit({ pricing: 'fixed', active: true, currency: baseCurrency(), share_percent: 100, period: 'month' })}
                         >
-                            Статья
+                            {t('expense_items.item')}
                         </Button>
                     </>
                 }
@@ -315,8 +319,8 @@ export function ExpenseItemsPage() {
             <DataTableCard
                 storageKey="expense-items"
                 icon={<PiBuildingsDuotone size={24} />}
-                title="Регулярные платежи"
-                description="Провайдеры, ноды и даты оплат подтягиваются из Infra Billing панели"
+                title={t('expense_items.table_title')}
+                description={t('expense_items.table_hint')}
                 columns={columns}
                 data={data?.items ?? []}
                 state={{ isLoading: !data }}
@@ -341,7 +345,7 @@ export function ExpenseItemsPage() {
                     <BaseOverlayHeader
                         IconComponent={edit?.id ? PiPencilSimpleDuotone : PiPlus}
                         subtitle={edit?.id ? edit.name : undefined}
-                        title={edit?.id ? 'Статья расходов' : 'Новая статья'}
+                        title={edit?.id ? t('expense_items.item_title') : t('expense_items.new_item')}
                     />
                 }
             >
@@ -352,7 +356,7 @@ export function ExpenseItemsPage() {
                 onClose={() => setMetered(null)}
                 position="right"
                 size="xl"
-                title={<BaseOverlayHeader IconComponent={PiChartBarDuotone} subtitle={metered?.name} title="Трафик и стоимость" />}
+                title={<BaseOverlayHeader IconComponent={PiChartBarDuotone} subtitle={metered?.name} title={t('expense_items.traffic_cost')} />}
             >
                 {metered && <MeteredView item={metered} />}
             </Drawer>
@@ -361,6 +365,7 @@ export function ExpenseItemsPage() {
 }
 
 function ItemMenu({ item, onEdit, onMetered }: { item: ExpenseItem; onEdit: () => void; onMetered: () => void }) {
+    const { t } = useTranslation()
     const invalidate = useInvalidateAll()
     return (
         <Menu position="bottom-end" withinPortal>
@@ -370,27 +375,27 @@ function ItemMenu({ item, onEdit, onMetered }: { item: ExpenseItem; onEdit: () =
                 </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>
-                <Menu.Label>Управление</Menu.Label>
+                <Menu.Label>{t('expense_items.manage')}</Menu.Label>
                 {item.pricing === 'metered' && (
                     <>
                         <Menu.Item leftSection={<PiChartBar size={16} />} onClick={onMetered}>
-                            Трафик и прогноз
+                            {t('expense_items.traffic_forecast')}
                         </Menu.Item>
                         <Menu.Item leftSection={<PiLock size={16} />} onClick={() => openClosePeriod(item)}>
-                            Закрыть период
+                            {t('expense_items.close_period')}
                         </Menu.Item>
                     </>
                 )}
                 <Menu.Item leftSection={<PiPencilSimple size={16} />} onClick={onEdit}>
-                    Изменить
+                    {t('common.edit')}
                 </Menu.Item>
                 <Menu.Divider />
-                <Menu.Label>Опасная зона</Menu.Label>
+                <Menu.Label>{t('common.danger_zone')}</Menu.Label>
                 <Menu.Item
                     color="red"
                     leftSection={<PiTrash size={16} />}
                     onClick={() =>
-                        confirmDanger(`Удалить «${item.name}»?`, 'Уже записанные траты останутся, связь со статьёй пропадёт.', async () => {
+                        confirmDanger(t('expense_items.delete', { name: item.name }), t('expense_items.delete_hint'), async () => {
                             try {
                                 await api.del(`expense-items/${item.id}`)
                                 await invalidate()
@@ -400,7 +405,7 @@ function ItemMenu({ item, onEdit, onMetered }: { item: ExpenseItem; onEdit: () =
                         })
                     }
                 >
-                    Удалить
+                    {t('common.delete')}
                 </Menu.Item>
             </Menu.Dropdown>
         </Menu>
@@ -408,12 +413,13 @@ function ItemMenu({ item, onEdit, onMetered }: { item: ExpenseItem; onEdit: () =
 }
 
 function openClosePeriod(item: ExpenseItem) {
-    openModal({ icon: PiCalendarCheckDuotone, color: 'orange', title: 'Закрыть период', subtitle: item.name }, (close) => (
+    openModal({ icon: PiCalendarCheckDuotone, color: 'orange', title: i18n.t('expense_items.close_period'), subtitle: item.name }, (close) => (
         <ClosePeriodForm item={item} onDone={close} />
     ))
 }
 
 function ClosePeriodForm({ item, onDone }: { item: ExpenseItem; onDone: () => void }) {
+    const { t } = useTranslation()
     const [month, setMonth] = useState<string | null>(dayjs().subtract(1, 'month').format('YYYY-MM-01'))
     const m = useApiMutation(() =>
         api.post<{ rub_amount: number }>(`expense-items/${item.id}/close-period`, { period: dayjs(month).format('YYYY-MM') })
@@ -423,10 +429,10 @@ function ClosePeriodForm({ item, onDone }: { item: ExpenseItem; onDone: () => vo
             <FormSection
                 icon={PiCalendarCheckDuotone}
                 color="orange"
-                title="Период"
-                description="Трата запишется на рассчитанную по трафику сумму. Когда придёт счёт — поправьте сумму в журнале, расчёт сохранится для сравнения."
+                title={t('expense_items.period')}
+                description={t('expense_items.close_hint')}
             >
-                <MonthPickerInput label="Месяц" leftSection={<PiCalendarDuotone size={16} />} value={month} onChange={setMonth} />
+                <MonthPickerInput label={t('expense_items.month')} leftSection={<PiCalendarDuotone size={16} />} value={month} onChange={setMonth} />
             </FormSection>
             <FormFooter
                 loading={m.isPending}
@@ -434,35 +440,36 @@ function ClosePeriodForm({ item, onDone }: { item: ExpenseItem; onDone: () => vo
                 onSubmit={() =>
                     m.mutate(undefined, {
                         onSuccess: (r) => {
-                            notifyOk(`Записано ${fmtMoney(r.rub_amount, 2)}`)
+                            notifyOk(t('expense_items.booked', { amount: fmtMoney(r.rub_amount, 2) }))
                             onDone()
                         },
                         onError: (e) => notifyError(e)
                     })
                 }
                 submitIcon={<PiLock size={16} />}
-                submitLabel="Закрыть период"
+                submitLabel={t('expense_items.close_period')}
             />
         </FormStack>
     )
 }
 
 function MeteredView({ item }: { item: ExpenseItem }) {
+    const { t } = useTranslation()
     const [month, setMonth] = useState<string | null>(dayjs().format('YYYY-MM-01'))
     const q = useMetered(item.id, dayjs(month).format('YYYY-MM'))
     const consumers = useMemo<MRT_ColumnDef<NonNullable<NonNullable<typeof q.data>['top_consumers']>[number]>[]>(
         () => [
-            { accessorKey: 'username', header: 'Пользователь', Cell: ({ row }) => row.original.username || `#${row.original.rw_user_id}` },
-            { accessorKey: 'customer_name', header: 'Клиент', Cell: ({ row }) => row.original.customer_name || '–' },
-            { accessorKey: 'gb', header: 'ГБ', Cell: ({ cell }) => <Text ff="monospace" size="sm">{fmtNum(cell.getValue<number>())}</Text> },
-            { accessorKey: 'share_percent', header: 'Доля', Cell: ({ cell }) => `${fmtNum(cell.getValue<number>(), 1)}%` },
+            { accessorKey: 'username', header: t('expense_items.col_user'), Cell: ({ row }) => row.original.username || `#${row.original.rw_user_id}` },
+            { accessorKey: 'customer_name', header: t('expense_items.col_customer'), Cell: ({ row }) => row.original.customer_name || '–' },
+            { accessorKey: 'gb', header: t('format.units.gb'), Cell: ({ cell }) => <Text ff="monospace" size="sm">{fmtNum(cell.getValue<number>())}</Text> },
+            { accessorKey: 'share_percent', header: t('expense_items.col_share'), Cell: ({ cell }) => `${fmtNum(cell.getValue<number>(), 1)}%` },
             { accessorKey: 'cost_rub', header: `≈ ${currencySymbol()}`, Cell: ({ cell }) => fmtMoney(cell.getValue<number>()) }
         ],
-        []
+        [t]
     )
     return (
         <Stack>
-            <MonthPickerInput label="Месяц" leftSection={<PiCalendarDuotone size={16} />} value={month} onChange={setMonth} w={220} />
+            <MonthPickerInput label={t('expense_items.month')} leftSection={<PiCalendarDuotone size={16} />} value={month} onChange={setMonth} w={220} />
             {q.error && (
                 <Alert color="red" variant="soft">
                     {q.error.message}
@@ -477,7 +484,7 @@ function MeteredView({ item }: { item: ExpenseItem }) {
                     icon={<PiUsersDuotone size={24} />}
                     initialState={{ sorting: [{ id: 'gb', desc: true }] }}
                     storageKey="consumers"
-                    title="Все потребители"
+                    title={t('expense_items.all_consumers')}
                 />
             )}
         </Stack>
@@ -485,6 +492,7 @@ function MeteredView({ item }: { item: ExpenseItem }) {
 }
 
 function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => void }) {
+    const { t } = useTranslation()
     const nodes = useNodes()
     const infra = useInfra()
     const billing = usePanelBilling()
@@ -514,7 +522,7 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
             active: item.active ?? true,
             notes: item.notes ?? ''
         },
-        validate: { name: (v) => (v.trim() ? null : 'Введите название') }
+        validate: { name: (v) => (v.trim() ? null : t('tariffs.name_required')) }
     })
     const m = useApiMutation((v: typeof form.values) => {
         const body = { ...v, rw_node_uuid: v.rw_node_uuid ?? '', rw_squad_uuid: v.rw_squad_uuid ?? '' }
@@ -540,7 +548,7 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
             onSubmit={form.onSubmit((vals) =>
                 m.mutate(vals, {
                     onSuccess: () => {
-                        notifyOk('Сохранено')
+                        notifyOk(t('common.saved'))
                         onDone()
                     },
                     onError: (e) => notifyError(e)
@@ -548,11 +556,11 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
             )}
         >
             <Stack gap="md">
-                <FormSection icon={PiBuildingsDuotone} title="Статья" description="Что оплачиваем и кому">
-                    <TextInput label="Название" leftSection={<PiTextAa size={16} />} required {...form.getInputProps('name')} />
+                <FormSection icon={PiBuildingsDuotone} title={t('expense_items.item')} description={t('expense_items.item_hint')}>
+                    <TextInput label={t('tariffs.col_name')} leftSection={<PiTextAa size={16} />} required {...form.getInputProps('name')} />
                     <ProviderInput
-                        label="Провайдер"
-                        placeholder="Из Infra Billing панели или любой другой"
+                        label={t('expense_items.provider')}
+                        placeholder={t('expense_items.provider_placeholder')}
                         extra={knownProviders}
                         value={v.provider}
                         onChange={(name, uuid) => {
@@ -561,34 +569,34 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
                         }}
                     />
                     <NodeSelect
-                        label="Нода в панели"
+                        label={t('expense_items.node')}
                         description={
                             panelBilling
-                                ? `В Infra Billing панели следующая оплата ${fmtDate(panelBilling.nextBillingAt)}`
-                                : 'Необязательно. Для тарификации по трафику — обязательно'
+                                ? t('expense_items.node_billing', { date: fmtDate(panelBilling.nextBillingAt) })
+                                : t('expense_items.node_hint')
                         }
-                        placeholder={nodes.isPending ? 'Загрузка…' : 'Не выбрана'}
+                        placeholder={nodes.isPending ? t('common.loading') : t('expense_items.not_selected')}
                         clearable
                         allowDeselect
                         value={v.rw_node_uuid}
                         onChange={pickNode}
                         error={nodes.error?.message}
                     />
-                    <Switch label="Активна" description="Учитывается в плановых расходах" {...form.getInputProps('active', { type: 'checkbox' })} />
+                    <Switch label={t('expense_items.active')} description={t('expense_items.active_hint')} {...form.getInputProps('active', { type: 'checkbox' })} />
                 </FormSection>
 
-                <FormSection icon={PiCoinsDuotone} color="teal" title="Тарификация">
+                <FormSection icon={PiCoinsDuotone} color="teal" title={t('expense_items.pricing')}>
                     <SegmentedControl
                         data={[
-                            { value: 'fixed', label: 'Фиксированная цена' },
-                            { value: 'metered', label: 'По трафику (ГБ)' }
+                            { value: 'fixed', label: t('expense_items.fixed') },
+                            { value: 'metered', label: t('expense_items.metered') }
                         ]}
                         fullWidth
                         {...form.getInputProps('pricing')}
                     />
                     <SimpleGrid cols={{ base: 1, xs: 2 }}>
                         <SearchSelect
-                            label="Валюта"
+                            label={t('expense_items.currency')}
                             leftSection={<CurrencyIcon size={16} />}
                             data={CURRENCIES}
                             {...form.getInputProps('currency')}
@@ -601,18 +609,18 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
                         />
                         {v.pricing === 'fixed' ? (
                             <Select
-                                label="Период"
+                                label={t('expense_items.period')}
                                 leftSection={<PiCalendarDuotone size={16} />}
                                 data={[
-                                    { value: 'month', label: 'Ежемесячно' },
-                                    { value: 'year', label: 'Ежегодно' }
+                                    { value: 'month', label: t('expense_items.monthly_cap') },
+                                    { value: 'year', label: t('expense_items.yearly_cap') }
                                 ]}
                                 {...form.getInputProps('period')}
                             />
                         ) : (
                             <NumberInput
-                                label="День начала периода"
-                                description="Когда провайдер начинает новый расчётный период"
+                                label={t('expense_items.billing_day')}
+                                description={t('expense_items.billing_day_hint')}
                                 leftSection={<PiCalendarDuotone size={16} />}
                                 min={1}
                                 max={28}
@@ -623,7 +631,7 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
                     </SimpleGrid>
                     {v.pricing === 'fixed' ? (
                         <NumberInput
-                            label={`Цена за период, ${v.currency}`}
+                            label={t('expense_items.period_price', { currency: v.currency })}
                             leftSection={<PiCoinsDuotone size={16} />}
                             min={0}
                             decimalScale={2}
@@ -634,14 +642,14 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
                     )}
                     <SimpleGrid cols={{ base: 1, xs: 2 }}>
                         <NumberInput
-                            label="Комиссия банка, %"
+                            label={t('expense_items.fee')}
                             leftSection={<PiPercent size={16} />}
                             decimalScale={2}
                             {...form.getInputProps('fee_percent')}
                         />
                         <NumberInput
-                            label="Наша доля, %"
-                            description="Если расход делится с кем-то: 30% — платим треть"
+                            label={t('expense_items.share')}
+                            description={t('expense_items.share_hint')}
                             leftSection={<PiPercent size={16} />}
                             min={0}
                             max={100}
@@ -650,21 +658,21 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
                         />
                     </SimpleGrid>
                     <DateInput
-                        label="Следующая оплата"
-                        description={panelBilling ? 'Пусто — брать дату из Infra Billing панели' : undefined}
+                        label={t('expense_items.next_payment')}
+                        description={panelBilling ? t('expense_items.next_payment_hint') : undefined}
                         leftSection={<PiCalendarDuotone size={16} />}
                         clearable
-                        valueFormat="DD.MM.YYYY"
+                        valueFormat={dateLayout()}
                         {...form.getInputProps('next_due_date')}
                     />
                 </FormSection>
 
                 {v.pricing === 'metered' && (
-                    <FormSection icon={TbServer2} color="violet" title="Чей трафик считаем" description="Нода выбирается выше">
+                    <FormSection icon={TbServer2} color="violet" title={t('expense_items.whose_traffic')} description={t('expense_items.whose_traffic_hint')}>
                         <SquadSelect
-                            label="Внутренний сквад"
-                            description="Если ноду делят несколько групп: стоимость считается по доле трафика участников сквада на этой ноде. Пусто — весь трафик ноды"
-                            placeholder="Вся нода"
+                            label={t('expense_items.squad')}
+                            description={t('expense_items.squad_hint')}
+                            placeholder={t('expense_items.whole_node')}
                             clearable
                             allowDeselect
                             {...form.getInputProps('rw_squad_uuid')}
@@ -672,7 +680,7 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
                     </FormSection>
                 )}
 
-                <FormSection icon={PiNotePencil} color="gray" title="Заметки">
+                <FormSection icon={PiNotePencil} color="gray" title={t('expense_items.notes')}>
                     <Textarea autosize minRows={2} {...form.getInputProps('notes')} />
                 </FormSection>
                 <FormFooter inline loading={m.isPending} onCancel={onDone} />
@@ -694,6 +702,7 @@ type ItemFormValues = {
 // MeteredPricingFields edits how a per-GB provider bills: the GB unit, a
 // minimum vs. a fixed fee with a free allowance, and flat vs. tiered prices.
 function MeteredPricingFields<T extends ItemFormValues>({ form }: { form: UseFormReturnType<T> }) {
+    const { t } = useTranslation()
     const v = form.getValues() as ItemFormValues
     const set = <K extends keyof ItemFormValues>(k: K, val: ItemFormValues[K]) => form.setFieldValue(k as never, val as never)
     const tiered = v.tiers.length > 0
@@ -702,31 +711,29 @@ function MeteredPricingFields<T extends ItemFormValues>({ form }: { form: UseFor
     return (
         <>
             <Select
-                label="Как провайдер считает ГБ"
+                label={t('expense_items.gb_unit')}
                 leftSection={<TbCloudDataConnection size={16} />}
                 data={[
-                    { value: 'binary', label: '1 ГБ = 1024³ байт (ГиБ — Яндекс Облако и др.)' },
-                    { value: 'decimal', label: '1 ГБ = 10⁹ байт (большинство CDN)' }
+                    { value: 'binary', label: t('expense_items.gb_binary') },
+                    { value: 'decimal', label: t('expense_items.gb_decimal') }
                 ]}
                 {...form.getInputProps('gb_unit')}
             />
             <SegmentedControl
                 data={[
-                    { value: 'floor', label: 'Минимальный платёж' },
-                    { value: 'free', label: 'Абонплата + бесплатный объём' }
+                    { value: 'floor', label: t('expense_items.min_charge') },
+                    { value: 'free', label: t('expense_items.fee_allowance') }
                 ]}
                 fullWidth
                 {...form.getInputProps('min_mode')}
             />
             <SimpleGrid cols={{ base: 1, xs: free ? 2 : 1 }}>
                 <NumberInput
-                    label={`${free ? 'Абонплата' : 'Минимальный платёж'}, ${v.currency}`}
+                    label={`${free ? t('expense_items.fee_label') : t('expense_items.min_charge')}, ${v.currency}`}
                     description={
                         free
-                            ? 'Стоимость = абонплата + ГБ сверх бесплатного объёма × цена'
-                            : `Стоимость = max(минимум, ГБ × цена). Минимум покрывает ${
-                                  !tiered && firstPrice ? fmtNum(v.min_charge / firstPrice) : '—'
-                              } ГБ`
+                            ? t('expense_items.free_formula')
+                            : t('expense_items.floor_formula', { gb: !tiered && firstPrice ? fmtNum(v.min_charge / firstPrice) : '—' })
                     }
                     leftSection={<PiCoinsDuotone size={16} />}
                     min={0}
@@ -735,7 +742,7 @@ function MeteredPricingFields<T extends ItemFormValues>({ form }: { form: UseFor
                 />
                 {free && (
                     <NumberInput
-                        label="Бесплатно, ГБ"
+                        label={t('expense_items.free_gb')}
                         leftSection={<TbCloudDataConnection size={16} />}
                         min={0}
                         decimalScale={2}
@@ -744,8 +751,8 @@ function MeteredPricingFields<T extends ItemFormValues>({ form }: { form: UseFor
                 )}
             </SimpleGrid>
             <Switch
-                label="Ступенчатая цена"
-                description="Разная цена за ГБ в зависимости от объёма за период"
+                label={t('expense_items.tiered')}
+                description={t('expense_items.tiered_hint')}
                 checked={tiered}
                 onChange={(e) =>
                     set(
@@ -761,22 +768,22 @@ function MeteredPricingFields<T extends ItemFormValues>({ form }: { form: UseFor
             />
             {tiered ? (
                 <Stack gap="xs">
-                    {v.tiers.map((t, i) => (
+                    {v.tiers.map((tier, i) => (
                         <Group align="flex-end" gap="xs" key={i} wrap="nowrap">
                             <NumberInput
-                                label={i === 0 ? 'До, ГБ (0 — без ограничения)' : undefined}
+                                label={i === 0 ? t('expense_items.tier_up_to') : undefined}
                                 min={0}
                                 decimalScale={2}
                                 style={{ flex: 1 }}
-                                value={t.up_to_gb}
+                                value={tier.up_to_gb}
                                 onChange={(x) => set('tiers', v.tiers.map((y, j) => (j === i ? { ...y, up_to_gb: Number(x) || 0 } : y)))}
                             />
                             <NumberInput
-                                label={i === 0 ? `Цена за ГБ, ${v.currency}` : undefined}
+                                label={i === 0 ? t('expense_items.price_per_gb', { currency: v.currency }) : undefined}
                                 min={0}
                                 decimalScale={4}
                                 style={{ flex: 1 }}
-                                value={t.price_per_gb}
+                                value={tier.price_per_gb}
                                 onChange={(x) => set('tiers', v.tiers.map((y, j) => (j === i ? { ...y, price_per_gb: Number(x) || 0 } : y)))}
                             />
                             <ActionIcon
@@ -796,12 +803,12 @@ function MeteredPricingFields<T extends ItemFormValues>({ form }: { form: UseFor
                         variant="subtle"
                         w="fit-content"
                     >
-                        Добавить ступень
+                        {t('expense_items.add_tier')}
                     </Button>
                 </Stack>
             ) : (
                 <NumberInput
-                    label={`Цена за ГБ, ${v.currency}`}
+                    label={t('expense_items.price_per_gb', { currency: v.currency })}
                     leftSection={<TbCloudDataConnection size={16} />}
                     min={0}
                     decimalScale={4}
