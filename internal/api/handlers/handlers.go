@@ -14,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"vpn-control/ent"
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/backup"
 	"vpn-control/internal/billing"
 	"vpn-control/internal/config"
@@ -41,14 +42,14 @@ type Handlers struct {
 func paramID(c *fiber.Ctx, name string) (int, error) {
 	id, err := strconv.Atoi(c.Params(name))
 	if err != nil || id <= 0 {
-		return 0, fiber.NewError(fiber.StatusBadRequest, "некорректный id")
+		return 0, apperr.New("bad_id", "invalid id")
 	}
 	return id, nil
 }
 
 func bind(c *fiber.Ctx, v any) error {
 	if err := c.BodyParser(v); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "некорректный запрос: "+err.Error())
+		return apperr.Wrap(err, "bad_request", "invalid request: {{error}}")
 	}
 	return nil
 }
@@ -60,18 +61,19 @@ func badRequest(err error) error {
 		return nil
 	}
 	var fe *fiber.Error
-	if errors.As(err, &fe) {
+	var ae *apperr.Error
+	if errors.As(err, &fe) || errors.As(err, &ae) {
 		return err
 	}
 	if ent.IsNotFound(err) {
-		return fiber.NewError(fiber.StatusNotFound, "не найдено")
+		return apperr.Status(fiber.StatusNotFound, "not_found", "not found")
 	}
 	if ent.IsConstraintError(err) {
-		return fiber.NewError(fiber.StatusConflict, "конфликт данных: "+err.Error())
+		return apperr.Wrap(err, "conflict", "data conflict: {{error}}")
 	}
 	var apiErr *remnawave.APIError
 	if errors.As(err, &apiErr) {
-		return fiber.NewError(fiber.StatusBadGateway, "Remnawave: "+err.Error())
+		return apperr.Wrap(err, "panel.error", "Remnawave: {{error}}")
 	}
 	return fiber.NewError(fiber.StatusBadRequest, err.Error())
 }
@@ -90,7 +92,7 @@ func (d *Date) UnmarshalJSON(b []byte) error {
 			return nil
 		}
 	}
-	return errors.New("некорректная дата " + s)
+	return apperr.New("bad_date", "invalid date {{value}}", "value", s)
 }
 
 func (d Date) Ptr() *time.Time {

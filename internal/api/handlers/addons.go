@@ -9,6 +9,7 @@ import (
 	"vpn-control/ent/addon"
 	"vpn-control/ent/subscriptionaddon"
 	"vpn-control/ent/tariff"
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/audit"
 )
 
@@ -55,7 +56,7 @@ type addonCatalogInput struct {
 func (in *addonCatalogInput) validate() error {
 	in.Name, in.Prefix, in.Suffix = strings.TrimSpace(in.Name), strings.TrimSpace(in.Prefix), strings.TrimSpace(in.Suffix)
 	if in.Prefix == "" && in.Suffix == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "задайте префикс или суффикс")
+		return apperr.New("addon.prefix_required", "set a prefix or a suffix")
 	}
 	if in.Name == "" {
 		in.Name = in.Prefix + in.Suffix
@@ -79,7 +80,7 @@ func (h *Handlers) uiAddon(c *fiber.Ctx) (*ent.Addon, error) {
 		return nil, badRequest(err)
 	}
 	if a.Source != addon.SourceUI {
-		return nil, fiber.NewError(fiber.StatusConflict, "аддон из файла — меняйте его в файле")
+		return nil, apperr.Status(fiber.StatusConflict, "addon.from_file", "the add-on comes from the file; edit it there")
 	}
 	return a, nil
 }
@@ -98,7 +99,7 @@ func (h *Handlers) CreateAddon(c *fiber.Ctx) error {
 		SetRemark(in.Remark).SetRemarkUnlimited(in.RemarkUnlimited).SetStubs(in.Stubs).
 		Save(ctx)
 	if ent.IsConstraintError(err) {
-		err = fiber.NewError(fiber.StatusConflict, "аддон с таким названием уже есть")
+		err = apperr.Status(fiber.StatusConflict, "addon.duplicate", "an add-on with this name already exists")
 	}
 	audit.Log(ctx, h.DB, "addon.create", "addon", idOfAddon(a), in, err)
 	if err != nil {
@@ -125,7 +126,7 @@ func (h *Handlers) UpdateAddon(c *fiber.Ctx) error {
 		SetRemark(in.Remark).SetRemarkUnlimited(in.RemarkUnlimited).SetStubs(in.Stubs).
 		Exec(ctx)
 	if ent.IsConstraintError(err) {
-		err = fiber.NewError(fiber.StatusConflict, "аддон с таким названием уже есть")
+		err = apperr.Status(fiber.StatusConflict, "addon.duplicate", "an add-on with this name already exists")
 	}
 	audit.Log(ctx, h.DB, "addon.update_catalog", "addon", a.ID, in, err)
 	if err != nil {
@@ -149,7 +150,7 @@ func (h *Handlers) DeleteAddon(c *fiber.Ctx) error {
 		return err
 	}
 	if used || tariffs {
-		return fiber.NewError(fiber.StatusConflict, "аддон используется в подписках или тарифах")
+		return apperr.Status(fiber.StatusConflict, "addon.in_use", "the add-on is used by subscriptions or tariffs")
 	}
 	err = h.DB.Addon.DeleteOne(a).Exec(ctx)
 	audit.Log(ctx, h.DB, "addon.delete", "addon", a.ID, nil, err)

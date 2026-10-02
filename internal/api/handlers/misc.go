@@ -14,6 +14,7 @@ import (
 
 	"vpn-control/ent"
 	"vpn-control/ent/auditlog"
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/fx"
 	"vpn-control/internal/remnawave"
 	"vpn-control/internal/rwsync"
@@ -59,7 +60,7 @@ func (h *Handlers) UpdateSettings(c *fiber.Ctx) error {
 			continue // read-only flags echoed back by the UI
 		}
 		if _, known := settings.Defaults[k]; !known {
-			return fiber.NewError(fiber.StatusBadRequest, "неизвестная настройка "+k)
+			return apperr.New("settings.unknown", "unknown setting {{key}}", "key", k)
 		}
 		if k == settings.BaseCurrency {
 			if v = strings.ToUpper(strings.TrimSpace(v)); v != h.Settings.Base(ctx) {
@@ -68,7 +69,7 @@ func (h *Handlers) UpdateSettings(c *fiber.Ctx) error {
 				}
 			}
 		} else if _, err := strconv.ParseFloat(v, 64); err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, k+": нужно число")
+			return apperr.New("settings.not_number", "{{key}} must be a number", "key", k)
 		}
 		if err := h.Settings.Set(c.UserContext(), k, v); err != nil {
 			return err
@@ -81,16 +82,16 @@ func (h *Handlers) UpdateSettings(c *fiber.Ctx) error {
 // empty (amounts aren't converted) and only if rates for it are published.
 func (h *Handlers) checkBaseChange(ctx context.Context, base string) error {
 	if !currencyRe.MatchString(base) {
-		return fiber.NewError(fiber.StatusBadRequest, "base_currency: ISO-код из 3 букв")
+		return apperr.New("settings.bad_currency", "base currency must be a 3-letter ISO code")
 	}
 	if used, err := h.booksUsed(ctx); err != nil {
 		return err
 	} else if used {
-		return fiber.NewError(fiber.StatusConflict, "базовую валюту можно сменить только пока нет платежей и трат")
+		return apperr.Status(fiber.StatusConflict, "settings.base_locked", "the base currency can only change while there are no payments or expenses")
 	}
 	if base != "RUB" {
 		if _, err := fx.SourceFor(base, &http.Client{Timeout: 15 * time.Second}).Fetch(ctx, time.Now()); err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+			return apperr.Wrap(err, "settings.base_unsupported", "{{error}}")
 		}
 	}
 	return nil

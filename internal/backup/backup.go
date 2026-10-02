@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"vpn-control/ent/migrate"
+	"vpn-control/internal/apperr"
 )
 
 const (
@@ -43,14 +44,14 @@ type Category struct {
 
 // Categories covers every table of the schema exactly once (see the test).
 var Categories = []Category{
-	{Key: "customers", Title: "Клиенты", Description: "Клиенты и реферальные связи", Tables: []string{"customers"}},
-	{Key: "tariffs", Title: "Тарифы и аддоны", Description: "Тарифы, цены за периоды, аддоны, аддоны в тарифах", Tables: []string{"addons", "tariffs", "tariff_periods", "tariff_included_addons"}},
-	{Key: "subscriptions", Title: "Подписки", Description: "Подписки, подключённые аддоны и кэш пользователей Remnawave", Tables: []string{"rw_users", "subscriptions", "subscription_addons"}, DependsOn: []string{"customers", "tariffs"}},
-	{Key: "payments", Title: "Платежи и баланс", Description: "Платежи, движения баланса, реферальные начисления, продления", Tables: []string{"payments", "ledger_entries", "referral_accruals", "extensions"}, DependsOn: []string{"customers"}},
-	{Key: "expenses", Title: "Расходы", Description: "Статьи расходов и журнал расходов", Tables: []string{"expense_items", "expenses"}},
-	{Key: "settings", Title: "Настройки", Description: "Параметры приложения и API-токены", Tables: []string{"settings", "api_tokens"}},
-	{Key: "stats", Title: "Курсы и трафик", Description: "Кэш курсов валют и статистика трафика", Tables: []string{"fx_rates", "traffic_snapshots"}},
-	{Key: "audit", Title: "Журнал действий", Description: "История действий в админке", Tables: []string{"audit_logs"}},
+	{Key: "customers", Title: "Customers", Description: "Customers and referrals", Tables: []string{"customers"}},
+	{Key: "tariffs", Title: "Tariffs and add-ons", Description: "Tariffs, term prices, add-ons, add-ons included in tariffs", Tables: []string{"addons", "tariffs", "tariff_periods", "tariff_included_addons"}},
+	{Key: "subscriptions", Title: "Subscriptions", Description: "Subscriptions, connected add-ons and the Remnawave users cache", Tables: []string{"rw_users", "subscriptions", "subscription_addons"}, DependsOn: []string{"customers", "tariffs"}},
+	{Key: "payments", Title: "Payments and balances", Description: "Payments, balance movements, referral accruals, extensions", Tables: []string{"payments", "ledger_entries", "referral_accruals", "extensions"}, DependsOn: []string{"customers"}},
+	{Key: "expenses", Title: "Expenses", Description: "Expense items and the expense log", Tables: []string{"expense_items", "expenses"}},
+	{Key: "settings", Title: "Settings", Description: "App settings and API tokens", Tables: []string{"settings", "api_tokens"}},
+	{Key: "stats", Title: "Rates and traffic", Description: "Exchange rate cache and traffic statistics", Tables: []string{"fx_rates", "traffic_snapshots"}},
+	{Key: "audit", Title: "Audit log", Description: "History of admin actions", Tables: []string{"audit_logs"}},
 }
 
 func categoryByKey(key string) (Category, bool) {
@@ -65,13 +66,13 @@ func categoryByKey(key string) (Category, bool) {
 // tablesOf resolves category keys to their tables, rejecting unknown keys.
 func tablesOf(keys []string) ([]string, error) {
 	if len(keys) == 0 {
-		return nil, errors.New("не выбрано ни одной категории")
+		return nil, apperr.New("backup.no_categories", "no categories selected")
 	}
 	var out []string
 	for _, k := range keys {
 		c, ok := categoryByKey(k)
 		if !ok {
-			return nil, fmt.Errorf("неизвестная категория %q", k)
+			return nil, apperr.New("backup.unknown_category", "unknown category {{key}}", "key", k)
 		}
 		out = append(out, c.Tables...)
 	}
@@ -277,7 +278,7 @@ func (a *Archive) Available() []string {
 func Open(data []byte) (*Archive, error) {
 	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return nil, errors.New("файл не является zip-архивом")
+		return nil, apperr.New("backup.not_zip", "the file isn't a zip archive")
 	}
 	a := &Archive{files: map[string]*zip.File{}}
 	var manifest *zip.File
@@ -290,7 +291,7 @@ func Open(data []byte) (*Archive, error) {
 		}
 	}
 	if manifest == nil {
-		return nil, errors.New("в архиве нет manifest.json — это не бэкап vpn-control")
+		return nil, apperr.New("backup.no_manifest", "the archive has no manifest.json; it isn't a vpn-control backup")
 	}
 	rc, err := manifest.Open()
 	if err != nil {
@@ -298,13 +299,13 @@ func Open(data []byte) (*Archive, error) {
 	}
 	defer rc.Close()
 	if err := json.NewDecoder(rc).Decode(&a.Manifest); err != nil {
-		return nil, fmt.Errorf("некорректный manifest.json: %w", err)
+		return nil, apperr.Wrap(err, "backup.bad_manifest", "invalid manifest.json: {{error}}")
 	}
 	if a.Manifest.Format != Format {
-		return nil, errors.New("это не бэкап vpn-control")
+		return nil, apperr.New("backup.not_backup", "this isn't a vpn-control backup")
 	}
 	if a.Manifest.Version > Version {
-		return nil, fmt.Errorf("бэкап создан более новой версией формата (%d), обновите приложение", a.Manifest.Version)
+		return nil, apperr.New("backup.newer_format", "the backup uses a newer format ({{version}}); update the app", "version", a.Manifest.Version)
 	}
 	return a, nil
 }
@@ -350,7 +351,7 @@ func Import(ctx context.Context, db *sql.DB, a *Archive, categories []string) (*
 			continue
 		}
 		if _, err := tx.ExecContext(ctx, "DELETE FROM "+quoteIdent(t)); err != nil {
-			return nil, fmt.Errorf("очистка %s: %w", t, err)
+			return nil, fmt.Errorf("clear %s: %w", t, err)
 		}
 		f, ok := a.files[t]
 		if !ok {
@@ -361,7 +362,7 @@ func Import(ctx context.Context, db *sql.DB, a *Archive, categories []string) (*
 		}
 		n, err := loadTable(ctx, tx, t, f)
 		if err != nil {
-			return nil, fmt.Errorf("импорт %s: %w", t, err)
+			return nil, fmt.Errorf("import %s: %w", t, err)
 		}
 		rep.Tables[t] = n
 	}
@@ -399,7 +400,7 @@ func loadTable(ctx context.Context, tx *sql.Tx, table string, f *zip.File) (int,
 	dec := json.NewDecoder(rc)
 	dec.UseNumber()
 	if tok, err := dec.Token(); err != nil || tok != json.Delim('[') {
-		return 0, errors.New("ожидался JSON-массив")
+		return 0, errors.New("expected a JSON array")
 	}
 
 	// Rows normally share one column set; statements are cached per set
@@ -414,7 +415,7 @@ func loadTable(ctx context.Context, tx *sql.Tx, table string, f *zip.File) (int,
 	for dec.More() {
 		var row map[string]any
 		if err := dec.Decode(&row); err != nil {
-			return n, fmt.Errorf("строка %d: %w", n+1, err)
+			return n, fmt.Errorf("row %d: %w", n+1, err)
 		}
 		names := make([]string, 0, len(row))
 		for k := range row {
@@ -440,11 +441,11 @@ func loadTable(ctx context.Context, tx *sql.Tx, table string, f *zip.File) (int,
 		args := make([]any, len(names))
 		for i, c := range names {
 			if args[i], err = sqlValue(row[c]); err != nil {
-				return n, fmt.Errorf("строка %d, %s: %w", n+1, c, err)
+				return n, fmt.Errorf("row %d, %s: %w", n+1, c, err)
 			}
 		}
 		if _, err := stmt.ExecContext(ctx, args...); err != nil {
-			return n, fmt.Errorf("строка %d: %w", n+1, err)
+			return n, fmt.Errorf("row %d: %w", n+1, err)
 		}
 		n++
 	}
@@ -504,8 +505,8 @@ func checkForeignKeys(ctx context.Context, tx *sql.Tx) error {
 type IntegrityError struct{ Details []string }
 
 func (e *IntegrityError) Error() string {
-	return "импорт отменён: записи ссылаются на отсутствующие данные (" + strings.Join(e.Details, "; ") +
-		"). Импортируйте вместе с зависимыми категориями"
+	return "import cancelled: rows reference missing data (" + strings.Join(e.Details, "; ") +
+		"); import them together with the categories they depend on"
 }
 
 func quoteIdent(s string) string { return `"` + strings.ReplaceAll(s, `"`, `""`) + `"` }

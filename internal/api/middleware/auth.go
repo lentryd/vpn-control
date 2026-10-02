@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/audit"
 )
 
@@ -51,11 +52,11 @@ func RequireSession(secret string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		token := c.Cookies(SessionCookie)
 		if token == "" {
-			return fiber.NewError(fiber.StatusUnauthorized, "не авторизован")
+			return apperr.Status(fiber.StatusUnauthorized, "auth.required", "not signed in")
 		}
 		username, err := VerifySession(secret, token)
 		if err != nil {
-			return fiber.NewError(fiber.StatusUnauthorized, "сессия истекла")
+			return apperr.Status(fiber.StatusUnauthorized, "auth.expired", "session expired")
 		}
 		c.Locals(LocalsAdmin, username)
 		c.SetUserContext(audit.WithActor(c.UserContext(), username))

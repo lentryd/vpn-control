@@ -8,6 +8,7 @@ import (
 	"vpn-control/ent/subscriptionaddon"
 	"vpn-control/ent/tariff"
 	"vpn-control/ent/tariffperiod"
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/audit"
 	"vpn-control/internal/money"
 	"vpn-control/internal/store"
@@ -138,10 +139,10 @@ type tariffInput struct {
 
 func (in *tariffInput) validate() error {
 	if in.Kind != "base" && in.Kind != "addon" {
-		return fiber.NewError(fiber.StatusBadRequest, "тип тарифа: base | addon")
+		return apperr.New("tariff.bad_kind", "tariff kind must be base or addon")
 	}
 	if in.Kind == "addon" && in.AddonID == nil {
-		return fiber.NewError(fiber.StatusBadRequest, "выберите аддон")
+		return apperr.New("tariff.addon_required", "choose an add-on")
 	}
 	if in.Kind == "base" {
 		in.AddonID = nil
@@ -212,15 +213,15 @@ func saveIncluded(ctx fiberCtx, tx *ent.Tx, tariffID int, ids []int) error {
 		return err
 	}
 	if len(ts) != len(ids) {
-		return fiber.NewError(fiber.StatusBadRequest, "включённые аддоны: неизвестный тариф")
+		return apperr.New("tariff.included_unknown", "included add-ons: unknown tariff")
 	}
 	seen := map[int]bool{}
 	for _, t := range ts {
 		if t.Kind != tariff.KindAddon || t.AddonID == nil {
-			return fiber.NewError(fiber.StatusBadRequest, "включать можно только тарифы аддонов")
+			return apperr.New("tariff.included_not_addon", "only add-on tariffs can be included")
 		}
 		if seen[*t.AddonID] {
-			return fiber.NewError(fiber.StatusBadRequest, "один аддон включён дважды")
+			return apperr.New("tariff.included_twice", "an add-on is included twice")
 		}
 		seen[*t.AddonID] = true
 	}
@@ -312,7 +313,7 @@ func (h *Handlers) DeleteTariff(c *fiber.Ctx) error {
 	n1, _ := h.DB.Subscription.Query().Where(subscription.TariffID(id)).Count(ctx)
 	n2, _ := h.DB.SubscriptionAddon.Query().Where(subscriptionaddon.TariffID(id)).Count(ctx)
 	if n1+n2 > 0 {
-		return fiber.NewError(fiber.StatusConflict, "тариф используется — отключите его вместо удаления")
+		return apperr.Status(fiber.StatusConflict, "tariff.in_use", "the tariff is in use; deactivate it instead")
 	}
 	if _, err := h.DB.TariffPeriod.Delete().Where(tariffperiod.TariffID(id)).Exec(ctx); err != nil {
 		return err

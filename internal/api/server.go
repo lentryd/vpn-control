@@ -12,6 +12,7 @@ import (
 
 	"vpn-control/internal/api/handlers"
 	appmiddleware "vpn-control/internal/api/middleware"
+	"vpn-control/internal/apperr"
 )
 
 type Deps struct {
@@ -37,12 +38,20 @@ func New(deps *Deps) *fiber.App {
 	return app
 }
 
-// errorHandler answers {"message": ...} with the error's status.
+// errorHandler answers {"message", "code", "params"} with the error's
+// status; the UI translates code (with params) and falls back to message.
 func errorHandler(c *fiber.Ctx, err error) error {
 	code := fiber.StatusInternalServerError
 	msg := err.Error()
 	var fe *fiber.Error
-	if errors.As(err, &fe) {
+	var ae *apperr.Error
+	switch {
+	case errors.As(err, &ae):
+		if code = ae.Status; code == 0 {
+			code = fiber.StatusBadRequest
+		}
+		return c.Status(code).JSON(fiber.Map{"message": msg, "code": ae.Code, "params": ae.Params})
+	case errors.As(err, &fe):
 		code = fe.Code
 	}
 	if code >= 500 {

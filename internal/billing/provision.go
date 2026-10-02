@@ -2,8 +2,8 @@ package billing
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"vpn-control/ent"
@@ -11,6 +11,7 @@ import (
 	"vpn-control/ent/subscription"
 	"vpn-control/ent/subscriptionaddon"
 	"vpn-control/ent/tariff"
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/audit"
 	"vpn-control/internal/remnawave"
 	"vpn-control/internal/rwsync"
@@ -21,7 +22,7 @@ func extensionKind(k string) extension.Kind { return extension.Kind(k) }
 func (s *Service) tariff(ctx context.Context, id int) (*ent.Tariff, error) {
 	t, err := s.db.Tariff.Query().Where(tariff.ID(id)).WithAddon().WithPeriods().Only(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("тариф %d: %w", id, err)
+		return nil, apperr.Wrap(err, "tariff.load_failed", "tariff {{id}}: {{error}}", "id", id)
 	}
 	return t, nil
 }
@@ -39,7 +40,7 @@ func applyTariffToUpdate(t *ent.Tariff, upd *remnawave.UpdateUserRequest) {
 
 func createRequest(t *ent.Tariff, username string, expireAt time.Time, description string) (remnawave.CreateUserRequest, error) {
 	if len(t.SquadUuids) == 0 {
-		return remnawave.CreateUserRequest{}, fmt.Errorf("у тарифа «%s» не выбраны сквады — пользователь не получит ни одного сервера", t.Name)
+		return remnawave.CreateUserRequest{}, apperr.New("tariff.no_squads", "tariff {{name}} has no squads; the user would get no servers", "name", t.Name)
 	}
 	limit := t.TrafficLimitBytes
 	return remnawave.CreateUserRequest{
@@ -70,17 +71,17 @@ type ProvisionInput struct {
 // as a new subscription, charging the first period.
 func (s *Service) ProvisionSubscription(ctx context.Context, in ProvisionInput) (*ent.Subscription, error) {
 	if !usernameRe.MatchString(in.Username) {
-		return nil, errors.New("имя пользователя: 3–36 символов, латиница, цифры, _ и -")
+		return nil, apperr.New("billing.bad_username", "username: 3–36 characters, latin letters, digits, _ and -")
 	}
 	if in.Months+in.Days <= 0 {
-		return nil, errors.New("укажите срок")
+		return nil, apperr.New("billing.term_required", "set the term")
 	}
 	t, err := s.tariff(ctx, in.TariffID)
 	if err != nil {
 		return nil, err
 	}
 	if t.Kind != tariff.KindBase {
-		return nil, errors.New("для подписки нужен базовый тариф")
+		return nil, apperr.New("billing.base_tariff_required", "a subscription needs a base tariff")
 	}
 	c, err := s.db.Customer.Get(ctx, in.CustomerID)
 	if err != nil {
@@ -110,13 +111,13 @@ func (s *Service) ProvisionSubscription(ctx context.Context, in ProvisionInput) 
 	if err != nil {
 		return nil, err
 	}
-	ledgerID, err := s.charge(ctx, c.ID, in.Amount, nil, fmt.Sprintf("Новая подписка %s, %s", u.Username, durationLabel(in.Months, in.Days)))
+	ledgerID, err := s.charge(ctx, c.ID, in.Amount, nil, fmt.Sprintf("New subscription %s, %s", u.Username, durationLabel(in.Months, in.Days)))
 	if err != nil {
 		return nil, err
 	}
 	s.recordExtension(ctx, "connect", &target{kind: KindSubscription, id: sub.ID, customerID: c.ID}, nil, in.Months, in.Days, in.Amount, &now, &to, ledgerID, nil)
 	if err := s.applyIncluded(ctx, sub.ID, nil); err != nil {
-		return sub, fmt.Errorf("подписка создана, но аддоны из тарифа подключились не все: %w", err)
+		return sub, apperr.Wrap(err, "billing.included_partial", "the subscription was created, but not all of the tariff's add-ons connected: {{error}}")
 	}
 	return sub, nil
 }
@@ -124,7 +125,7 @@ func (s *Service) ProvisionSubscription(ctx context.Context, in ProvisionInput) 
 // termLabel is durationLabel, or "бессрочно" for an unlimited expiry.
 func termLabel(months, days int, to time.Time) string {
 	if Unlimited(&to) {
-		return "бессрочно"
+		return "forever"
 	}
 	return durationLabel(months, days)
 }
@@ -168,7 +169,7 @@ type ConnectAddonInput struct {
 // it and charges the first period.
 func (s *Service) ConnectAddon(ctx context.Context, in ConnectAddonInput) (*ent.SubscriptionAddon, error) {
 	if in.Months+in.Days <= 0 && in.Until == nil {
-		return nil, errors.New("укажите срок")
+		return nil, apperr.New("billing.term_required", "set the term")
 	}
 	sub, err := s.db.Subscription.Query().Where(subscription.ID(in.SubscriptionID)).
 		WithRwUser().WithCustomer().Only(ctx)
@@ -183,7 +184,7 @@ func (s *Service) ConnectAddon(ctx context.Context, in ConnectAddonInput) (*ent.
 		return nil, err
 	}
 	if t.Kind != tariff.KindAddon || t.Edges.Addon == nil {
-		return nil, errors.New("нужен тариф аддона")
+		return nil, apperr.New("billing.addon_tariff_required", "an add-on tariff is required")
 	}
 	a := t.Edges.Addon
 	exists, err := s.db.SubscriptionAddon.Query().
@@ -192,7 +193,7 @@ func (s *Service) ConnectAddon(ctx context.Context, in ConnectAddonInput) (*ent.
 		return nil, err
 	}
 	if exists {
-		return nil, fmt.Errorf("аддон «%s» уже подключён — продлите его или смените тариф", a.Name)
+		return nil, apperr.Status(http.StatusConflict, "billing.addon_connected", "add-on {{name}} is already connected; extend it or change its tariff", "name", a.Name)
 	}
 	if err := s.checkBalance(ctx, sub.CustomerID, in.Amount, in.AllowDebt); err != nil {
 		return nil, err
@@ -200,7 +201,7 @@ func (s *Service) ConnectAddon(ctx context.Context, in ConnectAddonInput) (*ent.
 
 	now := s.now()
 	if in.Until != nil && !in.Until.After(now) {
-		return nil, errors.New("дата окончания уже прошла")
+		return nil, apperr.New("billing.until_past", "the end date has passed")
 	}
 	to := now.AddDate(0, in.Months, in.Days)
 	if in.Until != nil {
@@ -215,7 +216,7 @@ func (s *Service) ConnectAddon(ctx context.Context, in ConnectAddonInput) (*ent.
 		return nil, err
 	}
 	ledgerID, err := s.charge(ctx, sub.CustomerID, in.Amount, nil,
-		fmt.Sprintf("Аддон %s (%s) для %s, %s", a.Name, t.Name, sub.Edges.RwUser.Username, termLabel(in.Months, in.Days, to)))
+		fmt.Sprintf("Add-on %s (%s) for %s, %s", a.Name, t.Name, sub.Edges.RwUser.Username, termLabel(in.Months, in.Days, to)))
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +349,7 @@ func (s *Service) ChangeTariff(ctx context.Context, in ChangeTariffInput) error 
 	switch in.Kind {
 	case KindSubscription:
 		if t.Kind != tariff.KindBase {
-			return errors.New("для подписки нужен базовый тариф")
+			return apperr.New("billing.base_tariff_required", "a subscription needs a base tariff")
 		}
 		q := s.db.Subscription.UpdateOneID(in.ID).SetTariffID(t.ID)
 		if in.ClearOverride {
@@ -361,7 +362,7 @@ func (s *Service) ChangeTariff(ctx context.Context, in ChangeTariffInput) error 
 			return err2
 		}
 		if t.Kind != tariff.KindAddon || t.AddonID == nil || *t.AddonID != sa.AddonID {
-			return errors.New("тариф относится к другому аддону")
+			return apperr.New("billing.other_addon_tariff", "the tariff belongs to another add-on")
 		}
 		q := s.db.SubscriptionAddon.UpdateOneID(in.ID).SetTariffID(t.ID)
 		if in.ClearOverride {
@@ -386,7 +387,7 @@ func (s *Service) ChangeTariff(ctx context.Context, in ChangeTariffInput) error 
 
 	var ledgerID *int
 	if in.Surcharge != 0 {
-		ledgerID, err = s.charge(ctx, cur.customerID, in.Surcharge, nil, fmt.Sprintf("Смена тарифа: %s → %s", cur.title, t.Name))
+		ledgerID, err = s.charge(ctx, cur.customerID, in.Surcharge, nil, fmt.Sprintf("Tariff change: %s → %s", cur.title, t.Name))
 		if err != nil {
 			return err
 		}
@@ -394,11 +395,11 @@ func (s *Service) ChangeTariff(ctx context.Context, in ChangeTariffInput) error 
 	s.recordExtension(ctx, "tariff_change", cur, nil, 0, 0, in.Surcharge, nil, nil, ledgerID, rwErr)
 	audit.Log(ctx, s.db, "tariff.change", in.Kind, in.ID, in, rwErr)
 	if rwErr != nil {
-		return fmt.Errorf("тариф сменён, но параметры в панели не обновились: %w", rwErr)
+		return apperr.Wrap(rwErr, "billing.tariff_rw_failed", "the tariff changed, but the panel wasn't updated: {{error}}")
 	}
 	if in.Kind == KindSubscription {
 		if err := s.applyIncluded(ctx, in.ID, in.RemovedAddons); err != nil {
-			return fmt.Errorf("тариф сменён, но аддоны из тарифа обновились не все: %w", err)
+			return apperr.Wrap(err, "billing.included_partial_change", "the tariff changed, but not all of its add-ons were updated: {{error}}")
 		}
 	}
 	return nil

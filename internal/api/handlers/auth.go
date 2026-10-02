@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"vpn-control/internal/api/middleware"
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/remnawave"
 )
 
@@ -24,7 +25,7 @@ func (h *Handlers) Login(c *fiber.Ctx) error {
 		return err
 	}
 	if req.Username == "" || req.Password == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "введите логин и пароль")
+		return apperr.New("auth.credentials_required", "enter username and password")
 	}
 
 	ok := false
@@ -38,9 +39,9 @@ func (h *Handlers) Login(c *fiber.Ctx) error {
 		if err != nil {
 			slog.Info("login failed", "username", req.Username, "error", err)
 			if apiErr, isAPI := err.(*remnawave.APIError); isAPI && apiErr.Status < 500 {
-				return fiber.NewError(fiber.StatusUnauthorized, "неверный логин или пароль")
+				return apperr.Status(fiber.StatusUnauthorized, "auth.invalid", "wrong username or password")
 			}
-			return fiber.NewError(fiber.StatusBadGateway, "панель недоступна: "+err.Error())
+			return apperr.Wrap(err, "panel.unavailable", "panel unavailable: {{error}}")
 		}
 	}
 

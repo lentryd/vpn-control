@@ -3,13 +3,13 @@ package handlers
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/audit"
 	"vpn-control/internal/backup"
 )
@@ -71,7 +71,7 @@ func (h *Handlers) restore(c *fiber.Ctx, a *backup.Archive, cats []string) error
 	ctx := c.UserContext()
 	snapshot, err := h.Snapshots.Create(ctx, backup.KindPreImport, cats)
 	if err != nil {
-		return badRequest(fmt.Errorf("не удалось сохранить текущие данные перед импортом: %w", err))
+		return badRequest(apperr.Wrap(err, "backup.snapshot_failed", "couldn't save the current data before importing: {{error}}"))
 	}
 	rep, err := backup.Import(ctx, h.SQL, a, cats)
 	audit.Log(ctx, h.DB, "backup.import", "", 0, fiber.Map{
@@ -80,7 +80,7 @@ func (h *Handlers) restore(c *fiber.Ctx, a *backup.Archive, cats []string) error
 	if err != nil {
 		var ie *backup.IntegrityError
 		if errors.As(err, &ie) {
-			return fiber.NewError(fiber.StatusConflict, err.Error())
+			return apperr.Status(fiber.StatusConflict, "backup.integrity", "import cancelled: rows reference missing data ({{details}}); import them together with the categories they depend on", "details", strings.Join(ie.Details, "; "))
 		}
 		return badRequest(err)
 	}
@@ -176,9 +176,9 @@ func (h *Handlers) snapshotPath(name string) (string, error) {
 	p, err := h.Snapshots.Path(name)
 	switch {
 	case errors.Is(err, backup.ErrBadName):
-		return "", fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return "", apperr.New("backup.bad_name", "invalid snapshot name")
 	case err != nil:
-		return "", fiber.NewError(fiber.StatusNotFound, "snapshot not found")
+		return "", apperr.Status(fiber.StatusNotFound, "backup.not_found", "snapshot not found")
 	}
 	return p, nil
 }
@@ -194,7 +194,7 @@ func (h *Handlers) openSnapshot(name string) (*backup.Archive, error) {
 	}
 	a, err := backup.Open(data)
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return nil, badRequest(err)
 	}
 	return a, nil
 }
@@ -202,10 +202,10 @@ func (h *Handlers) openSnapshot(name string) (*backup.Archive, error) {
 func uploadedBackup(c *fiber.Ctx) (*backup.Archive, error) {
 	fh, err := c.FormFile("file")
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "файл не передан")
+		return nil, apperr.New("backup.no_file", "no file uploaded")
 	}
 	if fh.Size > maxBackupSize {
-		return nil, fiber.NewError(fiber.StatusRequestEntityTooLarge, "файл слишком большой")
+		return nil, apperr.Status(fiber.StatusRequestEntityTooLarge, "backup.too_large", "file is too large")
 	}
 	f, err := fh.Open()
 	if err != nil {
@@ -218,7 +218,7 @@ func uploadedBackup(c *fiber.Ctx) (*backup.Archive, error) {
 	}
 	a, err := backup.Open(data)
 	if err != nil {
-		return nil, fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return nil, badRequest(err)
 	}
 	return a, nil
 }

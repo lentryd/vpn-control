@@ -2,9 +2,9 @@ package expenses
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"slices"
 	"sort"
 	"strings"
@@ -16,6 +16,7 @@ import (
 	"vpn-control/ent/expenseitem"
 	"vpn-control/ent/rwuser"
 	"vpn-control/ent/trafficsnapshot"
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/audit"
 	"vpn-control/internal/fx"
 	"vpn-control/internal/metered"
@@ -59,7 +60,7 @@ type ExpenseInput struct {
 
 func (s *Service) prepare(ctx context.Context, in *ExpenseInput) (int64, float64, error) {
 	if in.OrigAmount <= 0 {
-		return 0, 0, errors.New("сумма должна быть больше нуля")
+		return 0, 0, apperr.New("amount_positive", "amount must be greater than zero")
 	}
 	if in.Kind == "" {
 		in.Kind = "charge"
@@ -78,7 +79,7 @@ func (s *Service) prepare(ctx context.Context, in *ExpenseInput) (int64, float64
 	} else if in.Currency != base {
 		r, err := s.fx.Rate(ctx, in.Currency, in.Date)
 		if err != nil {
-			return 0, 0, fmt.Errorf("курс %s на %s: %w", in.Currency, in.Date.Format("02.01.2006"), err)
+			return 0, 0, apperr.Wrap(err, "fx.rate_failed", "{{currency}} rate on {{date}}: {{error}}", "currency", in.Currency, "date", in.Date.Format("2006-01-02"))
 		}
 		rate = r
 	}
@@ -376,7 +377,7 @@ type MeteredSummary struct {
 // the billing period containing t, from stored snapshots.
 func (s *Service) MeteredSummary(ctx context.Context, it *ent.ExpenseItem, t time.Time) (*MeteredSummary, error) {
 	if it.RwNodeUUID == "" {
-		return nil, fmt.Errorf("у статьи «%s» не выбрана нода", it.Name)
+		return nil, apperr.New("expense.no_node", "expense item {{name}} has no node selected", "name", it.Name)
 	}
 	start, end := PeriodBounds(t.In(s.loc), it.BillingDay)
 	now := time.Now().In(s.loc)
@@ -417,7 +418,7 @@ func (s *Service) MeteredSummary(ctx context.Context, it *ent.ExpenseItem, t tim
 	if it.RwSquadUUID != "" {
 		users, err := s.nodeUsers(ctx, it.RwNodeUUID, start, end)
 		if err != nil {
-			return nil, fmt.Errorf("трафик пользователей ноды: %w", err)
+			return nil, apperr.Wrap(err, "expense.node_users_failed", "node users traffic: {{error}}")
 		}
 		members, err := s.squadMembers(ctx, it.RwSquadUUID)
 		if err != nil {
@@ -591,18 +592,18 @@ func (s *Service) ClosePeriod(ctx context.Context, itemID int, period string) (*
 		return nil, err
 	}
 	if it.Pricing != expenseitem.PricingMetered {
-		return nil, errors.New("статья не тарифицируется по трафику")
+		return nil, apperr.New("expense.not_metered", "the expense item isn't billed by traffic")
 	}
 	start, err := PeriodStart(period, it.BillingDay, s.loc)
 	if err != nil {
-		return nil, fmt.Errorf("период: %w", err)
+		return nil, apperr.New("expense.bad_period", "period must be YYYY-MM")
 	}
 	exists, err := s.db.Expense.Query().Where(expense.ExpenseItemID(it.ID), expense.Period(period)).Exist(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if exists {
-		return nil, fmt.Errorf("период %s уже закрыт", period)
+		return nil, apperr.Status(http.StatusConflict, "expense.period_closed", "period {{period}} is already closed", "period", period)
 	}
 	_, end := PeriodBounds(start, it.BillingDay)
 	_ = s.SyncTraffic(ctx, start, end)

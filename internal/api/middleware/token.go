@@ -13,6 +13,7 @@ import (
 
 	"vpn-control/ent"
 	"vpn-control/ent/apitoken"
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/audit"
 )
 
@@ -52,15 +53,15 @@ func RequireToken(db *ent.Client, scope string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		raw, ok := strings.CutPrefix(c.Get(fiber.HeaderAuthorization), "Bearer ")
 		if !ok || raw == "" {
-			return fiber.NewError(fiber.StatusUnauthorized, "API token required")
+			return apperr.Status(fiber.StatusUnauthorized, "token.required", "API token required")
 		}
 		ctx := c.UserContext()
 		t, err := db.APIToken.Query().Where(apitoken.TokenHash(HashToken(strings.TrimSpace(raw)))).Only(ctx)
 		if err != nil {
-			return fiber.NewError(fiber.StatusUnauthorized, "invalid API token")
+			return apperr.Status(fiber.StatusUnauthorized, "token.invalid", "invalid API token")
 		}
 		if !slices.Contains(t.Scopes, scope) {
-			return fiber.NewError(fiber.StatusForbidden, "token lacks scope "+scope)
+			return apperr.Status(fiber.StatusForbidden, "token.scope", "token lacks scope {{scope}}", "scope", scope)
 		}
 		// Coarse last-use tracking: one write a minute at most.
 		if t.LastUsedAt == nil || time.Since(*t.LastUsedAt) > time.Minute {

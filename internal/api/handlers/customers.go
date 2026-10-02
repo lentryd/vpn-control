@@ -13,6 +13,7 @@ import (
 	"vpn-control/ent/payment"
 	"vpn-control/ent/referralaccrual"
 	"vpn-control/ent/subscription"
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/audit"
 	"vpn-control/internal/billing"
 	"vpn-control/internal/money"
@@ -219,7 +220,7 @@ func (h *Handlers) GetCustomer(c *fiber.Ctx) error {
 		}
 	}
 	if !found {
-		return fiber.NewError(fiber.StatusNotFound, "клиент не найден")
+		return apperr.Status(fiber.StatusNotFound, "customer.not_found", "customer not found")
 	}
 
 	if d.Subscriptions, err = h.loadSubscriptions(ctx, func(q *ent.SubscriptionQuery) {
@@ -303,7 +304,7 @@ func (h *Handlers) UpdateCustomer(c *fiber.Ctx) error {
 		return err
 	}
 	if in.ReferrerID != nil && *in.ReferrerID == id {
-		return fiber.NewError(fiber.StatusBadRequest, "клиент не может пригласить сам себя")
+		return apperr.New("customer.self_referral", "a customer can't refer themselves")
 	}
 	q := h.DB.Customer.UpdateOneID(id).
 		SetName(in.Name).SetContact(in.Contact).SetNotes(in.Notes).SetArchived(in.Archived)
@@ -334,10 +335,10 @@ func (h *Handlers) DeleteCustomer(c *fiber.Ctx) error {
 	}
 	ctx := c.UserContext()
 	if n, _ := h.DB.Payment.Query().Where(payment.CustomerID(id)).Count(ctx); n > 0 {
-		return fiber.NewError(fiber.StatusConflict, "у клиента есть платежи — переведите его в архив")
+		return apperr.Status(fiber.StatusConflict, "customer.has_payments", "the customer has payments; archive them instead")
 	}
 	if n, _ := h.DB.Subscription.Query().Where(subscription.CustomerID(id)).Count(ctx); n > 0 {
-		return fiber.NewError(fiber.StatusConflict, "сначала отвяжите подписки клиента")
+		return apperr.Status(fiber.StatusConflict, "customer.has_subscriptions", "unlink the customer's subscriptions first")
 	}
 	if _, err := h.DB.Customer.Update().Where(customer.ReferrerID(id)).ClearReferrerID().Save(ctx); err != nil {
 		return err
@@ -528,11 +529,11 @@ func (h *Handlers) UpdatePayment(c *fiber.Ctx) error {
 	}
 	amount := money.FromMajor(req.Amount)
 	if amount <= 0 {
-		return fiber.NewError(fiber.StatusBadRequest, "сумма должна быть больше нуля")
+		return apperr.New("amount_positive", "amount must be greater than zero")
 	}
 	date := req.Date.Ptr()
 	if date == nil {
-		return fiber.NewError(fiber.StatusBadRequest, "укажите дату")
+		return apperr.New("date_required", "set a date")
 	}
 	ctx := c.UserContext()
 	err = store.WithTx(ctx, h.DB, func(tx *ent.Tx) error {

@@ -157,7 +157,7 @@ func (s *Service) applyIncluded(ctx context.Context, subID int, removed map[int]
 			err = s.dropIncluded(ctx, *ch.SubscriptionAddonID, how)
 		}
 		if err != nil {
-			errs = append(errs, fmt.Errorf("аддон «%s»: %w", ch.AddonName, err))
+			errs = append(errs, fmt.Errorf("add-on %s: %w", ch.AddonName, err))
 		}
 	}
 	return errors.Join(errs...)
@@ -175,7 +175,7 @@ func (s *Service) SyncIncluded(ctx context.Context, tariffID int, removedHow str
 	var errs []error
 	for _, id := range ids {
 		if err := s.applyIncluded(ctx, id, map[int]string{0: removedHow}); err != nil {
-			errs = append(errs, fmt.Errorf("подписка %d: %w", id, err))
+			errs = append(errs, fmt.Errorf("subscription %d: %w", id, err))
 		}
 	}
 	audit.Log(ctx, s.db, "tariff.sync_included", "tariff", tariffID, map[string]any{"subscriptions": len(ids), "removed": removedHow}, errors.Join(errs...))

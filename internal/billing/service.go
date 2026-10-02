@@ -12,6 +12,7 @@ import (
 	"vpn-control/ent/ledgerentry"
 	"vpn-control/ent/subscription"
 	"vpn-control/ent/subscriptionaddon"
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/audit"
 	"vpn-control/internal/remnawave"
 	"vpn-control/internal/rwsync"
@@ -25,10 +26,10 @@ const (
 )
 
 var (
-	ErrInsufficientBalance = errors.New("недостаточно средств на балансе")
-	ErrNotLinked           = errors.New("подписка не привязана к пользователю Remnawave")
-	ErrUnlimited           = errors.New("безлимитная подписка (срок до 2099) — продлевать не нужно")
-	ErrIncluded            = errors.New("аддон входит в тариф подписки и продлевается вместе с ней")
+	ErrInsufficientBalance = apperr.New("billing.insufficient_balance", "insufficient balance")
+	ErrNotLinked           = apperr.New("billing.not_linked", "the subscription isn't linked to a Remnawave user")
+	ErrUnlimited           = apperr.New("billing.unlimited", "unlimited subscription (expires in 2099); nothing to extend")
+	ErrIncluded            = apperr.New("billing.included", "the add-on comes with the subscription's tariff and is extended with it")
 	usernameRe             = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,36}$`)
 )
 
@@ -351,7 +352,7 @@ type PaymentResult struct {
 // charge and is reported, not fatal.
 func (s *Service) CommitPayment(ctx context.Context, in PaymentInput) (*PaymentResult, error) {
 	if in.Amount <= 0 {
-		return nil, errors.New("сумма должна быть больше нуля")
+		return nil, apperr.New("amount_positive", "amount must be greater than zero")
 	}
 	c, err := s.db.Customer.Get(ctx, in.CustomerID)
 	if err != nil {
@@ -470,10 +471,10 @@ func (s *Service) extend(ctx context.Context, in ExtendInput) ExtensionResult {
 		return res
 	}
 	if in.Months < 0 || in.Days < 0 || in.Months+in.Days == 0 {
-		return fail(errors.New("укажите срок продления"))
+		return fail(apperr.New("billing.term_required", "set the term"))
 	}
 	if in.Amount < 0 {
-		return fail(errors.New("сумма не может быть отрицательной"))
+		return fail(apperr.New("billing.negative_amount", "amount can't be negative"))
 	}
 	t, err := s.loadTarget(ctx, in.Kind, in.ID)
 	if err != nil {
@@ -481,7 +482,7 @@ func (s *Service) extend(ctx context.Context, in ExtendInput) ExtensionResult {
 	}
 	res.Title = t.title
 	if in.CustomerID != 0 && t.customerID != in.CustomerID {
-		return fail(errors.New("позиция принадлежит другому клиенту"))
+		return fail(apperr.New("billing.other_customer", "the item belongs to another customer"))
 	}
 	if t.rwUserID == nil {
 		return fail(ErrNotLinked)
@@ -512,7 +513,7 @@ func (s *Service) extend(ctx context.Context, in ExtendInput) ExtensionResult {
 	res.From, res.To = &from, &to
 
 	ledgerID, err := s.charge(ctx, t.customerID, in.Amount, in.PaymentID,
-		fmt.Sprintf("Продление: %s, %s", t.title, durationLabel(in.Months, in.Days)))
+		fmt.Sprintf("Extension: %s, %s", t.title, durationLabel(in.Months, in.Days)))
 	if err != nil {
 		return fail(err)
 	}
@@ -579,17 +580,17 @@ func (s *Service) recordExtension(ctx context.Context, kind string, t *target, p
 func durationLabel(months, days int) string {
 	switch {
 	case months > 0 && days > 0:
-		return fmt.Sprintf("%d мес. %d дн.", months, days)
+		return fmt.Sprintf("%d mo %d d", months, days)
 	case months > 0:
-		return fmt.Sprintf("%d мес.", months)
+		return fmt.Sprintf("%d mo", months)
 	}
-	return fmt.Sprintf("%d дн.", days)
+	return fmt.Sprintf("%d d", days)
 }
 
 // Adjust adds a manual balance correction (positive or negative).
 func (s *Service) Adjust(ctx context.Context, customerID int, amount int64, note string) error {
 	if amount == 0 {
-		return errors.New("сумма не может быть нулевой")
+		return apperr.New("amount_nonzero", "amount can't be zero")
 	}
 	if _, err := s.db.Customer.Query().Where(customer.ID(customerID)).Only(ctx); err != nil {
 		return err

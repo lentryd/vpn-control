@@ -12,6 +12,7 @@ import (
 	"vpn-control/ent/apitoken"
 	"vpn-control/internal/addons"
 	appmiddleware "vpn-control/internal/api/middleware"
+	"vpn-control/internal/apperr"
 	"vpn-control/internal/audit"
 )
 
@@ -47,14 +48,14 @@ func (h *Handlers) CreateToken(c *fiber.Ctx) error {
 	}
 	in.Name = strings.TrimSpace(in.Name)
 	if in.Name == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "name is required")
+		return apperr.New("token.name_required", "name is required")
 	}
 	if len(in.Scopes) == 0 {
-		return fiber.NewError(fiber.StatusBadRequest, "choose at least one scope")
+		return apperr.New("token.scope_required", "choose at least one scope")
 	}
 	for _, s := range in.Scopes {
 		if !slices.Contains(appmiddleware.Scopes, s) {
-			return fiber.NewError(fiber.StatusBadRequest, "unknown scope "+s)
+			return apperr.New("token.unknown_scope", "unknown scope {{scope}}", "scope", s)
 		}
 	}
 	token, hash, err := appmiddleware.NewToken()
