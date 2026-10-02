@@ -15,6 +15,7 @@ import (
 
 	"vpn-control/internal/api"
 	"vpn-control/internal/api/handlers"
+	"vpn-control/internal/backup"
 	"vpn-control/internal/billing"
 	"vpn-control/internal/config"
 	"vpn-control/internal/expenses"
@@ -91,10 +92,19 @@ func main() {
 		slog.Warn("addons sync failed", "error", err)
 	}
 
+	snapshots := backup.NewSnapshots(cfg.DBPath, sqlDB, Version)
+	if !*noSync {
+		go snapshots.Run(ctx,
+			func() time.Duration {
+				return time.Duration(st.Float(ctx, settings.SnapshotIntervalHours) * float64(time.Hour))
+			},
+			func() int { return st.Int(ctx, settings.SnapshotKeep) })
+	}
+
 	app := api.New(&api.Deps{
 		Handlers: &handlers.Handlers{
 			DB: db, SQL: sqlDB, RW: rw, Billing: billing.New(db, rw, st), Expenses: expSvc,
-			FX: fxs, Sync: syncSvc, Settings: st, Config: cfg, Version: Version,
+			FX: fxs, Sync: syncSvc, Settings: st, Snapshots: snapshots, Config: cfg, Version: Version,
 		},
 		NoWeb: *noWeb,
 	})

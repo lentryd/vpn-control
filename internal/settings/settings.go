@@ -23,14 +23,20 @@ const (
 	// converted expenses) is kept in. It can't change once there's money
 	// in the books.
 	BaseCurrency = "base_currency"
+	// SnapshotIntervalHours is how often an automatic backup snapshot is
+	// taken (0 = never); SnapshotKeep is how many of them are kept.
+	SnapshotIntervalHours = "snapshot_interval_hours"
+	SnapshotKeep          = "snapshot_keep"
 )
 
 // Defaults are used when a key was never saved.
 var Defaults = map[string]string{
-	ReferralPercent:    "10",
-	ExpiringWindowDays: "7",
-	DefaultFeePercent:  "0",
-	BaseCurrency:       "RUB",
+	ReferralPercent:       "10",
+	ExpiringWindowDays:    "7",
+	DefaultFeePercent:     "0",
+	BaseCurrency:          "RUB",
+	SnapshotIntervalHours: "24",
+	SnapshotKeep:          "14",
 }
 
 // Text lists the keys whose values aren't numbers.

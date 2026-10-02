@@ -1,13 +1,27 @@
-import { Alert, Anchor, Badge, Button, Checkbox, FileButton, Group, SimpleGrid, Stack, Text } from '@mantine/core'
+import type { MRT_ColumnDef } from '@kastov/mantine-react-table-open'
+import { ActionIcon, Alert, Anchor, Badge, Button, Checkbox, FileButton, Group, NumberInput, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
-import { PiArchiveDuotone, PiDownloadSimpleDuotone, PiUploadSimpleDuotone, PiWarningDuotone } from 'react-icons/pi'
+import { useEffect, useMemo, useState } from 'react'
+import {
+    PiArchiveDuotone,
+    PiArrowCounterClockwise,
+    PiCameraDuotone,
+    PiDownloadSimple,
+    PiDownloadSimpleDuotone,
+    PiFloppyDiskDuotone,
+    PiPlus,
+    PiTrash,
+    PiUploadSimpleDuotone,
+    PiWarningDuotone
+} from 'react-icons/pi'
 
 import { api } from '@/api/client'
-import { useApiMutation } from '@/api/hooks'
-import { fmtDateTime } from '@/components/format'
+import { useApiMutation, useInvalidateAll, useSettings } from '@/api/hooks'
+import { fmtBytes, fmtDateTime } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
-import { confirmDanger } from '@/modals/open'
+import { confirmDanger, openModal } from '@/modals/open'
+import { FormFooter } from '@shared/ui/forms/form-section'
+import { DataTableCard } from '@shared/ui/table'
 import { SettingsCardShared } from '@shared/ui/settings-card'
 
 interface BackupCategory {
@@ -192,7 +206,7 @@ function ImportCard({ categories }: { categories: BackupCategory[] }) {
             'Импорт данных',
             <Text size="sm">
                 Данные в категориях <b>{titles.join(', ')}</b> будут полностью заменены содержимым архива. Текущие данные этих категорий
-                сохранятся на сервере в <Text span ff="monospace">data/backups/</Text>.
+                сохранятся снапшотом «перед импортом».
             </Text>,
             () =>
                 importMut.mutate(
@@ -275,13 +289,228 @@ function ImportCard({ categories }: { categories: BackupCategory[] }) {
     )
 }
 
+interface Snapshot {
+    name: string
+    kind: 'auto' | 'manual' | 'pre-import'
+    size: number
+    created_at: string
+    app_version: string
+    categories: string[]
+}
+
+const kindLabel: Record<Snapshot['kind'], { label: string; color: string }> = {
+    auto: { label: 'по расписанию', color: 'cyan' },
+    manual: { label: 'вручную', color: 'teal' },
+    'pre-import': { label: 'перед импортом', color: 'orange' }
+}
+
+const useSnapshots = () =>
+    useQuery({ queryKey: ['backup', 'snapshots'], queryFn: () => api.get<{ snapshots: Snapshot[] }>('backup/snapshots') })
+
+// SnapshotsCard lists the full backups kept on the server (scheduled,
+// manual and pre-import ones) with download, restore and delete.
+function SnapshotsCard({ categories }: { categories: BackupCategory[] }) {
+    const q = useSnapshots()
+    const invalidate = useInvalidateAll()
+    const create = useApiMutation(() => api.post<Snapshot>('backup/snapshots'))
+    const remove = (sn: Snapshot) =>
+        confirmDanger(`Удалить снапшот ${sn.name}?`, 'Файл будет удалён с сервера.', async () => {
+            try {
+                await api.del(`backup/snapshots/${sn.name}`)
+                await invalidate()
+            } catch (e) {
+                notifyError(e)
+            }
+        })
+    const columns = useMemo<MRT_ColumnDef<Snapshot>[]>(
+        () => [
+            { accessorKey: 'created_at', header: 'Создан', Cell: ({ cell }) => fmtDateTime(cell.getValue<string>()) },
+            {
+                accessorKey: 'kind',
+                header: 'Тип',
+                filterVariant: 'multi-select',
+                Cell: ({ row }) => (
+                    <Badge color={kindLabel[row.original.kind].color} variant="soft">
+                        {kindLabel[row.original.kind].label}
+                    </Badge>
+                )
+            },
+            { accessorKey: 'size', header: 'Размер', enableColumnFilter: false, Cell: ({ cell }) => fmtBytes(cell.getValue<number>()) },
+            {
+                id: 'categories',
+                header: 'Данные',
+                enableSorting: false,
+                accessorFn: (r) => r.categories.length,
+                Cell: ({ row }) =>
+                    row.original.categories.length === categories.length ? (
+                        <Text size="sm">всё</Text>
+                    ) : (
+                        <Text size="sm">
+                            {row.original.categories.map((k) => categories.find((c) => c.key === k)?.title ?? k).join(', ')}
+                        </Text>
+                    )
+            }
+        ],
+        [categories]
+    )
+    return (
+        <DataTableCard
+            actions={
+                <Button
+                    color="teal"
+                    leftSection={<PiPlus size={14} />}
+                    loading={create.isPending}
+                    onClick={() => create.mutate(undefined, { onSuccess: (sn) => notifyOk(`Снапшот ${sn.name} создан`), onError: (e) => notifyError(e) })}
+                    size="xs"
+                    variant="soft"
+                >
+                    Снапшот
+                </Button>
+            }
+            columns={columns}
+            data={q.data?.snapshots ?? []}
+            description="Полные копии базы на сервере (data/backups): по расписанию, вручную и перед каждым импортом"
+            enableRowActions
+            icon={<PiCameraDuotone size={24} />}
+            initialState={{ sorting: [{ id: 'created_at', desc: true }] }}
+            renderRowActions={({ row }) => (
+                <Group gap={4} wrap="nowrap">
+                    <Tooltip label="Скачать">
+                        <ActionIcon
+                            color="gray"
+                            onClick={() => api.download(`backup/snapshots/${row.original.name}`, row.original.name).catch(notifyError)}
+                            variant="subtle"
+                        >
+                            <PiDownloadSimple size={16} />
+                        </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label="Восстановить">
+                        <ActionIcon
+                            color="orange"
+                            onClick={() =>
+                                openModal(
+                                    { icon: PiArrowCounterClockwise, color: 'orange', title: 'Восстановить', subtitle: row.original.name },
+                                    (close) => <RestoreSnapshotForm categories={categories} name={row.original.name} onDone={close} />,
+                                    'lg'
+                                )
+                            }
+                            variant="subtle"
+                        >
+                            <PiArrowCounterClockwise size={16} />
+                        </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label="Удалить">
+                        <ActionIcon color="red" onClick={() => remove(row.original)} variant="subtle">
+                            <PiTrash size={16} />
+                        </ActionIcon>
+                    </Tooltip>
+                </Group>
+            )}
+            displayColumnDefOptions={{ 'mrt-row-actions': { header: '', size: 120 } }}
+            state={{ isLoading: q.isPending }}
+            storageKey="snapshots"
+            title="Снапшоты"
+        />
+    )
+}
+
+function RestoreSnapshotForm({ name, categories, onDone }: { name: string; categories: BackupCategory[]; onDone: () => void }) {
+    const info = useQuery({ queryKey: ['backup', 'inspect', name], queryFn: () => api.get<Inspected>(`backup/snapshots/${name}/inspect`) })
+    const [selected, setSelected] = useState<string[]>([])
+    useEffect(() => {
+        if (info.data) setSelected(info.data.available)
+    }, [info.data])
+    const m = useApiMutation(() => api.post<ImportResult>(`backup/snapshots/${name}/restore`, { categories: selected }))
+    const available = categories.filter((c) => info.data?.available.includes(c.key))
+    return (
+        <Stack>
+            {info.data && (
+                <CategoryPicker
+                    categories={available}
+                    counts={(c) => rowsOf(c, info.data.manifest.tables)}
+                    value={selected}
+                    onChange={setSelected}
+                />
+            )}
+            <Alert color="yellow" icon={<PiWarningDuotone />} variant="soft">
+                Выбранные категории заменятся содержимым снапшота. Текущие данные сохранятся в снапшот «перед импортом».
+            </Alert>
+            <FormFooter
+                disabled={!selected.length}
+                inline
+                loading={m.isPending}
+                onCancel={onDone}
+                onSubmit={() =>
+                    m.mutate(undefined, {
+                        onSuccess: (res) => {
+                            notifyOk(`Восстановлено. Снимок до восстановления: ${res.snapshot}`)
+                            onDone()
+                        },
+                        onError: (e) => notifyError(e)
+                    })
+                }
+                submitIcon={<PiArrowCounterClockwise size={16} />}
+                submitLabel="Восстановить"
+            />
+        </Stack>
+    )
+}
+
+// ScheduleCard sets how often automatic snapshots are taken and kept.
+function ScheduleCard() {
+    const settings = useSettings()
+    const [hours, setHours] = useState<number | string>('')
+    const [keep, setKeep] = useState<number | string>('')
+    useEffect(() => {
+        if (!settings.data) return
+        setHours(Number(settings.data.snapshot_interval_hours))
+        setKeep(Number(settings.data.snapshot_keep))
+    }, [settings.data])
+    const save = useApiMutation(() => api.put('settings', { snapshot_interval_hours: String(hours), snapshot_keep: String(keep) }))
+    return (
+        <SettingsCardShared.Container>
+            <SettingsCardShared.Header
+                description="Автоматические снапшоты всей базы. Внешний сервис может забирать их по API-токену (backups:read)"
+                icon={<PiCameraDuotone size={24} />}
+                iconColor="cyan"
+                iconVariant="soft"
+                title="Расписание"
+            />
+            <SettingsCardShared.Content>
+                <SimpleGrid cols={{ base: 1, xs: 2 }}>
+                    <NumberInput label="Каждые, часов" description="0 — не делать" min={0} value={hours} onChange={setHours} />
+                    <NumberInput label="Хранить, штук" description="Старые автоматические удаляются" min={1} value={keep} onChange={setKeep} />
+                </SimpleGrid>
+            </SettingsCardShared.Content>
+            <SettingsCardShared.Bottom>
+                <Group justify="flex-end">
+                    <Button
+                        color="teal"
+                        leftSection={<PiFloppyDiskDuotone size={16} />}
+                        loading={save.isPending}
+                        mt="md"
+                        onClick={() => save.mutate(undefined, { onSuccess: () => notifyOk('Сохранено'), onError: (e) => notifyError(e) })}
+                        variant="soft"
+                    >
+                        Сохранить
+                    </Button>
+                </Group>
+            </SettingsCardShared.Bottom>
+        </SettingsCardShared.Container>
+    )
+}
+
 export function BackupPanel() {
     const q = useBackupCategories()
     if (!q.data) return null
     return (
-        <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
-            <ExportCard categories={q.data.categories} counts={q.data.counts} />
-            <ImportCard categories={q.data.categories} />
-        </SimpleGrid>
+        <Stack gap="md">
+            <SnapshotsCard categories={q.data.categories} />
+            <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="md">
+                <ScheduleCard />
+                <ExportCard categories={q.data.categories} counts={q.data.counts} />
+                <ImportCard categories={q.data.categories} />
+            </SimpleGrid>
+        </Stack>
     )
 }

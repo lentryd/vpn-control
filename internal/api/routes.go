@@ -30,6 +30,9 @@ func RegisterRoutes(app *fiber.App, deps *Deps) {
 	token := func(scope string) fiber.Handler { return appmiddleware.RequireToken(h.DB, scope) }
 	v1 := api.Group("/v1")
 	v1.Get("/addons", token(appmiddleware.ScopeAddonsRead), h.PublicAddons)
+	v1.Get("/backups", token(appmiddleware.ScopeBackupsRead), h.ListSnapshots)
+	v1.Get("/backups/:name", token(appmiddleware.ScopeBackupsRead), h.DownloadSnapshot)
+	v1.Post("/backups", token(appmiddleware.ScopeBackupsWrite), h.CreateAndSendSnapshot)
 
 	a := api.Group("", appmiddleware.RequireSession(h.Config.JWTSecret))
 	a.Get("/auth/me", h.Me)
@@ -112,6 +115,12 @@ func RegisterRoutes(app *fiber.App, deps *Deps) {
 	a.Get("/backup/export", h.ExportBackup)
 	a.Post("/backup/inspect", h.InspectBackup)
 	a.Post("/backup/import", h.ImportBackup)
+	a.Get("/backup/snapshots", h.ListSnapshots)
+	a.Post("/backup/snapshots", h.CreateSnapshot)
+	a.Get("/backup/snapshots/:name", h.DownloadSnapshot)
+	a.Delete("/backup/snapshots/:name", h.DeleteSnapshot)
+	a.Get("/backup/snapshots/:name/inspect", h.InspectSnapshot)
+	a.Post("/backup/snapshots/:name/restore", h.RestoreSnapshot)
 
 	api.Use(func(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusNotFound, "unknown endpoint")

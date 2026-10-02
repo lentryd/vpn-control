@@ -5,11 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
-	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -65,15 +62,20 @@ func (h *Handlers) ImportBackup(c *fiber.Ctx) error {
 	if err := backup.Validate(cats); err != nil {
 		return badRequest(err)
 	}
-	ctx := c.UserContext()
+	return h.restore(c, a, cats)
+}
 
-	snapshot, err := h.snapshot(c, cats)
+// restore imports cats from a after saving their current state as a
+// pre-import snapshot, so a wrong file can be rolled back.
+func (h *Handlers) restore(c *fiber.Ctx, a *backup.Archive, cats []string) error {
+	ctx := c.UserContext()
+	snapshot, err := h.Snapshots.Create(ctx, backup.KindPreImport, cats)
 	if err != nil {
 		return badRequest(fmt.Errorf("не удалось сохранить текущие данные перед импортом: %w", err))
 	}
 	rep, err := backup.Import(ctx, h.SQL, a, cats)
 	audit.Log(ctx, h.DB, "backup.import", "", 0, fiber.Map{
-		"categories": cats, "from": a.Manifest.CreatedAt, "app_version": a.Manifest.AppVersion, "snapshot": snapshot,
+		"categories": cats, "from": a.Manifest.CreatedAt, "app_version": a.Manifest.AppVersion, "snapshot": snapshot.Name,
 	}, err)
 	if err != nil {
 		var ie *backup.IntegrityError
@@ -82,29 +84,119 @@ func (h *Handlers) ImportBackup(c *fiber.Ctx) error {
 		}
 		return badRequest(err)
 	}
-	return c.JSON(fiber.Map{"report": rep, "snapshot": filepath.Base(snapshot)})
+	return c.JSON(fiber.Map{"report": rep, "snapshot": snapshot.Name})
 }
 
-func (h *Handlers) snapshot(c *fiber.Ctx, cats []string) (string, error) {
-	dir := filepath.Join(filepath.Dir(h.Config.DBPath), "backups")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", err
-	}
-	path := filepath.Join(dir, "pre-import-"+time.Now().Format("20060102-150405")+".zip")
-	f, err := os.Create(path)
+// ListSnapshots: GET /backup/snapshots (and /v1/backups).
+func (h *Handlers) ListSnapshots(c *fiber.Ctx) error {
+	list, err := h.Snapshots.List()
 	if err != nil {
-		return "", err
+		return err
 	}
-	_, err = backup.Export(c.UserContext(), h.SQL, f, cats, h.Version)
-	if cerr := f.Close(); err == nil {
-		err = cerr
-	}
+	return c.JSON(fiber.Map{"snapshots": list})
+}
+
+// CreateSnapshot: POST /backup/snapshots — a full manual snapshot.
+func (h *Handlers) CreateSnapshot(c *fiber.Ctx) error {
+	sn, err := h.Snapshots.Create(c.UserContext(), backup.KindManual, nil)
+	audit.Log(c.UserContext(), h.DB, "backup.snapshot", "", 0, sn, err)
 	if err != nil {
-		_ = os.Remove(path)
-		return "", err
+		return err
 	}
-	slog.Info("pre-import snapshot saved", "path", path)
-	return path, nil
+	return c.Status(fiber.StatusCreated).JSON(sn)
+}
+
+// CreateAndSendSnapshot: POST /v1/backups — takes a manual snapshot and
+// returns the archive in the response.
+func (h *Handlers) CreateAndSendSnapshot(c *fiber.Ctx) error {
+	sn, err := h.Snapshots.Create(c.UserContext(), backup.KindManual, nil)
+	audit.Log(c.UserContext(), h.DB, "backup.snapshot", "", 0, sn, err)
+	if err != nil {
+		return err
+	}
+	return h.sendSnapshot(c, sn.Name)
+}
+
+// DownloadSnapshot: GET /backup/snapshots/:name (and /v1/backups/:name).
+func (h *Handlers) DownloadSnapshot(c *fiber.Ctx) error {
+	return h.sendSnapshot(c, c.Params("name"))
+}
+
+func (h *Handlers) sendSnapshot(c *fiber.Ctx, name string) error {
+	p, err := h.snapshotPath(name)
+	if err != nil {
+		return err
+	}
+	c.Set(fiber.HeaderContentType, "application/zip")
+	c.Set(fiber.HeaderContentDisposition, `attachment; filename="vpn-control-`+name+`"`)
+	return c.SendFile(p)
+}
+
+func (h *Handlers) DeleteSnapshot(c *fiber.Ctx) error {
+	name := c.Params("name")
+	if _, err := h.snapshotPath(name); err != nil {
+		return err
+	}
+	err := h.Snapshots.Delete(name)
+	audit.Log(c.UserContext(), h.DB, "backup.snapshot_delete", "", 0, name, err)
+	if err != nil {
+		return err
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// InspectSnapshot: GET /backup/snapshots/:name/inspect — like InspectBackup.
+func (h *Handlers) InspectSnapshot(c *fiber.Ctx) error {
+	a, err := h.openSnapshot(c.Params("name"))
+	if err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{"manifest": a.Manifest, "available": a.Available()})
+}
+
+// RestoreSnapshot: POST /backup/snapshots/:name/restore {categories}.
+func (h *Handlers) RestoreSnapshot(c *fiber.Ctx) error {
+	var in struct {
+		Categories []string `json:"categories"`
+	}
+	if err := bind(c, &in); err != nil {
+		return err
+	}
+	if err := backup.Validate(in.Categories); err != nil {
+		return badRequest(err)
+	}
+	a, err := h.openSnapshot(c.Params("name"))
+	if err != nil {
+		return err
+	}
+	return h.restore(c, a, in.Categories)
+}
+
+func (h *Handlers) snapshotPath(name string) (string, error) {
+	p, err := h.Snapshots.Path(name)
+	switch {
+	case errors.Is(err, backup.ErrBadName):
+		return "", fiber.NewError(fiber.StatusBadRequest, err.Error())
+	case err != nil:
+		return "", fiber.NewError(fiber.StatusNotFound, "snapshot not found")
+	}
+	return p, nil
+}
+
+func (h *Handlers) openSnapshot(name string) (*backup.Archive, error) {
+	p, err := h.snapshotPath(name)
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(p)
+	if err != nil {
+		return nil, err
+	}
+	a, err := backup.Open(data)
+	if err != nil {
+		return nil, fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+	return a, nil
 }
 
 func uploadedBackup(c *fiber.Ctx) (*backup.Archive, error) {

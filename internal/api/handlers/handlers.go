@@ -14,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"vpn-control/ent"
+	"vpn-control/internal/backup"
 	"vpn-control/internal/billing"
 	"vpn-control/internal/config"
 	"vpn-control/internal/expenses"
@@ -24,16 +25,17 @@ import (
 )
 
 type Handlers struct {
-	DB       *ent.Client
-	SQL      *sql.DB // same database, for table-level backups
-	RW       *remnawave.Client
-	Billing  *billing.Service
-	Expenses *expenses.Service
-	FX       *fx.Service
-	Sync     *rwsync.Service
-	Settings *settings.Store
-	Config   *config.Config
-	Version  string
+	DB        *ent.Client
+	SQL       *sql.DB // same database, for table-level backups
+	RW        *remnawave.Client
+	Billing   *billing.Service
+	Expenses  *expenses.Service
+	FX        *fx.Service
+	Sync      *rwsync.Service
+	Settings  *settings.Store
+	Snapshots *backup.Snapshots
+	Config    *config.Config
+	Version   string
 }
 
 func paramID(c *fiber.Ctx, name string) (int, error) {
