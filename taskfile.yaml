@@ -64,19 +64,8 @@ tasks:
       - go fmt ./...
       - go vet ./...
 
-  import:
-    desc: "One-time spreadsheet import: task import -- '/path/Траты на VPN.xlsx'"
-    cmds:
-      - go run . import-xlsx {{.CLI_ARGS}}
-
   docker:up:
     desc: Build and start the container next to the panel
     cmds:
       - docker compose up -d --build
 
-  docker:seed:
-    desc: Put the locally imported database into the container volume and start it
-    cmds:
-      - docker compose create --build
-      - docker compose cp data/vpn-control.db vpn-control:/data/vpn-control.db
-      - docker compose up -d
