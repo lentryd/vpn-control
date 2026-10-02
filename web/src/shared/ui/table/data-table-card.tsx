@@ -61,6 +61,8 @@ export interface DataTableCardProps<T extends MRT_RowData> extends MRT_TableOpti
     // compact hides column filters and pagination, for short embedded lists
     compact?: boolean
     description?: ReactNode
+    // fill stretches the card to its parent's height (e.g. a grid cell)
+    fill?: boolean
     icon: ReactNode
     // onRowClick opens the entity, as row clicks do in the panel.
     onRowClick?: (row: T) => void
@@ -75,6 +77,7 @@ export function DataTableCard<T extends MRT_RowData>(props: DataTableCardProps<T
         actions,
         compact,
         description,
+        fill,
         icon,
         onRowClick,
         storageKey,
@@ -199,7 +202,7 @@ export function DataTableCard<T extends MRT_RowData>(props: DataTableCardProps<T
     })
 
     return (
-        <TableContainerShared>
+        <TableContainerShared h={fill ? '100%' : undefined}>
             <CardTitle actions={actions} description={description} icon={icon} title={title} />
             <DataTableContent>
                 <MantineReactTable table={table} />

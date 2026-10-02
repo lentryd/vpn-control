@@ -355,7 +355,8 @@ func meteredView(s *expenses.MeteredSummary) fiber.Map {
 	for _, c := range s.TopConsumers {
 		consumers = append(consumers, fiber.Map{
 			"rw_user_id": c.RwUserID, "username": c.Username, "customer_id": c.CustomerID,
-			"customer_name": c.CustomerName, "gb": c.GB, "share_percent": c.SharePercent,
+			"customer_name": c.CustomerName, "subscription_id": c.SubscriptionID, "sub_title": c.SubTitle,
+			"gb": c.GB, "share_percent": c.SharePercent,
 			"cost_rub": money.ToMajor(c.CostRub),
 		})
 	}

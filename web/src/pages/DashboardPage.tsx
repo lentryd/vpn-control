@@ -300,6 +300,7 @@ function ExpiringTable({ data, style }: { data: ExpiringItem[]; style?: React.CS
         <Box style={style}>
             <DataTableCard
                 compact
+                fill
                 actions={
                     <Badge color={data.length ? 'orange' : 'teal'} size="lg" variant="soft">
                         {data.length}
@@ -352,6 +353,7 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
     }
     const progress = m.included_gb ? Math.min(100, (m.used_gb / m.included_gb) * 100) : 0
     const forecastOver = m.forecast_gb > m.included_gb
+    const avgDaily = m.daily.length ? m.daily.reduce((sum, d) => sum + d.gb, 0) / m.daily.length : 0
     return (
         <Block
             actions={
@@ -416,16 +418,27 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                             titleOrder={6}
                         />
                     </SectionCard.Section>
-                    <Box style={{ flex: 1, minHeight: 260 }}>
+                    <Box style={{ flex: 1, minHeight: 240 }}>
                         <AreaChart
                             h="100%"
                             data={m.daily.map((d) => ({ ...d, date: dayjs(d.date).format('DD.MM') }))}
                             dataKey="date"
                             series={[{ name: 'gb', label: 'ГБ', color: 'cyan.6' }]}
                             curveType="monotone"
-                            withDots={m.daily.length <= 10}
+                            fillOpacity={0.35}
+                            strokeWidth={2}
+                            withDots={false}
+                            activeDotProps={{ r: 4, strokeWidth: 2 }}
                             gridAxis="y"
-                            yAxisProps={{ width: 70 }}
+                            strokeDasharray="4 4"
+                            tickLine="none"
+                            xAxisProps={{ interval: 'preserveStartEnd', minTickGap: 24, tickMargin: 8 }}
+                            yAxisProps={{ width: 44, tickMargin: 4, tickFormatter: (v: number) => fmtNum(v, 1) }}
+                            referenceLines={
+                                avgDaily > 0
+                                    ? [{ y: avgDaily, color: 'gray.6', label: `в среднем ${fmtNum(avgDaily, 1)} ГБ/день`, labelPosition: 'insideTopRight' }]
+                                    : undefined
+                            }
                             valueFormatter={(v) => `${fmtNum(v)} ГБ`}
                         />
                     </Box>
