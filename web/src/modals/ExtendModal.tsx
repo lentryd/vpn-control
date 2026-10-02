@@ -1,4 +1,4 @@
-import { Alert, Group, NumberInput, Paper, SimpleGrid, Stack, Switch, Text } from '@mantine/core'
+import { Alert, Group, NumberInput, Paper, SimpleGrid, Switch, Text } from '@mantine/core'
 import { PiCalendarDuotone, PiCalendarPlus, PiCalendarPlusDuotone, PiClockDuotone, PiCurrencyRub, PiWalletDuotone } from 'react-icons/pi'
 import { TbCalendar } from 'react-icons/tb'
 import { useDebouncedValue } from '@mantine/hooks'
@@ -10,7 +10,7 @@ import { useApiMutation } from '@/api/hooks'
 import type { ExtensionResult } from '@/api/types'
 import { fmtDate } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
-import { FormFooter, FormSection } from '@shared/ui/forms/form-section'
+import { FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
 
 import { openModal } from './open'
 
@@ -50,7 +50,7 @@ function ExtendForm({ kind, id, onDone }: { kind: Kind; id: number; onDone: () =
         })
 
     return (
-        <Stack gap="md">
+        <FormStack>
             <FormSection icon={PiCalendarPlusDuotone} color="teal" title="Срок" description="Добавляется к текущей дате окончания (или к сегодня, если уже истекла)">
                 <SimpleGrid cols={{ base: 1, xs: 2 }}>
                     <NumberInput
@@ -124,6 +124,6 @@ function ExtendForm({ kind, id, onDone }: { kind: Kind; id: number; onDone: () =
                 submitIcon={<PiCalendarPlus size={16} />}
                 submitLabel="Продлить в панели"
             />
-        </Stack>
+        </FormStack>
     )
 }

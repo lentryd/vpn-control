@@ -54,7 +54,7 @@ import { notifyError, notifyOk } from '@/components/notify'
 import { PageHeader } from '@/components/ui'
 import { confirmDanger, openModal } from '@/modals/open'
 import { MeteredCard } from '@/pages/DashboardPage'
-import { FormFooter, FormSection } from '@shared/ui/forms/form-section'
+import { FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
 import { NodeLabel, NodeSelect } from '@shared/ui/infra/node'
 import { SquadBadge, SquadSelect } from '@shared/ui/infra/squad'
 import { ProviderInput, ProviderLabel } from '@shared/ui/infra/provider'
@@ -405,7 +405,7 @@ function ClosePeriodForm({ item, onDone }: { item: ExpenseItem; onDone: () => vo
         api.post<{ rub_amount: number }>(`expense-items/${item.id}/close-period`, { period: dayjs(month).format('YYYY-MM') })
     )
     return (
-        <Stack gap="md">
+        <FormStack>
             <FormSection
                 icon={PiCalendarCheckDuotone}
                 color="orange"
@@ -429,7 +429,7 @@ function ClosePeriodForm({ item, onDone }: { item: ExpenseItem; onDone: () => vo
                 submitIcon={<PiLock size={16} />}
                 submitLabel="Закрыть период"
             />
-        </Stack>
+        </FormStack>
     )
 }
 
@@ -664,7 +664,7 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
                 <FormSection icon={PiNotePencil} color="gray" title="Заметки">
                     <Textarea autosize minRows={2} {...form.getInputProps('notes')} />
                 </FormSection>
-                <FormFooter loading={m.isPending} onCancel={onDone} />
+                <FormFooter inline loading={m.isPending} onCancel={onDone} />
             </Stack>
         </form>
     )

@@ -1,11 +1,12 @@
 import { Alert, Group, Indicator, NumberInput, Paper, Select, SimpleGrid, Stack, Switch, Text, TextInput } from '@mantine/core'
+import { TbUser } from 'react-icons/tb'
 import {
     PiArrowsClockwise,
+    PiArrowsClockwiseDuotone,
     PiArrowsLeftRight,
     PiArrowsLeftRightDuotone,
     PiCalendarDuotone,
     PiCurrencyRub,
-    PiHexagonDuotone,
     PiLinkDuotone,
     PiPencilSimpleDuotone,
     PiPlusCircle,
@@ -16,6 +17,7 @@ import {
     PiTagDuotone,
     PiUser,
     PiUserCircle,
+    PiUserCircleDuotone,
     PiWalletDuotone
 } from 'react-icons/pi'
 import { useForm } from '@mantine/form'
@@ -25,10 +27,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/api/client'
 import { useApiMutation, useCustomers, useRwUsers, useTariffs } from '@/api/hooks'
 import type { AddonItem, RwUserRow, Subscription, Tariff } from '@/api/types'
-import { fmtDate, fmtMoney } from '@/components/format'
+import { expiryColor, StatusBadge } from '@/components/badges'
+import { daysLeft, fmtBytes, fmtDate, fmtMoney } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { periodCost } from '@/components/pricing'
-import { FormFooter, FormSection } from '@shared/ui/forms/form-section'
+import { FormColumns, FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
 
 import { openModal } from './open'
 
@@ -85,9 +88,53 @@ function Payment({
 
 // openSubscriptionForm links a panel user to a customer (or edits a link).
 export function openSubscriptionForm(p: { sub?: Subscription; customerId?: number; rwUserId?: number }) {
-    openModal(p.sub ? { icon: PiPencilSimpleDuotone, title: 'Подписка', subtitle: p.sub.title } : { icon: PiLinkDuotone, title: 'Привязать пользователя панели' }, (close) => (
-        <SubscriptionForm {...p} onDone={close} />
-    ))
+    openModal(
+        p.sub
+            ? { icon: PiPencilSimpleDuotone, color: 'cyan', title: 'Подписка', subtitle: p.sub.title }
+            : { icon: PiLinkDuotone, color: 'cyan', title: 'Привязать пользователя панели' },
+        (close) => <SubscriptionForm {...p} onDone={close} />,
+        '1000px'
+    )
+}
+
+// RwUserPreview shows the picked panel user the way the panel lists it.
+function RwUserPreview({ user }: { user: RwUserRow }) {
+    const days = daysLeft(user.expire_at)
+    return (
+        <Paper bd="1px solid rgba(255,255,255,0.08)" bg="rgba(255,255,255,0.02)" p="sm" radius="md">
+            <Stack gap="sm">
+                <Group justify="space-between" wrap="nowrap">
+                    <Stack gap={0} miw={0}>
+                        <Text fw={600} size="sm" truncate="end">
+                            {user.username}
+                        </Text>
+                        <Text c="dimmed" size="xs" truncate="end">
+                            {user.description || 'без описания'}
+                        </Text>
+                    </Stack>
+                    <StatusBadge size="md" user={user} />
+                </Group>
+                <SimpleGrid cols={2} spacing="sm">
+                    <Stack gap={0}>
+                        <Text c="dimmed" size="xs">
+                            Истекает
+                        </Text>
+                        <Text c={expiryColor(days)} ff="monospace" fw={500} size="sm">
+                            {fmtDate(user.expire_at)}
+                        </Text>
+                    </Stack>
+                    <Stack gap={0}>
+                        <Text c="dimmed" size="xs">
+                            Трафик
+                        </Text>
+                        <Text ff="monospace" fw={500} size="sm">
+                            {fmtBytes(user.used_traffic_bytes)} / {user.traffic_limit_bytes ? fmtBytes(user.traffic_limit_bytes) : '∞'}
+                        </Text>
+                    </Stack>
+                </SimpleGrid>
+            </Stack>
+        </Paper>
+    )
 }
 
 function SubscriptionForm({ sub, customerId, rwUserId, onDone }: { sub?: Subscription; customerId?: number; rwUserId?: number; onDone: () => void }) {
@@ -112,6 +159,7 @@ function SubscriptionForm({ sub, customerId, rwUserId, onDone }: { sub?: Subscri
                 .map((u) => ({ value: String(u.id), label: rwLabel(u) })),
         [rwUsers.data, sub, rwUserId]
     )
+    const picked = rwUsers.data?.find((u) => String(u.id) === form.values.rw_user_id)
     const m = useApiMutation((v: typeof form.values) => {
         const body = {
             customer_id: Number(v.customer_id),
@@ -135,77 +183,98 @@ function SubscriptionForm({ sub, customerId, rwUserId, onDone }: { sub?: Subscri
                 })
             )}
         >
-            <Stack gap="md">
-                <FormSection icon={PiHexagonDuotone} title="Подписка" description="Чья и какой пользователь панели">
-                    <Select
-                        label="Клиент"
-                        leftSection={<PiUser size={16} />}
-                        searchable
-                        required
-                        data={(customers.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))}
-                        {...form.getInputProps('customer_id')}
-                    />
-                    <Select
-                        label="Пользователь Remnawave"
-                        description="Только ещё не привязанные"
-                        leftSection={<PiUserCircle size={16} />}
-                        searchable
-                        clearable
-                        allowDeselect
-                        data={rwOptions}
-                        renderOption={({ option }) => {
-                            const u = rwUsers.data?.find((x) => String(x.id) === option.value)
-                            return (
-                                <Group gap="sm" wrap="nowrap">
-                                    <Indicator color={statusColor[u?.status ?? ''] ?? 'gray'} inline size={8} zIndex={0} />
-                                    <Text size="sm">{u?.username}</Text>
-                                    {u?.description && (
-                                        <Text c="dimmed" size="xs" truncate="end">
-                                            {u.description}
-                                        </Text>
-                                    )}
-                                </Group>
-                            )
-                        }}
-                        {...form.getInputProps('rw_user_id')}
-                    />
-                    <TextInput label="Метка" leftSection={<PiTag size={16} />} placeholder="например «Родители»" {...form.getInputProps('label')} />
-                </FormSection>
-                <FormSection icon={PiTagDuotone} color="teal" title="Тариф и цена">
-                    <Select
-                        label="Тариф"
-                        description="Здесь параметры в панели не меняются — для этого «Сменить тариф»"
-                        leftSection={<PiTag size={16} />}
-                        searchable
-                        clearable
-                        allowDeselect
-                        data={(tariffs.data ?? []).filter((t) => t.kind === 'base').map((t) => ({ value: String(t.id), label: tariffLabel(t) }))}
-                        {...form.getInputProps('tariff_id')}
-                    />
-                    <NumberInput
-                        label="Индивидуальная цена, ₽/мес"
-                        description="Пусто — цена тарифа"
-                        leftSection={<PiCurrencyRub size={16} />}
-                        min={0}
-                        decimalScale={2}
-                        {...form.getInputProps('price_override')}
-                    />
-                    <Switch
-                        label="Автопродление"
-                        description="Продлевать из платежей клиента"
-                        thumbIcon={<PiArrowsClockwise size={10} />}
-                        {...form.getInputProps('auto_extend', { type: 'checkbox' })}
-                    />
-                </FormSection>
-                <FormFooter loading={m.isPending} onCancel={onDone} />
-            </Stack>
+            <FormColumns
+                left={
+                    <>
+                        <FormSection color="blue" icon={TbUser} title="Клиент" description="Чья это подписка">
+                            <Select
+                                data={(customers.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))}
+                                label="Клиент"
+                                leftSection={<PiUser size={16} />}
+                                required
+                                searchable
+                                {...form.getInputProps('customer_id')}
+                            />
+                            <TextInput
+                                description="Чтобы отличать подписки одного клиента"
+                                label="Метка"
+                                leftSection={<PiTag size={16} />}
+                                placeholder="например «Родители»"
+                                {...form.getInputProps('label')}
+                            />
+                        </FormSection>
+                        <FormSection color="cyan" icon={PiUserCircleDuotone} title="Пользователь панели" description="Только ещё не привязанные">
+                            <Select
+                                allowDeselect
+                                clearable
+                                data={rwOptions}
+                                label="Пользователь Remnawave"
+                                leftSection={<PiUserCircle size={16} />}
+                                nothingFoundMessage="Свободных пользователей нет"
+                                placeholder="Выберите пользователя"
+                                renderOption={({ option }) => {
+                                    const u = rwUsers.data?.find((x) => String(x.id) === option.value)
+                                    return (
+                                        <Group gap="sm" wrap="nowrap">
+                                            <Indicator color={statusColor[u?.status ?? ''] ?? 'gray'} inline size={8} zIndex={0} />
+                                            <Text size="sm">{u?.username}</Text>
+                                            {u?.description && (
+                                                <Text c="dimmed" size="xs" truncate="end">
+                                                    {u.description}
+                                                </Text>
+                                            )}
+                                        </Group>
+                                    )
+                                }}
+                                searchable
+                                {...form.getInputProps('rw_user_id')}
+                            />
+                            {picked && <RwUserPreview user={picked} />}
+                        </FormSection>
+                    </>
+                }
+                right={
+                    <>
+                        <FormSection color="teal" icon={PiTagDuotone} title="Тариф и цена" description="Сколько стоит месяц">
+                            <Select
+                                allowDeselect
+                                clearable
+                                data={(tariffs.data ?? []).filter((t) => t.kind === 'base').map((t) => ({ value: String(t.id), label: tariffLabel(t) }))}
+                                description="Здесь параметры в панели не меняются — для этого «Сменить тариф»"
+                                label="Тариф"
+                                leftSection={<PiTag size={16} />}
+                                placeholder="Без тарифа"
+                                searchable
+                                {...form.getInputProps('tariff_id')}
+                            />
+                            <NumberInput
+                                decimalScale={2}
+                                description="Пусто — цена тарифа"
+                                label="Индивидуальная цена, ₽/мес"
+                                leftSection={<PiCurrencyRub size={16} />}
+                                min={0}
+                                {...form.getInputProps('price_override')}
+                            />
+                        </FormSection>
+                        <FormSection color="orange" icon={PiArrowsClockwiseDuotone} title="Продление">
+                            <Switch
+                                description="Продлевать из платежей клиента"
+                                label="Автопродление"
+                                thumbIcon={<PiArrowsClockwise size={10} />}
+                                {...form.getInputProps('auto_extend', { type: 'checkbox' })}
+                            />
+                        </FormSection>
+                    </>
+                }
+            />
+            <FormFooter loading={m.isPending} onCancel={onDone} submitIcon={sub ? undefined : <PiLinkDuotone size={16} />} submitLabel={sub ? 'Сохранить' : 'Привязать'} />
         </form>
     )
 }
 
 // openProvisionModal creates a brand-new panel user for a customer.
 export function openProvisionModal(customer: { id: number; name: string }) {
-    openModal({ icon: PiPlusCircleDuotone, color: 'teal', title: 'Новая подписка', subtitle: customer.name }, (close) => <ProvisionForm customerId={customer.id} onDone={close} />)
+    openModal({ icon: PiPlusCircleDuotone, color: 'teal', title: 'Новая подписка', subtitle: customer.name }, (close) => <ProvisionForm customerId={customer.id} onDone={close} />, '1000px')
 }
 
 function ProvisionForm({ customerId, onDone }: { customerId: number; onDone: () => void }) {
@@ -234,30 +303,42 @@ function ProvisionForm({ customerId, onDone }: { customerId: number; onDone: () 
         })
     )
     return (
-        <Stack gap="md">
+        <>
             {eligible.length === 0 && (
-                <Alert color="yellow" variant="soft">
+                <Alert color="yellow" mb="md" variant="soft">
                     Нет базовых тарифов с параметрами панели. Включите «Управлять параметрами пользователя» и выберите сквады у тарифа.
                 </Alert>
             )}
-            <FormSection icon={PiUserCircle} title="Пользователь в панели" description="Создастся с параметрами тарифа">
-                <Select
-                    label="Тариф"
-                    leftSection={<PiTag size={16} />}
-                    data={eligible.map((t) => ({ value: String(t.id), label: tariffLabel(t) }))}
-                    value={tariffId}
-                    onChange={setTariffId}
-                />
-                <TextInput
-                    label="Username"
-                    description="3–36 символов: латиница, цифры, _ и -"
-                    leftSection={<PiUser size={16} />}
-                    value={username}
-                    onChange={(e) => setUsername(e.currentTarget.value.trim())}
-                />
-                <TextInput label="Метка" leftSection={<PiTag size={16} />} value={label} onChange={(e) => setLabel(e.currentTarget.value)} />
-            </FormSection>
-            <Payment {...{ months, setMonths, amount, setAmount, allowDebt, setAllowDebt }} />
+            <FormColumns
+                left={
+                    <FormSection color="cyan" icon={PiUserCircleDuotone} title="Пользователь в панели" description="Создастся с параметрами тарифа">
+                        <Select
+                            data={eligible.map((t) => ({ value: String(t.id), label: tariffLabel(t) }))}
+                            label="Тариф"
+                            leftSection={<PiTag size={16} />}
+                            onChange={setTariffId}
+                            placeholder="Выберите тариф"
+                            value={tariffId}
+                        />
+                        <TextInput
+                            data-autofocus
+                            description="3–36 символов: латиница, цифры, _ и -"
+                            label="Username"
+                            leftSection={<PiUser size={16} />}
+                            onChange={(e) => setUsername(e.currentTarget.value.trim())}
+                            value={username}
+                        />
+                        <TextInput
+                            label="Метка"
+                            leftSection={<PiTag size={16} />}
+                            onChange={(e) => setLabel(e.currentTarget.value)}
+                            placeholder="например «Родители»"
+                            value={label}
+                        />
+                    </FormSection>
+                }
+                right={<Payment {...{ months, setMonths, amount, setAmount, allowDebt, setAllowDebt }} />}
+            />
             <FormFooter
                 disabled={!tariffId || username.length < 3}
                 loading={m.isPending}
@@ -274,12 +355,12 @@ function ProvisionForm({ customerId, onDone }: { customerId: number; onDone: () 
                 submitIcon={<PiPlusCircle size={16} />}
                 submitLabel="Создать в панели"
             />
-        </Stack>
+        </>
     )
 }
 
 export function openConnectAddonModal(sub: Subscription) {
-    openModal({ icon: PiPuzzlePieceDuotone, color: 'grape', title: 'Подключить аддон', subtitle: sub.title }, (close) => <ConnectAddonForm sub={sub} onDone={close} />)
+    openModal({ icon: PiPuzzlePieceDuotone, color: 'grape', title: 'Подключить аддон', subtitle: sub.title }, (close) => <ConnectAddonForm sub={sub} onDone={close} />, '1000px')
 }
 
 function ConnectAddonForm({ sub, onDone }: { sub: Subscription; onDone: () => void }) {
@@ -304,26 +385,41 @@ function ConnectAddonForm({ sub, onDone }: { sub: Subscription; onDone: () => vo
         api.post(`subscriptions/${sub.id}/addons`, { tariff_id: Number(tariffId), months, days: 0, amount, allow_debt: allowDebt })
     )
     return (
-        <Stack gap="md">
-            {!sub.rw_user && (
-                <Alert color="yellow" variant="soft">
-                    Сначала привяжите подписку к пользователю панели.
-                </Alert>
+        <>
+            {(!sub.rw_user || groups.length === 0) && (
+                <Stack gap="xs" mb="md">
+                    {!sub.rw_user && (
+                        <Alert color="yellow" variant="soft">
+                            Сначала привяжите подписку к пользователю панели.
+                        </Alert>
+                    )}
+                    {groups.length === 0 && (
+                        <Alert color="yellow" variant="soft">
+                            Нет доступных тарифов аддонов — создайте их в «Тарифы и аддоны».
+                        </Alert>
+                    )}
+                </Stack>
             )}
-            {groups.length === 0 && (
-                <Alert color="yellow" variant="soft">
-                    Нет доступных тарифов аддонов — создайте их в «Тарифы и аддоны».
-                </Alert>
-            )}
-            <FormSection icon={PiPuzzlePieceDuotone} color="grape" title="Аддон" description="Создастся отдельный пользователь панели">
-                <Select label="Аддон и тариф" leftSection={<PiPuzzlePiece size={16} />} data={groups} value={tariffId} onChange={setTariffId} />
-                {tariff && !tariff.squad_uuids.length && (
-                    <Alert color="orange" variant="soft">
-                        У тарифа не выбраны сквады — пользователь аддона будет создан без серверов.
-                    </Alert>
-                )}
-            </FormSection>
-            <Payment {...{ months, setMonths, amount, setAmount, allowDebt, setAllowDebt }} />
+            <FormColumns
+                left={
+                    <FormSection color="grape" icon={PiPuzzlePieceDuotone} title="Аддон" description="Создастся отдельный пользователь панели">
+                        <Select
+                            data={groups}
+                            label="Аддон и тариф"
+                            leftSection={<PiPuzzlePiece size={16} />}
+                            onChange={setTariffId}
+                            placeholder="Выберите аддон"
+                            value={tariffId}
+                        />
+                        {tariff && !tariff.squad_uuids.length && (
+                            <Alert color="orange" variant="soft">
+                                У тарифа не выбраны сквады — пользователь аддона будет создан без серверов.
+                            </Alert>
+                        )}
+                    </FormSection>
+                }
+                right={<Payment {...{ months, setMonths, amount, setAmount, allowDebt, setAllowDebt }} />}
+            />
             <FormFooter
                 disabled={!tariffId || !sub.rw_user}
                 loading={m.isPending}
@@ -340,12 +436,12 @@ function ConnectAddonForm({ sub, onDone }: { sub: Subscription; onDone: () => vo
                 submitIcon={<PiPuzzlePiece size={16} />}
                 submitLabel="Подключить"
             />
-        </Stack>
+        </>
     )
 }
 
 export function openChangeTariffModal(p: { kind: 'subscription' | 'addon'; id: number; title: string; tariffId: number | null; addonId?: number }) {
-    openModal({ icon: PiArrowsLeftRightDuotone, color: 'indigo', title: 'Смена тарифа', subtitle: p.title }, (close) => <ChangeTariffForm {...p} onDone={close} />)
+    openModal({ icon: PiArrowsLeftRightDuotone, color: 'indigo', title: 'Смена тарифа', subtitle: p.title }, (close) => <ChangeTariffForm {...p} onDone={close} />, '1000px')
 }
 
 function ChangeTariffForm({
@@ -384,69 +480,76 @@ function ChangeTariffForm({
         api.post(`items/${kind}/${id}/tariff`, { tariff_id: Number(target), surcharge, clear_override: clearOverride })
     )
     return (
-        <Stack gap="md">
-            <FormSection icon={PiArrowsLeftRightDuotone} color="indigo" title="Новый тариф">
-                <Select
-                    label="Тариф"
-                    leftSection={<PiTag size={16} />}
-                    data={options.filter((o) => o.id !== tariffId).map((o) => ({ value: String(o.id), label: tariffLabel(o) }))}
-                    value={target}
-                    onChange={setTarget}
-                />
-                {quote.data && (
-                    <Paper bd="1px solid rgba(255,255,255,0.08)" bg="rgba(255,255,255,0.02)" p="sm" radius="md">
-                        <Stack gap={4}>
-                            <Group justify="space-between">
-                                <Text c="dimmed" size="sm">
-                                    В месяц
-                                </Text>
-                                <Text ff="monospace" fw={600} size="sm">
-                                    {fmtMoney(quote.data.old_monthly)} → {fmtMoney(quote.data.new_monthly)}
-                                </Text>
-                            </Group>
-                            <Group justify="space-between">
-                                <Text c="dimmed" size="sm">
-                                    Оплачено до
-                                </Text>
-                                <Text ff="monospace" size="sm">
-                                    {fmtDate(quote.data.expire_at)}
-                                </Text>
-                            </Group>
-                            <Group justify="space-between">
-                                <Text c="dimmed" size="sm">
-                                    Пропорционально за остаток
-                                </Text>
-                                <Text ff="monospace" fw={600} size="sm">
-                                    {fmtMoney(quote.data.surcharge, 2)}
-                                </Text>
-                            </Group>
-                        </Stack>
-                    </Paper>
-                )}
-                {t && (
-                    <Text c="dimmed" size="xs">
-                        {t.manage_rw
-                            ? 'Лимит трафика, стратегия сброса, HWID и сквады будут обновлены в панели.'
-                            : 'У тарифа не включено управление параметрами — в панели ничего не изменится.'}
-                    </Text>
-                )}
-            </FormSection>
-            <FormSection icon={PiWalletDuotone} color="orange" title="Доплата">
-                <NumberInput
-                    label="Доплата, ₽"
-                    description="Списывается с баланса; отрицательная — вернуть на баланс"
-                    leftSection={<PiCurrencyRub size={16} />}
-                    decimalScale={2}
-                    value={surcharge}
-                    onChange={(v) => setSurcharge(Number(v) || 0)}
-                />
-                <Switch
-                    label="Сбросить индивидуальную цену"
-                    description="Брать цену нового тарифа"
-                    checked={clearOverride}
-                    onChange={(e) => setClearOverride(e.currentTarget.checked)}
-                />
-            </FormSection>
+        <>
+            <FormColumns
+                left={
+                    <FormSection color="indigo" icon={PiArrowsLeftRightDuotone} title="Новый тариф" description="Сравнение с текущей ценой">
+                        <Select
+                            label="Тариф"
+                            leftSection={<PiTag size={16} />}
+                            data={options.filter((o) => o.id !== tariffId).map((o) => ({ value: String(o.id), label: tariffLabel(o) }))}
+                            placeholder="Выберите тариф"
+                            value={target}
+                            onChange={setTarget}
+                        />
+                        {quote.data && (
+                            <Paper bd="1px solid rgba(255,255,255,0.08)" bg="rgba(255,255,255,0.02)" p="sm" radius="md">
+                                <Stack gap={4}>
+                                    <Group justify="space-between">
+                                        <Text c="dimmed" size="sm">
+                                            В месяц
+                                        </Text>
+                                        <Text ff="monospace" fw={600} size="sm">
+                                            {fmtMoney(quote.data.old_monthly)} → {fmtMoney(quote.data.new_monthly)}
+                                        </Text>
+                                    </Group>
+                                    <Group justify="space-between">
+                                        <Text c="dimmed" size="sm">
+                                            Оплачено до
+                                        </Text>
+                                        <Text ff="monospace" size="sm">
+                                            {fmtDate(quote.data.expire_at)}
+                                        </Text>
+                                    </Group>
+                                    <Group justify="space-between">
+                                        <Text c="dimmed" size="sm">
+                                            Пропорционально за остаток
+                                        </Text>
+                                        <Text ff="monospace" fw={600} size="sm">
+                                            {fmtMoney(quote.data.surcharge, 2)}
+                                        </Text>
+                                    </Group>
+                                </Stack>
+                            </Paper>
+                        )}
+                        {t && (
+                            <Text c="dimmed" size="xs">
+                                {t.manage_rw
+                                    ? 'Лимит трафика, стратегия сброса, HWID и сквады будут обновлены в панели.'
+                                    : 'У тарифа не включено управление параметрами — в панели ничего не изменится.'}
+                            </Text>
+                        )}
+                    </FormSection>
+                }
+                right={
+                    <FormSection icon={PiWalletDuotone} color="orange" title="Доплата" description="Пропорционально оставшемуся сроку">
+                        <NumberInput
+                            label="Доплата, ₽"
+                            description="Списывается с баланса; отрицательная — вернуть на баланс"
+                            leftSection={<PiCurrencyRub size={16} />}
+                            decimalScale={2}
+                            value={surcharge}
+                            onChange={(v) => setSurcharge(Number(v) || 0)}
+                        />
+                        <Switch
+                            label="Сбросить индивидуальную цену"
+                            description="Брать цену нового тарифа"
+                            checked={clearOverride}
+                            onChange={(e) => setClearOverride(e.currentTarget.checked)}
+                        />
+                    </FormSection>
+                }
+            />
             <FormFooter
                 disabled={!target}
                 loading={m.isPending}
@@ -463,7 +566,7 @@ function ChangeTariffForm({
                 submitIcon={<PiArrowsLeftRight size={16} />}
                 submitLabel="Сменить"
             />
-        </Stack>
+        </>
     )
 }
 
@@ -493,8 +596,8 @@ function AddonEditForm({ a, onDone }: { a: AddonItem; onDone: () => void }) {
                 })
             )}
         >
-            <Stack gap="md">
-                <FormSection icon={PiPuzzlePieceDuotone} color="grape" title="Цена и продление">
+            <FormStack>
+                <FormSection icon={PiPuzzlePieceDuotone} color="grape" title="Цена и продление" description="Пусто — как в тарифе">
                     <NumberInput
                         label="Индивидуальная цена, ₽/мес"
                         description="Пусто — цена тарифа"
@@ -506,11 +609,12 @@ function AddonEditForm({ a, onDone }: { a: AddonItem; onDone: () => void }) {
                     <Switch
                         label="Автопродление"
                         description="Продлевать из платежей клиента"
+                        thumbIcon={<PiArrowsClockwise size={10} />}
                         {...form.getInputProps('auto_extend', { type: 'checkbox' })}
                     />
                 </FormSection>
-                <FormFooter loading={m.isPending} onCancel={onDone} />
-            </Stack>
+            </FormStack>
+            <FormFooter loading={m.isPending} onCancel={onDone} />
         </form>
     )
 }

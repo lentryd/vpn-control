@@ -517,7 +517,7 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                         </>
                     )}
                 </FormSection>
-                <FormFooter loading={m.isPending} onCancel={onDone} />
+                <FormFooter inline loading={m.isPending} onCancel={onDone} />
             </Stack>
         </form>
     )

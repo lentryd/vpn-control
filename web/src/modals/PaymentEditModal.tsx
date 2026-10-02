@@ -1,4 +1,4 @@
-import { Alert, NumberInput, Select, SimpleGrid, Stack, TextInput } from '@mantine/core'
+import { Alert, NumberInput, Select, SimpleGrid, TextInput } from '@mantine/core'
 import { DateInput } from '@mantine/dates'
 import { useForm } from '@mantine/form'
 import dayjs from 'dayjs'
@@ -9,7 +9,7 @@ import { useApiMutation } from '@/api/hooks'
 import type { Payment } from '@/api/types'
 import { fmtMoney } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
-import { FormFooter, FormSection } from '@shared/ui/forms/form-section'
+import { FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
 
 import { openModal } from './open'
 
@@ -53,7 +53,7 @@ function PaymentEditForm({ payment, onDone }: { payment: Payment; onDone: () => 
                 })
             )}
         >
-            <Stack gap="md">
+            <FormStack>
                 <FormSection color="teal" description="Сумма, дата и способ оплаты" icon={PiCreditCardDuotone} title="Поступление">
                     <SimpleGrid cols={{ base: 1, xs: 2 }}>
                         <NumberInput
@@ -75,7 +75,7 @@ function PaymentEditForm({ payment, onDone }: { payment: Payment; onDone: () => 
                     </Alert>
                 </FormSection>
                 <FormFooter loading={m.isPending} onCancel={onDone} />
-            </Stack>
+            </FormStack>
         </form>
     )
 }

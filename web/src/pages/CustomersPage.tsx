@@ -1,7 +1,7 @@
 import type { MRT_ColumnDef } from '@kastov/mantine-react-table-open'
-import { Badge, Button, Group, SegmentedControl, Text } from '@mantine/core'
+import { ActionIcon, Badge, Button, Group, SegmentedControl, Text, Tooltip } from '@mantine/core'
 import { useMemo, useState } from 'react'
-import { PiCreditCard, PiUserPlus, PiUsersDuotone } from 'react-icons/pi'
+import { PiCreditCard, PiPencilSimple, PiUserPlus, PiUsersDuotone } from 'react-icons/pi'
 import { useNavigate } from 'react-router'
 
 import { useCustomers } from '@/api/hooks'
@@ -115,17 +115,24 @@ export function CustomersPage() {
                 initialState={{ sorting: [{ id: 'nearest_expire_at', desc: false }], columnVisibility: { contact: false } }}
                 enableRowActions
                 renderRowActions={({ row }) => (
-                    <Button
-                        color="teal"
-                        size="compact-xs"
-                        variant="soft"
-                        leftSection={<PiCreditCard size={14} />}
-                        onClick={() => openPaymentModal({ customerId: row.original.id, name: row.original.name })}
-                    >
-                        Платёж
-                    </Button>
+                    <Group gap={6} wrap="nowrap">
+                        <Tooltip label="Редактировать" withArrow>
+                            <ActionIcon color="gray" size="md" variant="soft" onClick={() => openCustomerForm(row.original)}>
+                                <PiPencilSimple size={14} />
+                            </ActionIcon>
+                        </Tooltip>
+                        <Button
+                            color="teal"
+                            size="compact-xs"
+                            variant="soft"
+                            leftSection={<PiCreditCard size={14} />}
+                            onClick={() => openPaymentModal({ customerId: row.original.id, name: row.original.name })}
+                        >
+                            Платёж
+                        </Button>
+                    </Group>
                 )}
-                displayColumnDefOptions={{ 'mrt-row-actions': { header: '', size: 110 } }}
+                displayColumnDefOptions={{ 'mrt-row-actions': { header: '', size: 150 } }}
                 onRowClick={(r) => navigate(`/customers/${r.id}`)}
             />
         </Page>

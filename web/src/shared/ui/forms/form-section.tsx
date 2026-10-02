@@ -1,12 +1,44 @@
 // Adapted from remnawave/frontend (AGPL-3.0): the section cards of
-// shared/ui/forms/users/forms-components (SectionCard + BaseOverlayHeader).
+// shared/ui/forms/users/forms-components (SectionCard + BaseOverlayHeader)
+// and the create-user modal layout (staggered columns + sticky footer).
 import { Button, Group, Stack, ThemeIconProps } from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
 import { motion } from 'motion/react'
-import type { ReactNode } from 'react'
+import { createContext, type ReactNode, useContext } from 'react'
 import { PiFloppyDiskDuotone } from 'react-icons/pi'
 
+import { ModalFooter } from '../modal-footer'
 import { BaseOverlayHeader } from '../overlays/base-overlay-header'
 import { SectionCard } from '../section-card'
+
+const MotionStack = motion.create(Stack)
+const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }
+const cardVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.3 } } }
+
+// Inside a FormStack sections take their animation from the parent so they
+// appear one after another; standalone they animate on their own.
+const StaggerContext = createContext(false)
+
+export function FormStack({ children, style }: { children: ReactNode; style?: React.CSSProperties }) {
+    return (
+        <StaggerContext.Provider value>
+            <MotionStack animate="visible" gap="md" initial="hidden" style={style} variants={containerVariants}>
+                {children}
+            </MotionStack>
+        </StaggerContext.Provider>
+    )
+}
+
+// FormColumns is the wide (1000px) modal layout: two staggered columns
+// that fold into one on narrow screens.
+export function FormColumns({ left, right }: { left: ReactNode; right: ReactNode }) {
+    return (
+        <Group align="flex-start" gap="md" wrap="wrap">
+            <FormStack style={{ flex: '1 1 400px' }}>{left}</FormStack>
+            <FormStack style={{ flex: '1 1 400px' }}>{right}</FormStack>
+        </Group>
+    )
+}
 
 export function FormSection({
     icon,
@@ -23,8 +55,10 @@ export function FormSection({
     actions?: ReactNode
     children: ReactNode
 }) {
+    const staggered = useContext(StaggerContext)
+    const motionProps = staggered ? { variants: cardVariants } : { animate: 'visible', initial: 'hidden', variants: cardVariants }
     return (
-        <motion.div animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 20 }} transition={{ duration: 0.3 }}>
+        <motion.div {...motionProps}>
             <SectionCard.Root>
                 <SectionCard.Section>
                     <Group justify="space-between" wrap="nowrap">
@@ -40,8 +74,9 @@ export function FormSection({
     )
 }
 
-// FormFooter is the panel's modal footer: secondary actions, then the
-// teal "save" button.
+// FormFooter is the panel's modal footer: secondary actions, cancel, then
+// the teal "save" button. In modals it sticks to the bottom edge like the
+// panel's ModalFooter; drawers (no Modal context) pass `inline`.
 export function FormFooter({
     onCancel,
     loading,
@@ -49,6 +84,7 @@ export function FormFooter({
     submitIcon,
     disabled,
     onSubmit,
+    inline,
     children
 }: {
     onCancel?: () => void
@@ -57,10 +93,13 @@ export function FormFooter({
     submitIcon?: ReactNode
     disabled?: boolean
     onSubmit?: () => void
+    inline?: boolean
     children?: ReactNode
 }) {
-    return (
-        <Group gap="md" justify="flex-end" mt="md" wrap="wrap">
+    const isMobile = useMediaQuery('(max-width: 40em)') ?? false
+    const inStack = useContext(StaggerContext)
+    const buttons = (
+        <>
             {children}
             {onCancel && (
                 <Button color="gray" onClick={onCancel} size="md" variant="subtle">
@@ -75,10 +114,22 @@ export function FormFooter({
                 onClick={onSubmit}
                 size="md"
                 type={onSubmit ? 'button' : 'submit'}
-                variant="soft"
+                variant="light"
             >
                 {submitLabel}
             </Button>
-        </Group>
+        </>
+    )
+    if (inline) {
+        return (
+            <Group gap="md" justify="flex-end" mt="md" wrap="wrap">
+                {buttons}
+            </Group>
+        )
+    }
+    return (
+        <ModalFooter isMobile={isMobile} mt={inStack ? 0 : 'md'}>
+            {buttons}
+        </ModalFooter>
     )
 }

@@ -30,7 +30,7 @@ import { durationLabel, fmtDate, fmtMoney } from '@/components/format'
 import { notifyError } from '@/components/notify'
 import { periodCost } from '@/components/pricing'
 import { StatCard } from '@/components/ui'
-import { FormFooter, FormSection } from '@shared/ui/forms/form-section'
+import { FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
 import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
 
 import { openModal } from './open'
@@ -112,7 +112,7 @@ function PaymentForm({ customerId, onDone }: { customerId: number; onDone: () =>
 
     if (results) {
         return (
-            <Stack gap="md">
+            <FormStack>
                 <FormSection icon={PiCheckCircleDuotone} color="teal" title="Платёж записан" description={`Баланс клиента: ${fmtMoney(results.balance, 2)}`}>
                     {results.ref && (
                         <Badge color="grape" leftSection={<PiTreeStructure size={14} />} size="lg" variant="soft">
@@ -137,13 +137,13 @@ function PaymentForm({ customerId, onDone }: { customerId: number; onDone: () =>
                     ))}
                 </FormSection>
                 <FormFooter onSubmit={onDone} submitIcon={<PiCheck size={16} />} submitLabel="Готово" />
-            </Stack>
+            </FormStack>
         )
     }
 
     if (!preview) {
         return (
-            <Stack gap="md">
+            <FormStack>
                 <FormSection icon={PiCreditCardDuotone} color="teal" title="Поступление" description="Деньги зачислятся на баланс, затем продлятся подписки">
                     <SimpleGrid cols={{ base: 1, xs: 2 }}>
                         <NumberInput
@@ -180,7 +180,7 @@ function PaymentForm({ customerId, onDone }: { customerId: number; onDone: () =>
                     submitIcon={<PiCalculator size={16} />}
                     submitLabel="Рассчитать продление"
                 />
-            </Stack>
+            </FormStack>
         )
     }
 
@@ -188,7 +188,7 @@ function PaymentForm({ customerId, onDone }: { customerId: number; onDone: () =>
     const rest = Math.round((preview.balance_after_payment - allocated) * 100) / 100
 
     return (
-        <Stack gap="md">
+        <FormStack>
             <SimpleGrid cols={{ base: 1, xs: 3 }} spacing="xs">
                 <StatCard icon={PiWalletDuotone} color="gray" title="Баланс до" value={fmtMoney(preview.balance_before, 2)} />
                 <StatCard icon={PiCreditCardDuotone} color="teal" title="После платежа" value={fmtMoney(preview.balance_after_payment, 2)} />
@@ -277,6 +277,6 @@ function PaymentForm({ customerId, onDone }: { customerId: number; onDone: () =>
                     Назад
                 </Button>
             </FormFooter>
-        </Stack>
+        </FormStack>
     )
 }
