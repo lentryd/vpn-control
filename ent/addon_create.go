@@ -100,6 +100,54 @@ func (_c *AddonCreate) SetNillableInConfig(v *bool) *AddonCreate {
 	return _c
 }
 
+// SetSource sets the "source" field.
+func (_c *AddonCreate) SetSource(v addon.Source) *AddonCreate {
+	_c.mutation.SetSource(v)
+	return _c
+}
+
+// SetNillableSource sets the "source" field if the given value is not nil.
+func (_c *AddonCreate) SetNillableSource(v *addon.Source) *AddonCreate {
+	if v != nil {
+		_c.SetSource(*v)
+	}
+	return _c
+}
+
+// SetRemark sets the "remark" field.
+func (_c *AddonCreate) SetRemark(v string) *AddonCreate {
+	_c.mutation.SetRemark(v)
+	return _c
+}
+
+// SetNillableRemark sets the "remark" field if the given value is not nil.
+func (_c *AddonCreate) SetNillableRemark(v *string) *AddonCreate {
+	if v != nil {
+		_c.SetRemark(*v)
+	}
+	return _c
+}
+
+// SetRemarkUnlimited sets the "remark_unlimited" field.
+func (_c *AddonCreate) SetRemarkUnlimited(v string) *AddonCreate {
+	_c.mutation.SetRemarkUnlimited(v)
+	return _c
+}
+
+// SetNillableRemarkUnlimited sets the "remark_unlimited" field if the given value is not nil.
+func (_c *AddonCreate) SetNillableRemarkUnlimited(v *string) *AddonCreate {
+	if v != nil {
+		_c.SetRemarkUnlimited(*v)
+	}
+	return _c
+}
+
+// SetStubs sets the "stubs" field.
+func (_c *AddonCreate) SetStubs(v map[string]string) *AddonCreate {
+	_c.mutation.SetStubs(v)
+	return _c
+}
+
 // AddTariffIDs adds the "tariffs" edge to the Tariff entity by IDs.
 func (_c *AddonCreate) AddTariffIDs(ids ...int) *AddonCreate {
 	_c.mutation.AddTariffIDs(ids...)
@@ -177,6 +225,10 @@ func (_c *AddonCreate) defaults() {
 		v := addon.DefaultInConfig
 		_c.mutation.SetInConfig(v)
 	}
+	if _, ok := _c.mutation.Source(); !ok {
+		v := addon.DefaultSource
+		_c.mutation.SetSource(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -192,6 +244,14 @@ func (_c *AddonCreate) check() error {
 	}
 	if _, ok := _c.mutation.InConfig(); !ok {
 		return &ValidationError{Name: "in_config", err: errors.New(`ent: missing required field "Addon.in_config"`)}
+	}
+	if _, ok := _c.mutation.Source(); !ok {
+		return &ValidationError{Name: "source", err: errors.New(`ent: missing required field "Addon.source"`)}
+	}
+	if v, ok := _c.mutation.Source(); ok {
+		if err := addon.SourceValidator(v); err != nil {
+			return &ValidationError{Name: "source", err: fmt.Errorf(`ent: validator failed for field "Addon.source": %w`, err)}
+		}
 	}
 	return nil
 }
@@ -243,6 +303,22 @@ func (_c *AddonCreate) createSpec() (*Addon, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.InConfig(); ok {
 		_spec.SetField(addon.FieldInConfig, field.TypeBool, value)
 		_node.InConfig = value
+	}
+	if value, ok := _c.mutation.Source(); ok {
+		_spec.SetField(addon.FieldSource, field.TypeEnum, value)
+		_node.Source = value
+	}
+	if value, ok := _c.mutation.Remark(); ok {
+		_spec.SetField(addon.FieldRemark, field.TypeString, value)
+		_node.Remark = value
+	}
+	if value, ok := _c.mutation.RemarkUnlimited(); ok {
+		_spec.SetField(addon.FieldRemarkUnlimited, field.TypeString, value)
+		_node.RemarkUnlimited = value
+	}
+	if value, ok := _c.mutation.Stubs(); ok {
+		_spec.SetField(addon.FieldStubs, field.TypeJSON, value)
+		_node.Stubs = value
 	}
 	if nodes := _c.mutation.TariffsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -400,6 +476,72 @@ func (u *AddonUpsert) UpdateInConfig() *AddonUpsert {
 	return u
 }
 
+// SetSource sets the "source" field.
+func (u *AddonUpsert) SetSource(v addon.Source) *AddonUpsert {
+	u.Set(addon.FieldSource, v)
+	return u
+}
+
+// UpdateSource sets the "source" field to the value that was provided on create.
+func (u *AddonUpsert) UpdateSource() *AddonUpsert {
+	u.SetExcluded(addon.FieldSource)
+	return u
+}
+
+// SetRemark sets the "remark" field.
+func (u *AddonUpsert) SetRemark(v string) *AddonUpsert {
+	u.Set(addon.FieldRemark, v)
+	return u
+}
+
+// UpdateRemark sets the "remark" field to the value that was provided on create.
+func (u *AddonUpsert) UpdateRemark() *AddonUpsert {
+	u.SetExcluded(addon.FieldRemark)
+	return u
+}
+
+// ClearRemark clears the value of the "remark" field.
+func (u *AddonUpsert) ClearRemark() *AddonUpsert {
+	u.SetNull(addon.FieldRemark)
+	return u
+}
+
+// SetRemarkUnlimited sets the "remark_unlimited" field.
+func (u *AddonUpsert) SetRemarkUnlimited(v string) *AddonUpsert {
+	u.Set(addon.FieldRemarkUnlimited, v)
+	return u
+}
+
+// UpdateRemarkUnlimited sets the "remark_unlimited" field to the value that was provided on create.
+func (u *AddonUpsert) UpdateRemarkUnlimited() *AddonUpsert {
+	u.SetExcluded(addon.FieldRemarkUnlimited)
+	return u
+}
+
+// ClearRemarkUnlimited clears the value of the "remark_unlimited" field.
+func (u *AddonUpsert) ClearRemarkUnlimited() *AddonUpsert {
+	u.SetNull(addon.FieldRemarkUnlimited)
+	return u
+}
+
+// SetStubs sets the "stubs" field.
+func (u *AddonUpsert) SetStubs(v map[string]string) *AddonUpsert {
+	u.Set(addon.FieldStubs, v)
+	return u
+}
+
+// UpdateStubs sets the "stubs" field to the value that was provided on create.
+func (u *AddonUpsert) UpdateStubs() *AddonUpsert {
+	u.SetExcluded(addon.FieldStubs)
+	return u
+}
+
+// ClearStubs clears the value of the "stubs" field.
+func (u *AddonUpsert) ClearStubs() *AddonUpsert {
+	u.SetNull(addon.FieldStubs)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -526,6 +668,83 @@ func (u *AddonUpsertOne) SetInConfig(v bool) *AddonUpsertOne {
 func (u *AddonUpsertOne) UpdateInConfig() *AddonUpsertOne {
 	return u.Update(func(s *AddonUpsert) {
 		s.UpdateInConfig()
+	})
+}
+
+// SetSource sets the "source" field.
+func (u *AddonUpsertOne) SetSource(v addon.Source) *AddonUpsertOne {
+	return u.Update(func(s *AddonUpsert) {
+		s.SetSource(v)
+	})
+}
+
+// UpdateSource sets the "source" field to the value that was provided on create.
+func (u *AddonUpsertOne) UpdateSource() *AddonUpsertOne {
+	return u.Update(func(s *AddonUpsert) {
+		s.UpdateSource()
+	})
+}
+
+// SetRemark sets the "remark" field.
+func (u *AddonUpsertOne) SetRemark(v string) *AddonUpsertOne {
+	return u.Update(func(s *AddonUpsert) {
+		s.SetRemark(v)
+	})
+}
+
+// UpdateRemark sets the "remark" field to the value that was provided on create.
+func (u *AddonUpsertOne) UpdateRemark() *AddonUpsertOne {
+	return u.Update(func(s *AddonUpsert) {
+		s.UpdateRemark()
+	})
+}
+
+// ClearRemark clears the value of the "remark" field.
+func (u *AddonUpsertOne) ClearRemark() *AddonUpsertOne {
+	return u.Update(func(s *AddonUpsert) {
+		s.ClearRemark()
+	})
+}
+
+// SetRemarkUnlimited sets the "remark_unlimited" field.
+func (u *AddonUpsertOne) SetRemarkUnlimited(v string) *AddonUpsertOne {
+	return u.Update(func(s *AddonUpsert) {
+		s.SetRemarkUnlimited(v)
+	})
+}
+
+// UpdateRemarkUnlimited sets the "remark_unlimited" field to the value that was provided on create.
+func (u *AddonUpsertOne) UpdateRemarkUnlimited() *AddonUpsertOne {
+	return u.Update(func(s *AddonUpsert) {
+		s.UpdateRemarkUnlimited()
+	})
+}
+
+// ClearRemarkUnlimited clears the value of the "remark_unlimited" field.
+func (u *AddonUpsertOne) ClearRemarkUnlimited() *AddonUpsertOne {
+	return u.Update(func(s *AddonUpsert) {
+		s.ClearRemarkUnlimited()
+	})
+}
+
+// SetStubs sets the "stubs" field.
+func (u *AddonUpsertOne) SetStubs(v map[string]string) *AddonUpsertOne {
+	return u.Update(func(s *AddonUpsert) {
+		s.SetStubs(v)
+	})
+}
+
+// UpdateStubs sets the "stubs" field to the value that was provided on create.
+func (u *AddonUpsertOne) UpdateStubs() *AddonUpsertOne {
+	return u.Update(func(s *AddonUpsert) {
+		s.UpdateStubs()
+	})
+}
+
+// ClearStubs clears the value of the "stubs" field.
+func (u *AddonUpsertOne) ClearStubs() *AddonUpsertOne {
+	return u.Update(func(s *AddonUpsert) {
+		s.ClearStubs()
 	})
 }
 
@@ -821,6 +1040,83 @@ func (u *AddonUpsertBulk) SetInConfig(v bool) *AddonUpsertBulk {
 func (u *AddonUpsertBulk) UpdateInConfig() *AddonUpsertBulk {
 	return u.Update(func(s *AddonUpsert) {
 		s.UpdateInConfig()
+	})
+}
+
+// SetSource sets the "source" field.
+func (u *AddonUpsertBulk) SetSource(v addon.Source) *AddonUpsertBulk {
+	return u.Update(func(s *AddonUpsert) {
+		s.SetSource(v)
+	})
+}
+
+// UpdateSource sets the "source" field to the value that was provided on create.
+func (u *AddonUpsertBulk) UpdateSource() *AddonUpsertBulk {
+	return u.Update(func(s *AddonUpsert) {
+		s.UpdateSource()
+	})
+}
+
+// SetRemark sets the "remark" field.
+func (u *AddonUpsertBulk) SetRemark(v string) *AddonUpsertBulk {
+	return u.Update(func(s *AddonUpsert) {
+		s.SetRemark(v)
+	})
+}
+
+// UpdateRemark sets the "remark" field to the value that was provided on create.
+func (u *AddonUpsertBulk) UpdateRemark() *AddonUpsertBulk {
+	return u.Update(func(s *AddonUpsert) {
+		s.UpdateRemark()
+	})
+}
+
+// ClearRemark clears the value of the "remark" field.
+func (u *AddonUpsertBulk) ClearRemark() *AddonUpsertBulk {
+	return u.Update(func(s *AddonUpsert) {
+		s.ClearRemark()
+	})
+}
+
+// SetRemarkUnlimited sets the "remark_unlimited" field.
+func (u *AddonUpsertBulk) SetRemarkUnlimited(v string) *AddonUpsertBulk {
+	return u.Update(func(s *AddonUpsert) {
+		s.SetRemarkUnlimited(v)
+	})
+}
+
+// UpdateRemarkUnlimited sets the "remark_unlimited" field to the value that was provided on create.
+func (u *AddonUpsertBulk) UpdateRemarkUnlimited() *AddonUpsertBulk {
+	return u.Update(func(s *AddonUpsert) {
+		s.UpdateRemarkUnlimited()
+	})
+}
+
+// ClearRemarkUnlimited clears the value of the "remark_unlimited" field.
+func (u *AddonUpsertBulk) ClearRemarkUnlimited() *AddonUpsertBulk {
+	return u.Update(func(s *AddonUpsert) {
+		s.ClearRemarkUnlimited()
+	})
+}
+
+// SetStubs sets the "stubs" field.
+func (u *AddonUpsertBulk) SetStubs(v map[string]string) *AddonUpsertBulk {
+	return u.Update(func(s *AddonUpsert) {
+		s.SetStubs(v)
+	})
+}
+
+// UpdateStubs sets the "stubs" field to the value that was provided on create.
+func (u *AddonUpsertBulk) UpdateStubs() *AddonUpsertBulk {
+	return u.Update(func(s *AddonUpsert) {
+		s.UpdateStubs()
+	})
+}
+
+// ClearStubs clears the value of the "stubs" field.
+func (u *AddonUpsertBulk) ClearStubs() *AddonUpsertBulk {
+	return u.Update(func(s *AddonUpsert) {
+		s.ClearStubs()
 	})
 }
 

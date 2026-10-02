@@ -8,6 +8,22 @@ import (
 )
 
 var (
+	// APITokensColumns holds the columns for the "api_tokens" table.
+	APITokensColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "token_hash", Type: field.TypeString, Unique: true},
+		{Name: "prefix", Type: field.TypeString},
+		{Name: "scopes", Type: field.TypeJSON},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "last_used_at", Type: field.TypeTime, Nullable: true},
+	}
+	// APITokensTable holds the schema information for the "api_tokens" table.
+	APITokensTable = &schema.Table{
+		Name:       "api_tokens",
+		Columns:    APITokensColumns,
+		PrimaryKey: []*schema.Column{APITokensColumns[0]},
+	}
 	// AddonsColumns holds the columns for the "addons" table.
 	AddonsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -17,6 +33,10 @@ var (
 		{Name: "prefix", Type: field.TypeString, Nullable: true},
 		{Name: "suffix", Type: field.TypeString, Nullable: true},
 		{Name: "in_config", Type: field.TypeBool, Default: true},
+		{Name: "source", Type: field.TypeEnum, Enums: []string{"file", "ui"}, Default: "file"},
+		{Name: "remark", Type: field.TypeString, Nullable: true},
+		{Name: "remark_unlimited", Type: field.TypeString, Nullable: true},
+		{Name: "stubs", Type: field.TypeJSON, Nullable: true},
 	}
 	// AddonsTable holds the schema information for the "addons" table.
 	AddonsTable = &schema.Table{
@@ -479,6 +499,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		APITokensTable,
 		AddonsTable,
 		AuditLogsTable,
 		CustomersTable,

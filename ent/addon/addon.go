@@ -3,6 +3,7 @@
 package addon
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -26,6 +27,14 @@ const (
 	FieldSuffix = "suffix"
 	// FieldInConfig holds the string denoting the in_config field in the database.
 	FieldInConfig = "in_config"
+	// FieldSource holds the string denoting the source field in the database.
+	FieldSource = "source"
+	// FieldRemark holds the string denoting the remark field in the database.
+	FieldRemark = "remark"
+	// FieldRemarkUnlimited holds the string denoting the remark_unlimited field in the database.
+	FieldRemarkUnlimited = "remark_unlimited"
+	// FieldStubs holds the string denoting the stubs field in the database.
+	FieldStubs = "stubs"
 	// EdgeTariffs holds the string denoting the tariffs edge name in mutations.
 	EdgeTariffs = "tariffs"
 	// EdgeSubscriptionAddons holds the string denoting the subscription_addons edge name in mutations.
@@ -57,6 +66,10 @@ var Columns = []string{
 	FieldPrefix,
 	FieldSuffix,
 	FieldInConfig,
+	FieldSource,
+	FieldRemark,
+	FieldRemarkUnlimited,
+	FieldStubs,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -79,6 +92,32 @@ var (
 	// DefaultInConfig holds the default value on creation for the "in_config" field.
 	DefaultInConfig bool
 )
+
+// Source defines the type for the "source" enum field.
+type Source string
+
+// SourceFile is the default value of the Source enum.
+const DefaultSource = SourceFile
+
+// Source values.
+const (
+	SourceFile Source = "file"
+	SourceUI   Source = "ui"
+)
+
+func (s Source) String() string {
+	return string(s)
+}
+
+// SourceValidator is a validator for the "source" field enum values. It is called by the builders before save.
+func SourceValidator(s Source) error {
+	switch s {
+	case SourceFile, SourceUI:
+		return nil
+	default:
+		return fmt.Errorf("addon: invalid enum value for source field: %q", s)
+	}
+}
 
 // OrderOption defines the ordering options for the Addon queries.
 type OrderOption func(*sql.Selector)
@@ -116,6 +155,21 @@ func BySuffix(opts ...sql.OrderTermOption) OrderOption {
 // ByInConfig orders the results by the in_config field.
 func ByInConfig(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInConfig, opts...).ToFunc()
+}
+
+// BySource orders the results by the source field.
+func BySource(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSource, opts...).ToFunc()
+}
+
+// ByRemark orders the results by the remark field.
+func ByRemark(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRemark, opts...).ToFunc()
+}
+
+// ByRemarkUnlimited orders the results by the remark_unlimited field.
+func ByRemarkUnlimited(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRemarkUnlimited, opts...).ToFunc()
 }
 
 // ByTariffsCount orders the results by tariffs count.

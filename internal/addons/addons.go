@@ -1,6 +1,7 @@
-// Package addons reads subpage's addons.yml — the same file subpage uses to
-// append add-on users (prefix+<username>+suffix) to subscriptions — so the
-// add-on catalog here always matches what subpage serves.
+// Package addons reads an add-ons file in subpage's addons.yml format — the
+// file subpage uses to append add-on users (prefix+<username>+suffix) to
+// subscriptions — so a shared file keeps both catalogs in step. Add-ons can
+// also live in the UI only; Marshal writes the format back for the API.
 package addons
 
 import (
@@ -11,11 +12,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Addon is the subset of an addons.yml entry we need.
+// Addon is an addons.yml entry.
 type Addon struct {
-	Name   string `yaml:"name"`
-	Prefix string `yaml:"prefix"`
-	Suffix string `yaml:"suffix"`
+	Name            string            `yaml:"name" json:"name"`
+	Prefix          string            `yaml:"prefix" json:"prefix"`
+	Suffix          string            `yaml:"suffix,omitempty" json:"suffix,omitempty"`
+	Remark          string            `yaml:"remark,omitempty" json:"remark,omitempty"`
+	RemarkUnlimited string            `yaml:"remarkUnlimited,omitempty" json:"remarkUnlimited,omitempty"`
+	Stubs           map[string]string `yaml:"stubs,omitempty" json:"stubs,omitempty"`
 }
 
 // DisplayName is Name, defaulting to Prefix+Suffix like subpage does.
@@ -29,8 +33,14 @@ func (a Addon) DisplayName() string {
 // Username is the add-on user's name for the main user's username.
 func (a Addon) Username(main string) string { return a.Prefix + main + a.Suffix }
 
-type file struct {
-	Addons []Addon `yaml:"addons"`
+// File is the whole add-ons file.
+type File struct {
+	Addons []Addon `yaml:"addons" json:"addons"`
+}
+
+// Marshal renders add-ons as an addons.yml.
+func Marshal(list []Addon) ([]byte, error) {
+	return yaml.Marshal(File{Addons: list})
 }
 
 // Load reads the file. A missing file (or a directory, which is what Docker
@@ -46,7 +56,7 @@ func Load(path string) ([]Addon, error) {
 	if err != nil {
 		return nil, err
 	}
-	var f file
+	var f File
 	if err := yaml.Unmarshal(b, &f); err != nil {
 		return nil, fmt.Errorf("parse %s: %w", path, err)
 	}

@@ -43,6 +43,7 @@ import type { Addon, Tariff } from '@/api/types'
 import { durationLabel, fmtBytes, fmtMoney, GB, strategyLabel } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { PageHeader } from '@/components/ui'
+import { openAddonModal } from '@/modals/AddonModal'
 import { confirmDanger } from '@/modals/open'
 import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
 import { Page } from '@shared/ui/page'
@@ -58,17 +59,32 @@ export function TariffsPage() {
     const [draft, setDraft] = useState<Draft | null>(null)
     const base = (tariffs.data ?? []).filter((t) => t.kind === 'base')
     const addonTariffs = (tariffs.data ?? []).filter((t) => t.kind === 'addon')
+    const invalidate = useInvalidateAll()
+    const deleteAddon = (a: Addon) =>
+        confirmDanger(`Удалить аддон «${a.name}»?`, 'Удалить можно только аддон без тарифов и подписок.', async () => {
+            try {
+                await api.del(`addons/${a.id}`)
+                await invalidate()
+            } catch (e) {
+                notifyError(e)
+            }
+        })
 
     return (
         <Page title="Тарифы и аддоны">
             <PageHeader
                 icon={<TbTags size={24} />}
                 title="Тарифы и аддоны"
-                description="Цены и параметры пользователей панели для базовых подписок и аддонов из addons.yml"
+                description="Цены и параметры пользователей панели для базовых подписок и аддонов"
                 actions={
-                    <Button color="teal" leftSection={<PiPlus size={16} />} onClick={() => setDraft({ kind: 'base', active: true })} variant="soft">
-                        Тариф
-                    </Button>
+                    <Group gap="xs">
+                        <Button color="grape" leftSection={<PiPlus size={16} />} onClick={() => openAddonModal()} variant="soft">
+                            Аддон
+                        </Button>
+                        <Button color="teal" leftSection={<PiPlus size={16} />} onClick={() => setDraft({ kind: 'base', active: true })} variant="soft">
+                            Тариф
+                        </Button>
+                    </Group>
                 }
             />
             <Tabs defaultValue="base">
@@ -90,23 +106,36 @@ export function TariffsPage() {
                 <Tabs.Panel value="addons">
                     <Stack>
                         {(addons.data ?? []).length === 0 && (
-                            <Alert color="yellow">
-                                Аддоны берутся из addons.yml сервиса subpage (переменная ADDONS_CONFIG). Файл не найден или пуст.
+                            <Alert color="gray">
+                                Аддонов пока нет. Создайте аддон кнопкой «Аддон» или подключите файл в формате addons.yml сервиса subpage
+                                (переменная ADDONS_CONFIG).
                             </Alert>
                         )}
                         {(addons.data ?? []).map((a) => (
                             <TariffTable
                                 key={a.id}
                                 actions={
-                                    <Button
-                                        color="grape"
-                                        leftSection={<PiPlus size={14} />}
-                                        onClick={() => setDraft({ kind: 'addon', addon_id: a.id, active: true, manage_rw: true })}
-                                        size="xs"
-                                        variant="soft"
-                                    >
-                                        Тариф аддона
-                                    </Button>
+                                    <Group gap="xs">
+                                        {a.source === 'ui' && (
+                                            <>
+                                                <ActionIcon color="gray" onClick={() => openAddonModal(a)} variant="subtle">
+                                                    <PiPencilSimple size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon color="red" onClick={() => deleteAddon(a)} variant="subtle">
+                                                    <PiTrash size={16} />
+                                                </ActionIcon>
+                                            </>
+                                        )}
+                                        <Button
+                                            color="grape"
+                                            leftSection={<PiPlus size={14} />}
+                                            onClick={() => setDraft({ kind: 'addon', addon_id: a.id, active: true, manage_rw: true })}
+                                            size="xs"
+                                            variant="soft"
+                                        >
+                                            Тариф аддона
+                                        </Button>
+                                    </Group>
                                 }
                                 description={`пользователь панели: ${a.prefix}<username>${a.suffix}`}
                                 icon={<PiPuzzlePieceDuotone size={24} />}
@@ -116,9 +145,9 @@ export function TariffsPage() {
                                 title={
                                     <Group gap="xs">
                                         {a.name}
-                                        {!a.in_config && (
-                                            <Badge color="red" variant="soft">
-                                                нет в addons.yml
+                                        {a.source === 'file' && (
+                                            <Badge color="gray" variant="soft">
+                                                {a.in_config ? 'из файла' : 'удалён из файла'}
                                             </Badge>
                                         )}
                                     </Group>

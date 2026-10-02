@@ -6,8 +6,11 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// Addon is a kind of add-on (from subpage's addons.yml): an extra Remnawave
-// user named prefix+<main username>+suffix appended to the main subscription.
+// Addon is a kind of add-on: an extra Remnawave user named
+// prefix+<main username>+suffix whose configs are appended to the main
+// subscription (by subpage or any service reading GET /api/v1/addons). It
+// comes from the add-ons file (source "file", read-only here) or is
+// managed in the UI (source "ui").
 type Addon struct {
 	ent.Schema
 }
@@ -19,8 +22,15 @@ func (Addon) Fields() []ent.Field {
 		field.String("name").Unique(),
 		field.String("prefix").Optional(),
 		field.String("suffix").Optional(),
-		// InConfig is false once the add-on disappears from addons.yml.
+		// InConfig is false once a file add-on disappears from the file.
 		field.Bool("in_config").Default(true),
+		field.Enum("source").Values("file", "ui").Default("file"),
+		// Remark/RemarkUnlimited/Stubs are subpage's display settings:
+		// config names ({remark}, {remaining}, {limit}, {used}) and the
+		// placeholder config names per non-active status.
+		field.String("remark").Optional(),
+		field.String("remark_unlimited").Optional(),
+		field.JSON("stubs", map[string]string{}).Optional(),
 	}
 }
 

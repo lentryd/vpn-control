@@ -190,7 +190,21 @@ export interface Addon {
     name: string
     prefix: string
     suffix: string
+    // file add-ons come from ADDONS_CONFIG and are read-only here
     in_config: boolean
+    source: 'file' | 'ui'
+    remark: string
+    remark_unlimited: string
+    stubs: Record<string, string>
+}
+
+export interface ApiToken {
+    id: number
+    name: string
+    prefix: string
+    scopes: string[]
+    created_at: string
+    last_used_at: string | null
 }
 
 export interface Squad {

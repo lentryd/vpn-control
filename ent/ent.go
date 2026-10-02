@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"sync"
 	"vpn-control/ent/addon"
+	"vpn-control/ent/apitoken"
 	"vpn-control/ent/auditlog"
 	"vpn-control/ent/customer"
 	"vpn-control/ent/expense"
@@ -89,6 +90,7 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			apitoken.Table:          apitoken.ValidColumn,
 			addon.Table:             addon.ValidColumn,
 			auditlog.Table:          auditlog.ValidColumn,
 			customer.Table:          customer.ValidColumn,

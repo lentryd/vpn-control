@@ -1,6 +1,6 @@
 // API base is relative to the page: the app may live at "/" or under a
 // BASE_PATH like "/control/", and the API is always "<that>/api/".
-const API_BASE = new URL('api/', document.baseURI).toString()
+export const API_BASE = new URL('api/', document.baseURI).toString()
 
 export class ApiError extends Error {
     constructor(

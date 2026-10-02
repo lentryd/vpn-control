@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -29,6 +30,14 @@ type Addon struct {
 	Suffix string `json:"suffix,omitempty"`
 	// InConfig holds the value of the "in_config" field.
 	InConfig bool `json:"in_config,omitempty"`
+	// Source holds the value of the "source" field.
+	Source addon.Source `json:"source,omitempty"`
+	// Remark holds the value of the "remark" field.
+	Remark string `json:"remark,omitempty"`
+	// RemarkUnlimited holds the value of the "remark_unlimited" field.
+	RemarkUnlimited string `json:"remark_unlimited,omitempty"`
+	// Stubs holds the value of the "stubs" field.
+	Stubs map[string]string `json:"stubs,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AddonQuery when eager-loading is set.
 	Edges        AddonEdges `json:"edges"`
@@ -69,11 +78,13 @@ func (*Addon) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case addon.FieldStubs:
+			values[i] = new([]byte)
 		case addon.FieldInConfig:
 			values[i] = new(sql.NullBool)
 		case addon.FieldID:
 			values[i] = new(sql.NullInt64)
-		case addon.FieldName, addon.FieldPrefix, addon.FieldSuffix:
+		case addon.FieldName, addon.FieldPrefix, addon.FieldSuffix, addon.FieldSource, addon.FieldRemark, addon.FieldRemarkUnlimited:
 			values[i] = new(sql.NullString)
 		case addon.FieldCreatedAt, addon.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -133,6 +144,32 @@ func (_m *Addon) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field in_config", values[i])
 			} else if value.Valid {
 				_m.InConfig = value.Bool
+			}
+		case addon.FieldSource:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field source", values[i])
+			} else if value.Valid {
+				_m.Source = addon.Source(value.String)
+			}
+		case addon.FieldRemark:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field remark", values[i])
+			} else if value.Valid {
+				_m.Remark = value.String
+			}
+		case addon.FieldRemarkUnlimited:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field remark_unlimited", values[i])
+			} else if value.Valid {
+				_m.RemarkUnlimited = value.String
+			}
+		case addon.FieldStubs:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field stubs", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Stubs); err != nil {
+					return fmt.Errorf("unmarshal field stubs: %w", err)
+				}
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -197,6 +234,18 @@ func (_m *Addon) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("in_config=")
 	builder.WriteString(fmt.Sprintf("%v", _m.InConfig))
+	builder.WriteString(", ")
+	builder.WriteString("source=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Source))
+	builder.WriteString(", ")
+	builder.WriteString("remark=")
+	builder.WriteString(_m.Remark)
+	builder.WriteString(", ")
+	builder.WriteString("remark_unlimited=")
+	builder.WriteString(_m.RemarkUnlimited)
+	builder.WriteString(", ")
+	builder.WriteString("stubs=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Stubs))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -104,6 +104,72 @@ func (_u *AddonUpdate) SetNillableInConfig(v *bool) *AddonUpdate {
 	return _u
 }
 
+// SetSource sets the "source" field.
+func (_u *AddonUpdate) SetSource(v addon.Source) *AddonUpdate {
+	_u.mutation.SetSource(v)
+	return _u
+}
+
+// SetNillableSource sets the "source" field if the given value is not nil.
+func (_u *AddonUpdate) SetNillableSource(v *addon.Source) *AddonUpdate {
+	if v != nil {
+		_u.SetSource(*v)
+	}
+	return _u
+}
+
+// SetRemark sets the "remark" field.
+func (_u *AddonUpdate) SetRemark(v string) *AddonUpdate {
+	_u.mutation.SetRemark(v)
+	return _u
+}
+
+// SetNillableRemark sets the "remark" field if the given value is not nil.
+func (_u *AddonUpdate) SetNillableRemark(v *string) *AddonUpdate {
+	if v != nil {
+		_u.SetRemark(*v)
+	}
+	return _u
+}
+
+// ClearRemark clears the value of the "remark" field.
+func (_u *AddonUpdate) ClearRemark() *AddonUpdate {
+	_u.mutation.ClearRemark()
+	return _u
+}
+
+// SetRemarkUnlimited sets the "remark_unlimited" field.
+func (_u *AddonUpdate) SetRemarkUnlimited(v string) *AddonUpdate {
+	_u.mutation.SetRemarkUnlimited(v)
+	return _u
+}
+
+// SetNillableRemarkUnlimited sets the "remark_unlimited" field if the given value is not nil.
+func (_u *AddonUpdate) SetNillableRemarkUnlimited(v *string) *AddonUpdate {
+	if v != nil {
+		_u.SetRemarkUnlimited(*v)
+	}
+	return _u
+}
+
+// ClearRemarkUnlimited clears the value of the "remark_unlimited" field.
+func (_u *AddonUpdate) ClearRemarkUnlimited() *AddonUpdate {
+	_u.mutation.ClearRemarkUnlimited()
+	return _u
+}
+
+// SetStubs sets the "stubs" field.
+func (_u *AddonUpdate) SetStubs(v map[string]string) *AddonUpdate {
+	_u.mutation.SetStubs(v)
+	return _u
+}
+
+// ClearStubs clears the value of the "stubs" field.
+func (_u *AddonUpdate) ClearStubs() *AddonUpdate {
+	_u.mutation.ClearStubs()
+	return _u
+}
+
 // AddTariffIDs adds the "tariffs" edge to the Tariff entity by IDs.
 func (_u *AddonUpdate) AddTariffIDs(ids ...int) *AddonUpdate {
 	_u.mutation.AddTariffIDs(ids...)
@@ -217,7 +283,20 @@ func (_u *AddonUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *AddonUpdate) check() error {
+	if v, ok := _u.mutation.Source(); ok {
+		if err := addon.SourceValidator(v); err != nil {
+			return &ValidationError{Name: "source", err: fmt.Errorf(`ent: validator failed for field "Addon.source": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (_u *AddonUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(addon.Table, addon.Columns, sqlgraph.NewFieldSpec(addon.FieldID, field.TypeInt))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -246,6 +325,27 @@ func (_u *AddonUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.InConfig(); ok {
 		_spec.SetField(addon.FieldInConfig, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Source(); ok {
+		_spec.SetField(addon.FieldSource, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.Remark(); ok {
+		_spec.SetField(addon.FieldRemark, field.TypeString, value)
+	}
+	if _u.mutation.RemarkCleared() {
+		_spec.ClearField(addon.FieldRemark, field.TypeString)
+	}
+	if value, ok := _u.mutation.RemarkUnlimited(); ok {
+		_spec.SetField(addon.FieldRemarkUnlimited, field.TypeString, value)
+	}
+	if _u.mutation.RemarkUnlimitedCleared() {
+		_spec.ClearField(addon.FieldRemarkUnlimited, field.TypeString)
+	}
+	if value, ok := _u.mutation.Stubs(); ok {
+		_spec.SetField(addon.FieldStubs, field.TypeJSON, value)
+	}
+	if _u.mutation.StubsCleared() {
+		_spec.ClearField(addon.FieldStubs, field.TypeJSON)
 	}
 	if _u.mutation.TariffsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -431,6 +531,72 @@ func (_u *AddonUpdateOne) SetNillableInConfig(v *bool) *AddonUpdateOne {
 	return _u
 }
 
+// SetSource sets the "source" field.
+func (_u *AddonUpdateOne) SetSource(v addon.Source) *AddonUpdateOne {
+	_u.mutation.SetSource(v)
+	return _u
+}
+
+// SetNillableSource sets the "source" field if the given value is not nil.
+func (_u *AddonUpdateOne) SetNillableSource(v *addon.Source) *AddonUpdateOne {
+	if v != nil {
+		_u.SetSource(*v)
+	}
+	return _u
+}
+
+// SetRemark sets the "remark" field.
+func (_u *AddonUpdateOne) SetRemark(v string) *AddonUpdateOne {
+	_u.mutation.SetRemark(v)
+	return _u
+}
+
+// SetNillableRemark sets the "remark" field if the given value is not nil.
+func (_u *AddonUpdateOne) SetNillableRemark(v *string) *AddonUpdateOne {
+	if v != nil {
+		_u.SetRemark(*v)
+	}
+	return _u
+}
+
+// ClearRemark clears the value of the "remark" field.
+func (_u *AddonUpdateOne) ClearRemark() *AddonUpdateOne {
+	_u.mutation.ClearRemark()
+	return _u
+}
+
+// SetRemarkUnlimited sets the "remark_unlimited" field.
+func (_u *AddonUpdateOne) SetRemarkUnlimited(v string) *AddonUpdateOne {
+	_u.mutation.SetRemarkUnlimited(v)
+	return _u
+}
+
+// SetNillableRemarkUnlimited sets the "remark_unlimited" field if the given value is not nil.
+func (_u *AddonUpdateOne) SetNillableRemarkUnlimited(v *string) *AddonUpdateOne {
+	if v != nil {
+		_u.SetRemarkUnlimited(*v)
+	}
+	return _u
+}
+
+// ClearRemarkUnlimited clears the value of the "remark_unlimited" field.
+func (_u *AddonUpdateOne) ClearRemarkUnlimited() *AddonUpdateOne {
+	_u.mutation.ClearRemarkUnlimited()
+	return _u
+}
+
+// SetStubs sets the "stubs" field.
+func (_u *AddonUpdateOne) SetStubs(v map[string]string) *AddonUpdateOne {
+	_u.mutation.SetStubs(v)
+	return _u
+}
+
+// ClearStubs clears the value of the "stubs" field.
+func (_u *AddonUpdateOne) ClearStubs() *AddonUpdateOne {
+	_u.mutation.ClearStubs()
+	return _u
+}
+
 // AddTariffIDs adds the "tariffs" edge to the Tariff entity by IDs.
 func (_u *AddonUpdateOne) AddTariffIDs(ids ...int) *AddonUpdateOne {
 	_u.mutation.AddTariffIDs(ids...)
@@ -557,7 +723,20 @@ func (_u *AddonUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *AddonUpdateOne) check() error {
+	if v, ok := _u.mutation.Source(); ok {
+		if err := addon.SourceValidator(v); err != nil {
+			return &ValidationError{Name: "source", err: fmt.Errorf(`ent: validator failed for field "Addon.source": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (_u *AddonUpdateOne) sqlSave(ctx context.Context) (_node *Addon, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(addon.Table, addon.Columns, sqlgraph.NewFieldSpec(addon.FieldID, field.TypeInt))
 	id, ok := _u.mutation.ID()
 	if !ok {
@@ -603,6 +782,27 @@ func (_u *AddonUpdateOne) sqlSave(ctx context.Context) (_node *Addon, err error)
 	}
 	if value, ok := _u.mutation.InConfig(); ok {
 		_spec.SetField(addon.FieldInConfig, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Source(); ok {
+		_spec.SetField(addon.FieldSource, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.Remark(); ok {
+		_spec.SetField(addon.FieldRemark, field.TypeString, value)
+	}
+	if _u.mutation.RemarkCleared() {
+		_spec.ClearField(addon.FieldRemark, field.TypeString)
+	}
+	if value, ok := _u.mutation.RemarkUnlimited(); ok {
+		_spec.SetField(addon.FieldRemarkUnlimited, field.TypeString, value)
+	}
+	if _u.mutation.RemarkUnlimitedCleared() {
+		_spec.ClearField(addon.FieldRemarkUnlimited, field.TypeString)
+	}
+	if value, ok := _u.mutation.Stubs(); ok {
+		_spec.SetField(addon.FieldStubs, field.TypeJSON, value)
+	}
+	if _u.mutation.StubsCleared() {
+		_spec.ClearField(addon.FieldStubs, field.TypeJSON)
 	}
 	if _u.mutation.TariffsCleared() {
 		edge := &sqlgraph.EdgeSpec{

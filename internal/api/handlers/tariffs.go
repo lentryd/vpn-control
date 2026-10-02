@@ -4,7 +4,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"vpn-control/ent"
-	"vpn-control/ent/addon"
 	"vpn-control/ent/subscription"
 	"vpn-control/ent/subscriptionaddon"
 	"vpn-control/ent/tariff"
@@ -324,16 +323,4 @@ func (h *Handlers) DeleteTariff(c *fiber.Ctx) error {
 		return badRequest(err)
 	}
 	return c.SendStatus(fiber.StatusNoContent)
-}
-
-func (h *Handlers) ListAddons(c *fiber.Ctx) error {
-	list, err := h.DB.Addon.Query().Order(ent.Asc(addon.FieldName)).All(c.UserContext())
-	if err != nil {
-		return err
-	}
-	out := make([]fiber.Map, 0, len(list))
-	for _, a := range list {
-		out = append(out, fiber.Map{"id": a.ID, "name": a.Name, "prefix": a.Prefix, "suffix": a.Suffix, "in_config": a.InConfig})
-	}
-	return c.JSON(out)
 }

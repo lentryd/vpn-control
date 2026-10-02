@@ -1,0 +1,167 @@
+package handlers
+
+import (
+	"strings"
+
+	"github.com/gofiber/fiber/v2"
+
+	"vpn-control/ent"
+	"vpn-control/ent/addon"
+	"vpn-control/ent/subscriptionaddon"
+	"vpn-control/ent/tariff"
+	"vpn-control/internal/audit"
+)
+
+type catalogAddonView struct {
+	ID              int               `json:"id"`
+	Name            string            `json:"name"`
+	Prefix          string            `json:"prefix"`
+	Suffix          string            `json:"suffix"`
+	InConfig        bool              `json:"in_config"`
+	Source          string            `json:"source"`
+	Remark          string            `json:"remark"`
+	RemarkUnlimited string            `json:"remark_unlimited"`
+	Stubs           map[string]string `json:"stubs"`
+}
+
+func (h *Handlers) ListAddons(c *fiber.Ctx) error {
+	list, err := h.DB.Addon.Query().Order(ent.Asc(addon.FieldName)).All(c.UserContext())
+	if err != nil {
+		return err
+	}
+	out := make([]catalogAddonView, 0, len(list))
+	for _, a := range list {
+		stubs := a.Stubs
+		if stubs == nil {
+			stubs = map[string]string{}
+		}
+		out = append(out, catalogAddonView{
+			ID: a.ID, Name: a.Name, Prefix: a.Prefix, Suffix: a.Suffix, InConfig: a.InConfig, Source: a.Source.String(),
+			Remark: a.Remark, RemarkUnlimited: a.RemarkUnlimited, Stubs: stubs,
+		})
+	}
+	return c.JSON(out)
+}
+
+type addonCatalogInput struct {
+	Name            string            `json:"name"`
+	Prefix          string            `json:"prefix"`
+	Suffix          string            `json:"suffix"`
+	Remark          string            `json:"remark"`
+	RemarkUnlimited string            `json:"remark_unlimited"`
+	Stubs           map[string]string `json:"stubs"`
+}
+
+func (in *addonCatalogInput) validate() error {
+	in.Name, in.Prefix, in.Suffix = strings.TrimSpace(in.Name), strings.TrimSpace(in.Prefix), strings.TrimSpace(in.Suffix)
+	if in.Prefix == "" && in.Suffix == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "задайте префикс или суффикс")
+	}
+	if in.Name == "" {
+		in.Name = in.Prefix + in.Suffix
+	}
+	for k, v := range in.Stubs {
+		if strings.TrimSpace(v) == "" {
+			delete(in.Stubs, k)
+		}
+	}
+	return nil
+}
+
+// uiAddon loads an add-on that may be edited here (not one from the file).
+func (h *Handlers) uiAddon(c *fiber.Ctx) (*ent.Addon, error) {
+	id, err := paramID(c, "id")
+	if err != nil {
+		return nil, err
+	}
+	a, err := h.DB.Addon.Get(c.UserContext(), id)
+	if err != nil {
+		return nil, badRequest(err)
+	}
+	if a.Source != addon.SourceUI {
+		return nil, fiber.NewError(fiber.StatusConflict, "аддон из файла — меняйте его в файле")
+	}
+	return a, nil
+}
+
+func (h *Handlers) CreateAddon(c *fiber.Ctx) error {
+	var in addonCatalogInput
+	if err := bind(c, &in); err != nil {
+		return err
+	}
+	if err := in.validate(); err != nil {
+		return err
+	}
+	ctx := c.UserContext()
+	a, err := h.DB.Addon.Create().
+		SetName(in.Name).SetPrefix(in.Prefix).SetSuffix(in.Suffix).SetSource(addon.SourceUI).
+		SetRemark(in.Remark).SetRemarkUnlimited(in.RemarkUnlimited).SetStubs(in.Stubs).
+		Save(ctx)
+	if ent.IsConstraintError(err) {
+		err = fiber.NewError(fiber.StatusConflict, "аддон с таким названием уже есть")
+	}
+	audit.Log(ctx, h.DB, "addon.create", "addon", idOfAddon(a), in, err)
+	if err != nil {
+		return badRequest(err)
+	}
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"id": a.ID})
+}
+
+func (h *Handlers) UpdateAddon(c *fiber.Ctx) error {
+	a, err := h.uiAddon(c)
+	if err != nil {
+		return err
+	}
+	var in addonCatalogInput
+	if err := bind(c, &in); err != nil {
+		return err
+	}
+	if err := in.validate(); err != nil {
+		return err
+	}
+	ctx := c.UserContext()
+	err = h.DB.Addon.UpdateOne(a).
+		SetName(in.Name).SetPrefix(in.Prefix).SetSuffix(in.Suffix).
+		SetRemark(in.Remark).SetRemarkUnlimited(in.RemarkUnlimited).SetStubs(in.Stubs).
+		Exec(ctx)
+	if ent.IsConstraintError(err) {
+		err = fiber.NewError(fiber.StatusConflict, "аддон с таким названием уже есть")
+	}
+	audit.Log(ctx, h.DB, "addon.update_catalog", "addon", a.ID, in, err)
+	if err != nil {
+		return badRequest(err)
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h *Handlers) DeleteAddon(c *fiber.Ctx) error {
+	a, err := h.uiAddon(c)
+	if err != nil {
+		return err
+	}
+	ctx := c.UserContext()
+	used, err := h.DB.SubscriptionAddon.Query().Where(subscriptionaddon.AddonID(a.ID)).Exist(ctx)
+	if err != nil {
+		return err
+	}
+	tariffs, err := h.DB.Tariff.Query().Where(tariff.AddonID(a.ID)).Exist(ctx)
+	if err != nil {
+		return err
+	}
+	if used || tariffs {
+		return fiber.NewError(fiber.StatusConflict, "аддон используется в подписках или тарифах")
+	}
+	err = h.DB.Addon.DeleteOne(a).Exec(ctx)
+	audit.Log(ctx, h.DB, "addon.delete", "addon", a.ID, nil, err)
+	if err != nil {
+		return badRequest(err)
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func idOfAddon(a *ent.Addon) int {
+	if a == nil {
+		return 0
+	}
+	return a.ID
+}

@@ -85,6 +85,16 @@ func InConfig(v bool) predicate.Addon {
 	return predicate.Addon(sql.FieldEQ(FieldInConfig, v))
 }
 
+// Remark applies equality check predicate on the "remark" field. It's identical to RemarkEQ.
+func Remark(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldEQ(FieldRemark, v))
+}
+
+// RemarkUnlimited applies equality check predicate on the "remark_unlimited" field. It's identical to RemarkUnlimitedEQ.
+func RemarkUnlimited(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldEQ(FieldRemarkUnlimited, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Addon {
 	return predicate.Addon(sql.FieldEQ(FieldCreatedAt, v))
@@ -388,6 +398,186 @@ func InConfigEQ(v bool) predicate.Addon {
 // InConfigNEQ applies the NEQ predicate on the "in_config" field.
 func InConfigNEQ(v bool) predicate.Addon {
 	return predicate.Addon(sql.FieldNEQ(FieldInConfig, v))
+}
+
+// SourceEQ applies the EQ predicate on the "source" field.
+func SourceEQ(v Source) predicate.Addon {
+	return predicate.Addon(sql.FieldEQ(FieldSource, v))
+}
+
+// SourceNEQ applies the NEQ predicate on the "source" field.
+func SourceNEQ(v Source) predicate.Addon {
+	return predicate.Addon(sql.FieldNEQ(FieldSource, v))
+}
+
+// SourceIn applies the In predicate on the "source" field.
+func SourceIn(vs ...Source) predicate.Addon {
+	return predicate.Addon(sql.FieldIn(FieldSource, vs...))
+}
+
+// SourceNotIn applies the NotIn predicate on the "source" field.
+func SourceNotIn(vs ...Source) predicate.Addon {
+	return predicate.Addon(sql.FieldNotIn(FieldSource, vs...))
+}
+
+// RemarkEQ applies the EQ predicate on the "remark" field.
+func RemarkEQ(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldEQ(FieldRemark, v))
+}
+
+// RemarkNEQ applies the NEQ predicate on the "remark" field.
+func RemarkNEQ(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldNEQ(FieldRemark, v))
+}
+
+// RemarkIn applies the In predicate on the "remark" field.
+func RemarkIn(vs ...string) predicate.Addon {
+	return predicate.Addon(sql.FieldIn(FieldRemark, vs...))
+}
+
+// RemarkNotIn applies the NotIn predicate on the "remark" field.
+func RemarkNotIn(vs ...string) predicate.Addon {
+	return predicate.Addon(sql.FieldNotIn(FieldRemark, vs...))
+}
+
+// RemarkGT applies the GT predicate on the "remark" field.
+func RemarkGT(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldGT(FieldRemark, v))
+}
+
+// RemarkGTE applies the GTE predicate on the "remark" field.
+func RemarkGTE(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldGTE(FieldRemark, v))
+}
+
+// RemarkLT applies the LT predicate on the "remark" field.
+func RemarkLT(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldLT(FieldRemark, v))
+}
+
+// RemarkLTE applies the LTE predicate on the "remark" field.
+func RemarkLTE(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldLTE(FieldRemark, v))
+}
+
+// RemarkContains applies the Contains predicate on the "remark" field.
+func RemarkContains(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldContains(FieldRemark, v))
+}
+
+// RemarkHasPrefix applies the HasPrefix predicate on the "remark" field.
+func RemarkHasPrefix(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldHasPrefix(FieldRemark, v))
+}
+
+// RemarkHasSuffix applies the HasSuffix predicate on the "remark" field.
+func RemarkHasSuffix(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldHasSuffix(FieldRemark, v))
+}
+
+// RemarkIsNil applies the IsNil predicate on the "remark" field.
+func RemarkIsNil() predicate.Addon {
+	return predicate.Addon(sql.FieldIsNull(FieldRemark))
+}
+
+// RemarkNotNil applies the NotNil predicate on the "remark" field.
+func RemarkNotNil() predicate.Addon {
+	return predicate.Addon(sql.FieldNotNull(FieldRemark))
+}
+
+// RemarkEqualFold applies the EqualFold predicate on the "remark" field.
+func RemarkEqualFold(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldEqualFold(FieldRemark, v))
+}
+
+// RemarkContainsFold applies the ContainsFold predicate on the "remark" field.
+func RemarkContainsFold(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldContainsFold(FieldRemark, v))
+}
+
+// RemarkUnlimitedEQ applies the EQ predicate on the "remark_unlimited" field.
+func RemarkUnlimitedEQ(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldEQ(FieldRemarkUnlimited, v))
+}
+
+// RemarkUnlimitedNEQ applies the NEQ predicate on the "remark_unlimited" field.
+func RemarkUnlimitedNEQ(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldNEQ(FieldRemarkUnlimited, v))
+}
+
+// RemarkUnlimitedIn applies the In predicate on the "remark_unlimited" field.
+func RemarkUnlimitedIn(vs ...string) predicate.Addon {
+	return predicate.Addon(sql.FieldIn(FieldRemarkUnlimited, vs...))
+}
+
+// RemarkUnlimitedNotIn applies the NotIn predicate on the "remark_unlimited" field.
+func RemarkUnlimitedNotIn(vs ...string) predicate.Addon {
+	return predicate.Addon(sql.FieldNotIn(FieldRemarkUnlimited, vs...))
+}
+
+// RemarkUnlimitedGT applies the GT predicate on the "remark_unlimited" field.
+func RemarkUnlimitedGT(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldGT(FieldRemarkUnlimited, v))
+}
+
+// RemarkUnlimitedGTE applies the GTE predicate on the "remark_unlimited" field.
+func RemarkUnlimitedGTE(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldGTE(FieldRemarkUnlimited, v))
+}
+
+// RemarkUnlimitedLT applies the LT predicate on the "remark_unlimited" field.
+func RemarkUnlimitedLT(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldLT(FieldRemarkUnlimited, v))
+}
+
+// RemarkUnlimitedLTE applies the LTE predicate on the "remark_unlimited" field.
+func RemarkUnlimitedLTE(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldLTE(FieldRemarkUnlimited, v))
+}
+
+// RemarkUnlimitedContains applies the Contains predicate on the "remark_unlimited" field.
+func RemarkUnlimitedContains(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldContains(FieldRemarkUnlimited, v))
+}
+
+// RemarkUnlimitedHasPrefix applies the HasPrefix predicate on the "remark_unlimited" field.
+func RemarkUnlimitedHasPrefix(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldHasPrefix(FieldRemarkUnlimited, v))
+}
+
+// RemarkUnlimitedHasSuffix applies the HasSuffix predicate on the "remark_unlimited" field.
+func RemarkUnlimitedHasSuffix(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldHasSuffix(FieldRemarkUnlimited, v))
+}
+
+// RemarkUnlimitedIsNil applies the IsNil predicate on the "remark_unlimited" field.
+func RemarkUnlimitedIsNil() predicate.Addon {
+	return predicate.Addon(sql.FieldIsNull(FieldRemarkUnlimited))
+}
+
+// RemarkUnlimitedNotNil applies the NotNil predicate on the "remark_unlimited" field.
+func RemarkUnlimitedNotNil() predicate.Addon {
+	return predicate.Addon(sql.FieldNotNull(FieldRemarkUnlimited))
+}
+
+// RemarkUnlimitedEqualFold applies the EqualFold predicate on the "remark_unlimited" field.
+func RemarkUnlimitedEqualFold(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldEqualFold(FieldRemarkUnlimited, v))
+}
+
+// RemarkUnlimitedContainsFold applies the ContainsFold predicate on the "remark_unlimited" field.
+func RemarkUnlimitedContainsFold(v string) predicate.Addon {
+	return predicate.Addon(sql.FieldContainsFold(FieldRemarkUnlimited, v))
+}
+
+// StubsIsNil applies the IsNil predicate on the "stubs" field.
+func StubsIsNil() predicate.Addon {
+	return predicate.Addon(sql.FieldIsNull(FieldStubs))
+}
+
+// StubsNotNil applies the NotNil predicate on the "stubs" field.
+func StubsNotNil() predicate.Addon {
+	return predicate.Addon(sql.FieldNotNull(FieldStubs))
 }
 
 // HasTariffs applies the HasEdge predicate on the "tariffs" edge.

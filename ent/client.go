@@ -12,6 +12,7 @@ import (
 	"vpn-control/ent/migrate"
 
 	"vpn-control/ent/addon"
+	"vpn-control/ent/apitoken"
 	"vpn-control/ent/auditlog"
 	"vpn-control/ent/customer"
 	"vpn-control/ent/expense"
@@ -40,6 +41,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// APIToken is the client for interacting with the APIToken builders.
+	APIToken *APITokenClient
 	// Addon is the client for interacting with the Addon builders.
 	Addon *AddonClient
 	// AuditLog is the client for interacting with the AuditLog builders.
@@ -85,6 +88,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.APIToken = NewAPITokenClient(c.config)
 	c.Addon = NewAddonClient(c.config)
 	c.AuditLog = NewAuditLogClient(c.config)
 	c.Customer = NewCustomerClient(c.config)
@@ -194,6 +198,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:               ctx,
 		config:            cfg,
+		APIToken:          NewAPITokenClient(cfg),
 		Addon:             NewAddonClient(cfg),
 		AuditLog:          NewAuditLogClient(cfg),
 		Customer:          NewCustomerClient(cfg),
@@ -230,6 +235,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:               ctx,
 		config:            cfg,
+		APIToken:          NewAPITokenClient(cfg),
 		Addon:             NewAddonClient(cfg),
 		AuditLog:          NewAuditLogClient(cfg),
 		Customer:          NewCustomerClient(cfg),
@@ -253,7 +259,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Addon.
+//		APIToken.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -276,9 +282,9 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Addon, c.AuditLog, c.Customer, c.Expense, c.ExpenseItem, c.Extension,
-		c.FxRate, c.LedgerEntry, c.Payment, c.ReferralAccrual, c.RwUser, c.Setting,
-		c.Subscription, c.SubscriptionAddon, c.Tariff, c.TariffPeriod,
+		c.APIToken, c.Addon, c.AuditLog, c.Customer, c.Expense, c.ExpenseItem,
+		c.Extension, c.FxRate, c.LedgerEntry, c.Payment, c.ReferralAccrual, c.RwUser,
+		c.Setting, c.Subscription, c.SubscriptionAddon, c.Tariff, c.TariffPeriod,
 		c.TrafficSnapshot,
 	} {
 		n.Use(hooks...)
@@ -289,9 +295,9 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Addon, c.AuditLog, c.Customer, c.Expense, c.ExpenseItem, c.Extension,
-		c.FxRate, c.LedgerEntry, c.Payment, c.ReferralAccrual, c.RwUser, c.Setting,
-		c.Subscription, c.SubscriptionAddon, c.Tariff, c.TariffPeriod,
+		c.APIToken, c.Addon, c.AuditLog, c.Customer, c.Expense, c.ExpenseItem,
+		c.Extension, c.FxRate, c.LedgerEntry, c.Payment, c.ReferralAccrual, c.RwUser,
+		c.Setting, c.Subscription, c.SubscriptionAddon, c.Tariff, c.TariffPeriod,
 		c.TrafficSnapshot,
 	} {
 		n.Intercept(interceptors...)
@@ -301,6 +307,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *APITokenMutation:
+		return c.APIToken.mutate(ctx, m)
 	case *AddonMutation:
 		return c.Addon.mutate(ctx, m)
 	case *AuditLogMutation:
@@ -337,6 +345,139 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.TrafficSnapshot.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// APITokenClient is a client for the APIToken schema.
+type APITokenClient struct {
+	config
+}
+
+// NewAPITokenClient returns a client for the APIToken from the given config.
+func NewAPITokenClient(c config) *APITokenClient {
+	return &APITokenClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `apitoken.Hooks(f(g(h())))`.
+func (c *APITokenClient) Use(hooks ...Hook) {
+	c.hooks.APIToken = append(c.hooks.APIToken, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `apitoken.Intercept(f(g(h())))`.
+func (c *APITokenClient) Intercept(interceptors ...Interceptor) {
+	c.inters.APIToken = append(c.inters.APIToken, interceptors...)
+}
+
+// Create returns a builder for creating a APIToken entity.
+func (c *APITokenClient) Create() *APITokenCreate {
+	mutation := newAPITokenMutation(c.config, OpCreate)
+	return &APITokenCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of APIToken entities.
+func (c *APITokenClient) CreateBulk(builders ...*APITokenCreate) *APITokenCreateBulk {
+	return &APITokenCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *APITokenClient) MapCreateBulk(slice any, setFunc func(*APITokenCreate, int)) *APITokenCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &APITokenCreateBulk{err: fmt.Errorf("calling to APITokenClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*APITokenCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &APITokenCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for APIToken.
+func (c *APITokenClient) Update() *APITokenUpdate {
+	mutation := newAPITokenMutation(c.config, OpUpdate)
+	return &APITokenUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *APITokenClient) UpdateOne(_m *APIToken) *APITokenUpdateOne {
+	mutation := newAPITokenMutation(c.config, OpUpdateOne, withAPIToken(_m))
+	return &APITokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *APITokenClient) UpdateOneID(id int) *APITokenUpdateOne {
+	mutation := newAPITokenMutation(c.config, OpUpdateOne, withAPITokenID(id))
+	return &APITokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for APIToken.
+func (c *APITokenClient) Delete() *APITokenDelete {
+	mutation := newAPITokenMutation(c.config, OpDelete)
+	return &APITokenDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *APITokenClient) DeleteOne(_m *APIToken) *APITokenDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *APITokenClient) DeleteOneID(id int) *APITokenDeleteOne {
+	builder := c.Delete().Where(apitoken.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &APITokenDeleteOne{builder}
+}
+
+// Query returns a query builder for APIToken.
+func (c *APITokenClient) Query() *APITokenQuery {
+	return &APITokenQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAPIToken},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a APIToken entity by its id.
+func (c *APITokenClient) Get(ctx context.Context, id int) (*APIToken, error) {
+	return c.Query().Where(apitoken.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *APITokenClient) GetX(ctx context.Context, id int) *APIToken {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *APITokenClient) Hooks() []Hook {
+	return c.hooks.APIToken
+}
+
+// Interceptors returns the client interceptors.
+func (c *APITokenClient) Interceptors() []Interceptor {
+	return c.inters.APIToken
+}
+
+func (c *APITokenClient) mutate(ctx context.Context, m *APITokenMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&APITokenCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&APITokenUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&APITokenUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&APITokenDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown APIToken mutation op: %q", m.Op())
 	}
 }
 
@@ -3052,13 +3193,13 @@ func (c *TrafficSnapshotClient) mutate(ctx context.Context, m *TrafficSnapshotMu
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Addon, AuditLog, Customer, Expense, ExpenseItem, Extension, FxRate, LedgerEntry,
-		Payment, ReferralAccrual, RwUser, Setting, Subscription, SubscriptionAddon,
-		Tariff, TariffPeriod, TrafficSnapshot []ent.Hook
+		APIToken, Addon, AuditLog, Customer, Expense, ExpenseItem, Extension, FxRate,
+		LedgerEntry, Payment, ReferralAccrual, RwUser, Setting, Subscription,
+		SubscriptionAddon, Tariff, TariffPeriod, TrafficSnapshot []ent.Hook
 	}
 	inters struct {
-		Addon, AuditLog, Customer, Expense, ExpenseItem, Extension, FxRate, LedgerEntry,
-		Payment, ReferralAccrual, RwUser, Setting, Subscription, SubscriptionAddon,
-		Tariff, TariffPeriod, TrafficSnapshot []ent.Interceptor
+		APIToken, Addon, AuditLog, Customer, Expense, ExpenseItem, Extension, FxRate,
+		LedgerEntry, Payment, ReferralAccrual, RwUser, Setting, Subscription,
+		SubscriptionAddon, Tariff, TariffPeriod, TrafficSnapshot []ent.Interceptor
 	}
 )

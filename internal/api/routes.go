@@ -25,6 +25,12 @@ func RegisterRoutes(app *fiber.App, deps *Deps) {
 	api.Post("/auth/logout", h.Logout)
 	api.Post("/webhooks/remnawave", h.RemnawaveWebhook)
 
+	// Public API for other services, authorized by API tokens. Registered
+	// before the session group, whose middleware covers all of /api.
+	token := func(scope string) fiber.Handler { return appmiddleware.RequireToken(h.DB, scope) }
+	v1 := api.Group("/v1")
+	v1.Get("/addons", token(appmiddleware.ScopeAddonsRead), h.PublicAddons)
+
 	a := api.Group("", appmiddleware.RequireSession(h.Config.JWTSecret))
 	a.Get("/auth/me", h.Me)
 	a.Get("/dashboard", h.Dashboard)
@@ -68,6 +74,13 @@ func RegisterRoutes(app *fiber.App, deps *Deps) {
 	a.Delete("/tariffs/:id", h.DeleteTariff)
 	a.Post("/tariffs/:id/sync-included", h.SyncIncluded)
 	a.Get("/addons", h.ListAddons)
+	a.Post("/addons", h.CreateAddon)
+	a.Put("/addons/:id", h.UpdateAddon)
+	a.Delete("/addons/:id", h.DeleteAddon)
+
+	a.Get("/api-tokens", h.ListTokens)
+	a.Post("/api-tokens", h.CreateToken)
+	a.Delete("/api-tokens/:id", h.DeleteToken)
 
 	a.Get("/rw/users", h.ListRwUsers)
 	a.Get("/rw/squads", h.ListSquads)

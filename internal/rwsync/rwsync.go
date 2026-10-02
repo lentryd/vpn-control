@@ -95,7 +95,8 @@ func (s *Service) syncAll(ctx context.Context) error {
 	return nil
 }
 
-// SyncAddons mirrors addons.yml into the Addon table (matched by name).
+// SyncAddons mirrors the add-ons file into the Addon table (matched by
+// name); add-ons made in the UI are left alone.
 func (s *Service) SyncAddons(ctx context.Context) error {
 	list, err := addons.Load(s.addonsPath)
 	if err != nil {
@@ -106,14 +107,16 @@ func (s *Service) SyncAddons(ctx context.Context) error {
 		name := a.DisplayName()
 		names = append(names, name)
 		if err := s.db.Addon.Create().
-			SetName(name).SetPrefix(a.Prefix).SetSuffix(a.Suffix).SetInConfig(true).
+			SetName(name).SetPrefix(a.Prefix).SetSuffix(a.Suffix).SetInConfig(true).SetSource(addon.SourceFile).
+			SetRemark(a.Remark).SetRemarkUnlimited(a.RemarkUnlimited).SetStubs(a.Stubs).
 			OnConflictColumns(addon.FieldName).
-			UpdatePrefix().UpdateSuffix().UpdateInConfig().UpdateUpdatedAt().
+			UpdatePrefix().UpdateSuffix().UpdateInConfig().UpdateSource().
+			UpdateRemark().UpdateRemarkUnlimited().UpdateStubs().UpdateUpdatedAt().
 			Exec(ctx); err != nil {
 			return err
 		}
 	}
-	_, err = s.db.Addon.Update().Where(addon.NameNotIn(names...)).SetInConfig(false).Save(ctx)
+	_, err = s.db.Addon.Update().Where(addon.SourceEQ(addon.SourceFile), addon.NameNotIn(names...)).SetInConfig(false).Save(ctx)
 	return err
 }
 
