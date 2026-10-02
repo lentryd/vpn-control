@@ -11,7 +11,9 @@ export function LoadingScreen({
     value?: number
 }) {
     return (
-        <Center style={{ height: `calc(${height} - var(--app-shell-header-height) - 20px)` }}>
+        // the header var exists only inside AppShell; without the fallback the
+        // whole calc() is invalid and the bar sticks to the top (first load, modals)
+        <Center style={{ height: `calc(${height} - var(--app-shell-header-height, 0px) - 20px)` }}>
             <Stack align="center" gap="xs" w="100%">
                 {text && <Text size="lg">{text}</Text>}
                 <Progress

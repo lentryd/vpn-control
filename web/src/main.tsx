@@ -44,7 +44,7 @@ createRoot(document.getElementById('root')!).render(
             forceColorScheme="dark"
             theme={theme}
         >
-            <Suspense fallback={<LoadingScreen height="60vh" />}>
+            <Suspense fallback={<LoadingScreen />}>
                 <QueryClientProvider client={queryClient}>
                     <HashRouter>
                         <LocaleProvider>

@@ -49,7 +49,7 @@ export function App() {
         )
     }
     if (me.isPending || (me.data && settings.isPending)) {
-        return <LoadingScreen height="60vh" />
+        return <LoadingScreen />
     }
     if (!me.data) return <Navigate to="/login" replace />
     // money formatting follows the base currency; set before pages render
