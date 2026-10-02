@@ -9,7 +9,6 @@ import {
     PiArrowSquareOut,
     PiArrowsLeftRight,
     PiArrowsClockwise,
-    PiCurrencyRub,
     PiFloppyDiskDuotone,
     PiTag,
     PiTagDuotone,
@@ -28,7 +27,7 @@ import { api } from '@/api/client'
 import { useApiMutation, useCustomers, useRwUsers, useSubscriptions, useTariffs } from '@/api/hooks'
 import type { AddonItem, RwUser, Subscription } from '@/api/types'
 import { StatusBadge } from '@/components/badges'
-import { fmtBytes, fmtDate, fmtDateTime, fmtMoney, fromNow } from '@/components/format'
+import { fmtBytes, fmtDate, fmtDateTime, fmtMoney, fromNow, currencySymbol } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { addonTitle, AddonMenuItems, SubscriptionMenuItems, useItemActions } from '@/components/ItemActions'
 import { Money } from '@/components/ui'
@@ -42,6 +41,7 @@ import { SectionCard } from '@shared/ui/section-card'
 
 import { openModal } from './open'
 import { SearchSelect } from '@shared/ui/forms/search-select'
+import { CurrencyIcon } from '@shared/currencies'
 
 const cardVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.3 } } }
 
@@ -399,8 +399,8 @@ function SubscriptionEditor({ sub, close }: { sub: Subscription; close: () => vo
                             <NumberInput
                                 decimalScale={2}
                                 description={tariff ? `Пусто — цена тарифа, ${fmtMoney(tariff.monthly_price)}` : 'Пусто — цена тарифа'}
-                                label="Индивидуальная цена, ₽/мес"
-                                leftSection={<PiCurrencyRub size={16} />}
+                                label={`Индивидуальная цена, ${currencySymbol()}/мес`}
+                                leftSection={<CurrencyIcon size={16} />}
                                 min={0}
                                 {...form.getInputProps('price_override')}
                             />
@@ -498,8 +498,8 @@ function AddonEditor({ addon, sub, close }: { addon: AddonItem; sub: Subscriptio
                             <NumberInput
                                 decimalScale={2}
                                 description={tariff ? `Пусто — цена тарифа, ${fmtMoney(tariff.monthly_price)}` : 'Пусто — цена тарифа'}
-                                label="Индивидуальная цена, ₽/мес"
-                                leftSection={<PiCurrencyRub size={16} />}
+                                label={`Индивидуальная цена, ${currencySymbol()}/мес`}
+                                leftSection={<CurrencyIcon size={16} />}
                                 min={0}
                                 {...form.getInputProps('price_override')}
                             />

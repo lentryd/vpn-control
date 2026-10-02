@@ -20,6 +20,8 @@ type FxRate struct {
 	Date string `json:"date,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency string `json:"currency,omitempty"`
+	// Base holds the value of the "base" field.
+	Base string `json:"base,omitempty"`
 	// Rate holds the value of the "rate" field.
 	Rate         float64 `json:"rate,omitempty"`
 	selectValues sql.SelectValues
@@ -34,7 +36,7 @@ func (*FxRate) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case fxrate.FieldID:
 			values[i] = new(sql.NullInt64)
-		case fxrate.FieldDate, fxrate.FieldCurrency:
+		case fxrate.FieldDate, fxrate.FieldCurrency, fxrate.FieldBase:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -68,6 +70,12 @@ func (_m *FxRate) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
 				_m.Currency = value.String
+			}
+		case fxrate.FieldBase:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field base", values[i])
+			} else if value.Valid {
+				_m.Base = value.String
 			}
 		case fxrate.FieldRate:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
@@ -116,6 +124,9 @@ func (_m *FxRate) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(_m.Currency)
+	builder.WriteString(", ")
+	builder.WriteString("base=")
+	builder.WriteString(_m.Base)
 	builder.WriteString(", ")
 	builder.WriteString("rate=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Rate))

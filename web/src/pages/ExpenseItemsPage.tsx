@@ -32,7 +32,6 @@ import {
     PiChartBar,
     PiChartBarDuotone,
     PiCoinsDuotone,
-    PiCurrencyRub,
     PiLock,
     PiNotePencil,
     PiPencilSimple,
@@ -49,7 +48,7 @@ import { api } from '@/api/client'
 import { useApiMutation, useExpenseItems, useInfra, useInvalidateAll, useMetered, useNodes, useSettings } from '@/api/hooks'
 import type { ExpenseItem, GBUnit, MinMode, Tier } from '@/api/types'
 import { expiryColor } from '@/components/badges'
-import { fmtCurrency, fmtDate, fmtMoney, fmtNum } from '@/components/format'
+import { fmtCurrency, fmtDate, fmtMoney, fmtNum, baseCurrency, currencySymbol } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { PageHeader } from '@/components/ui'
 import { confirmDanger, openModal } from '@/modals/open'
@@ -62,6 +61,7 @@ import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
 import { Page } from '@shared/ui/page'
 import { DataTableCard } from '@shared/ui/table'
 import { SearchSelect } from '@shared/ui/forms/search-select'
+import { CurrencyIcon, CURRENCIES } from '@shared/currencies'
 
 // usePanelBilling maps a node to the panel's Infra Billing record for it.
 function usePanelBilling() {
@@ -227,9 +227,9 @@ export function ExpenseItemsPage() {
                     const it = row.original
                     return (
                         <Group gap={4}>
-                            {it.currency !== 'RUB' && it.rate && (
+                            {it.currency !== baseCurrency() && it.rate && (
                                 <Badge color="gray" variant="soft">
-                                    {fmtNum(it.rate, 2)} ₽
+                                    {fmtNum(it.rate, 2)} {currencySymbol()}
                                 </Badge>
                             )}
                             {it.fee_percent > 0 && (
@@ -242,7 +242,7 @@ export function ExpenseItemsPage() {
                                     доля {it.share_percent}%
                                 </Badge>
                             )}
-                            {it.currency === 'RUB' && !it.fee_percent && it.share_percent === 100 && <Text c="dimmed">–</Text>}
+                            {it.currency === baseCurrency() && !it.fee_percent && it.share_percent === 100 && <Text c="dimmed">–</Text>}
                         </Group>
                     )
                 }
@@ -305,7 +305,7 @@ export function ExpenseItemsPage() {
                             color="teal"
                             variant="soft"
                             leftSection={<PiPlus size={16} />}
-                            onClick={() => setEdit({ pricing: 'fixed', active: true, currency: 'RUB', share_percent: 100, period: 'month' })}
+                            onClick={() => setEdit({ pricing: 'fixed', active: true, currency: baseCurrency(), share_percent: 100, period: 'month' })}
                         >
                             Статья
                         </Button>
@@ -456,7 +456,7 @@ function MeteredView({ item }: { item: ExpenseItem }) {
             { accessorKey: 'customer_name', header: 'Клиент', Cell: ({ row }) => row.original.customer_name || '–' },
             { accessorKey: 'gb', header: 'ГБ', Cell: ({ cell }) => <Text ff="monospace" size="sm">{fmtNum(cell.getValue<number>())}</Text> },
             { accessorKey: 'share_percent', header: 'Доля', Cell: ({ cell }) => `${fmtNum(cell.getValue<number>(), 1)}%` },
-            { accessorKey: 'cost_rub', header: '≈ ₽', Cell: ({ cell }) => fmtMoney(cell.getValue<number>()) }
+            { accessorKey: 'cost_rub', header: `≈ ${currencySymbol()}`, Cell: ({ cell }) => fmtMoney(cell.getValue<number>()) }
         ],
         []
     )
@@ -495,7 +495,7 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
             name: item.name ?? '',
             provider: item.provider ?? '',
             provider_uuid: item.provider_uuid ?? '',
-            currency: item.currency ?? 'RUB',
+            currency: item.currency ?? baseCurrency(),
             pricing: item.pricing ?? 'fixed',
             amount: item.amount ?? 0,
             period: item.period ?? 'month',
@@ -589,12 +589,12 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
                     <SimpleGrid cols={{ base: 1, xs: 2 }}>
                         <SearchSelect
                             label="Валюта"
-                            leftSection={<PiCurrencyRub size={16} />}
-                            data={['RUB', 'EUR', 'USD', 'GBP', 'CHF', 'CNY', 'TRY', 'KZT']}
+                            leftSection={<CurrencyIcon size={16} />}
+                            data={CURRENCIES}
                             {...form.getInputProps('currency')}
                             onChange={(c) => {
-                                form.setFieldValue('currency', c ?? 'RUB')
-                                if (c && c !== 'RUB' && !v.fee_percent && settings.data) {
+                                form.setFieldValue('currency', c ?? baseCurrency())
+                                if (c && c !== baseCurrency() && !v.fee_percent && settings.data) {
                                     form.setFieldValue('fee_percent', Number(settings.data.default_fee_percent) || 0)
                                 }
                             }}

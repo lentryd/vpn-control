@@ -4,13 +4,14 @@ import { Button, Group, NumberInput, Paper, SimpleGrid, Stack, Switch, Text } fr
 import { DatePickerInput } from '@mantine/dates'
 import dayjs, { type Dayjs } from 'dayjs'
 import type { ReactNode } from 'react'
-import { PiCalendarDuotone, PiCalendarPlusDuotone, PiClockDuotone, PiCurrencyRub, PiWalletDuotone } from 'react-icons/pi'
+import { PiCalendarDuotone, PiCalendarPlusDuotone, PiClockDuotone, PiWalletDuotone } from 'react-icons/pi'
 import { TbArrowRight, TbCalendar } from 'react-icons/tb'
 
 import type { Period } from '@/api/types'
-import { durationLabel, fmtDate, fmtMoney } from '@/components/format'
+import { durationLabel, fmtDate, fmtMoney, currencySymbol } from '@/components/format'
 import { periodCost } from '@/components/pricing'
 import { FormSection } from '@shared/ui/forms/form-section'
+import { CurrencyIcon } from '@shared/currencies'
 
 // Term is months+days from the base date; until pins the exact end (e.g.
 // "to the end of the subscription"), months/days then only price it.
@@ -196,8 +197,8 @@ export function PaymentSection({
             <NumberInput
                 decimalScale={2}
                 description={description}
-                label="Списать с баланса, ₽"
-                leftSection={<PiCurrencyRub size={16} />}
+                label={`Списать с баланса, ${currencySymbol()}`}
+                leftSection={<CurrencyIcon size={16} />}
                 min={0}
                 onChange={(v) => onAmount(Number(v) || 0)}
                 value={amount ?? ''}

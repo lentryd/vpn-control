@@ -1,25 +1,51 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
+	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 
 	"vpn-control/ent"
 	"vpn-control/ent/auditlog"
+	"vpn-control/internal/fx"
 	"vpn-control/internal/remnawave"
 	"vpn-control/internal/rwsync"
 	"vpn-control/internal/settings"
 )
 
+// GetSettings returns every setting, plus the read-only "_base_locked"
+// ("true" once the books hold money, so the base currency is fixed).
 func (h *Handlers) GetSettings(c *fiber.Ctx) error {
-	all, err := h.Settings.All(c.UserContext())
+	ctx := c.UserContext()
+	all, err := h.Settings.All(ctx)
 	if err != nil {
 		return err
 	}
+	locked, err := h.booksUsed(ctx)
+	if err != nil {
+		return err
+	}
+	all["_base_locked"] = strconv.FormatBool(locked)
 	return c.JSON(all)
+}
+
+// booksUsed reports whether any money was recorded.
+func (h *Handlers) booksUsed(ctx context.Context) (bool, error) {
+	for _, exists := range []func(context.Context) (bool, error){
+		h.DB.Payment.Query().Exist, h.DB.Expense.Query().Exist, h.DB.LedgerEntry.Query().Exist,
+	} {
+		if ok, err := exists(ctx); err != nil || ok {
+			return ok, err
+		}
+	}
+	return false, nil
 }
 
 func (h *Handlers) UpdateSettings(c *fiber.Ctx) error {
@@ -27,11 +53,21 @@ func (h *Handlers) UpdateSettings(c *fiber.Ctx) error {
 	if err := bind(c, &in); err != nil {
 		return err
 	}
+	ctx := c.UserContext()
 	for k, v := range in {
+		if strings.HasPrefix(k, "_") {
+			continue // read-only flags echoed back by the UI
+		}
 		if _, known := settings.Defaults[k]; !known {
 			return fiber.NewError(fiber.StatusBadRequest, "неизвестная настройка "+k)
 		}
-		if _, err := strconv.ParseFloat(v, 64); err != nil {
+		if k == settings.BaseCurrency {
+			if v = strings.ToUpper(strings.TrimSpace(v)); v != h.Settings.Base(ctx) {
+				if err := h.checkBaseChange(ctx, v); err != nil {
+					return err
+				}
+			}
+		} else if _, err := strconv.ParseFloat(v, 64); err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, k+": нужно число")
 		}
 		if err := h.Settings.Set(c.UserContext(), k, v); err != nil {
@@ -40,6 +76,27 @@ func (h *Handlers) UpdateSettings(c *fiber.Ctx) error {
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }
+
+// checkBaseChange allows a new base currency only while the books are
+// empty (amounts aren't converted) and only if rates for it are published.
+func (h *Handlers) checkBaseChange(ctx context.Context, base string) error {
+	if !currencyRe.MatchString(base) {
+		return fiber.NewError(fiber.StatusBadRequest, "base_currency: ISO-код из 3 букв")
+	}
+	if used, err := h.booksUsed(ctx); err != nil {
+		return err
+	} else if used {
+		return fiber.NewError(fiber.StatusConflict, "базовую валюту можно сменить только пока нет платежей и трат")
+	}
+	if base != "RUB" {
+		if _, err := fx.SourceFor(base, &http.Client{Timeout: 15 * time.Second}).Fetch(ctx, time.Now()); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	}
+	return nil
+}
+
+var currencyRe = regexp.MustCompile(`^[A-Z]{3}$`)
 
 func (h *Handlers) ListAudit(c *fiber.Ctx) error {
 	rows, err := h.DB.AuditLog.Query().Order(ent.Desc(auditlog.FieldID)).Limit(500).All(c.UserContext())

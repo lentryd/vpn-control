@@ -266,10 +266,10 @@ type expenseItemRequest struct {
 	Notes        string     `json:"notes"`
 }
 
-func (r *expenseItemRequest) normalize() {
+func (r *expenseItemRequest) normalize(base string) {
 	r.Currency = strings.ToUpper(strings.TrimSpace(r.Currency))
 	if r.Currency == "" {
-		r.Currency = "RUB"
+		r.Currency = base
 	}
 	if r.Pricing == "" {
 		r.Pricing = "fixed"
@@ -321,7 +321,7 @@ func (h *Handlers) CreateExpenseItem(c *fiber.Ctx) error {
 	if err := bind(c, &r); err != nil {
 		return err
 	}
-	r.normalize()
+	r.normalize(h.FX.Base(c.UserContext()))
 	tiers, err := r.tiers()
 	if err != nil {
 		return badRequest(err)
@@ -352,7 +352,7 @@ func (h *Handlers) UpdateExpenseItem(c *fiber.Ctx) error {
 	if err := bind(c, &r); err != nil {
 		return err
 	}
-	r.normalize()
+	r.normalize(h.FX.Base(c.UserContext()))
 	tiers, err := r.tiers()
 	if err != nil {
 		return badRequest(err)
@@ -482,7 +482,7 @@ func (h *Handlers) FxRate(c *fiber.Ctx) error {
 			return fiber.NewError(fiber.StatusBadRequest, "date: YYYY-MM-DD")
 		}
 	}
-	rate, err := h.FX.Rate(c.UserContext(), c.Query("currency", "RUB"), d)
+	rate, err := h.FX.Rate(c.UserContext(), c.Query("currency", h.FX.Base(c.UserContext())), d)
 	if err != nil {
 		return badRequest(err)
 	}

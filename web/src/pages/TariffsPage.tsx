@@ -24,7 +24,6 @@ import { useForm } from '@mantine/form'
 import {
     PiCalendarDuotone,
     PiClockDuotone,
-    PiCurrencyRub,
     PiPencilSimple,
     PiPlus,
     PiPuzzlePieceDuotone,
@@ -49,6 +48,7 @@ import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
 import { Page } from '@shared/ui/page'
 import { FormFooter, FormSection } from '@shared/ui/forms/form-section'
 import { DataTableCard } from '@shared/ui/table'
+import { CurrencyIcon } from '@shared/currencies'
 
 type Draft = Partial<Tariff> & { kind: 'base' | 'addon' }
 
@@ -393,7 +393,7 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                     <SimpleGrid cols={{ base: 1, xs: 2 }}>
                         <NumberInput
                             label="Цена в месяц"
-                            leftSection={<PiCurrencyRub size={16} />}
+                            leftSection={<CurrencyIcon size={16} />}
                             min={0}
                             decimalScale={2}
                             {...form.getInputProps('monthly_price')}
@@ -455,7 +455,7 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                             />
                             <NumberInput
                                 label="Цена за период"
-                                leftSection={<PiCurrencyRub size={16} />}
+                                leftSection={<CurrencyIcon size={16} />}
                                 min={0}
                                 decimalScale={2}
                                 {...form.getInputProps(`periods.${i}.price`)}

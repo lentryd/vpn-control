@@ -1,5 +1,5 @@
 import type { MRT_ColumnDef } from '@kastov/mantine-react-table-open'
-import { Badge, Button, Group, NumberInput, Stack, Tabs, Text } from '@mantine/core'
+import { Badge, Button, Group, NumberInput, Select, Stack, Tabs, Text } from '@mantine/core'
 import { PiFloppyDiskDuotone, PiListMagnifyingGlassDuotone, PiSlidersDuotone } from 'react-icons/pi'
 import { TbSettings } from 'react-icons/tb'
 import { useEffect, useMemo, useState } from 'react'
@@ -11,6 +11,7 @@ import type { AuditRow } from '@/api/types'
 import { fmtDateTime } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { PageHeader } from '@/components/ui'
+import { BASE_CURRENCIES, CurrencyIcon } from '@shared/currencies'
 import { Page } from '@shared/ui/page'
 import { SettingsCardShared } from '@shared/ui/settings-card'
 import { DataTableCard } from '@shared/ui/table'
@@ -93,6 +94,21 @@ export function SettingsPage() {
                         />
                         <SettingsCardShared.Content>
                             <Stack>
+                                <Select
+                                    label="Базовая валюта"
+                                    description={
+                                        values._base_locked === 'true'
+                                            ? 'В ней ведутся платежи, балансы и итоги трат. Уже есть деньги в учёте — сменить нельзя'
+                                            : 'В ней ведутся платежи, балансы и итоги трат. Курсы: ЦБ РФ для RUB, ЕЦБ для остальных'
+                                    }
+                                    leftSection={<CurrencyIcon currency={values.base_currency} size={16} />}
+                                    data={BASE_CURRENCIES}
+                                    disabled={values._base_locked === 'true'}
+                                    searchable
+                                    allowDeselect={false}
+                                    value={values.base_currency ?? null}
+                                    onChange={(v) => v && setValues((s) => ({ ...s, base_currency: v }))}
+                                />
                                 {fields.map((f) => (
                                     <NumberInput
                                         key={f.key}

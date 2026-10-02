@@ -33,6 +33,20 @@ func (_c *FxRateCreate) SetCurrency(v string) *FxRateCreate {
 	return _c
 }
 
+// SetBase sets the "base" field.
+func (_c *FxRateCreate) SetBase(v string) *FxRateCreate {
+	_c.mutation.SetBase(v)
+	return _c
+}
+
+// SetNillableBase sets the "base" field if the given value is not nil.
+func (_c *FxRateCreate) SetNillableBase(v *string) *FxRateCreate {
+	if v != nil {
+		_c.SetBase(*v)
+	}
+	return _c
+}
+
 // SetRate sets the "rate" field.
 func (_c *FxRateCreate) SetRate(v float64) *FxRateCreate {
 	_c.mutation.SetRate(v)
@@ -46,6 +60,7 @@ func (_c *FxRateCreate) Mutation() *FxRateMutation {
 
 // Save creates the FxRate in the database.
 func (_c *FxRateCreate) Save(ctx context.Context) (*FxRate, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -71,6 +86,14 @@ func (_c *FxRateCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_c *FxRateCreate) defaults() {
+	if _, ok := _c.mutation.Base(); !ok {
+		v := fxrate.DefaultBase
+		_c.mutation.SetBase(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_c *FxRateCreate) check() error {
 	if _, ok := _c.mutation.Date(); !ok {
@@ -78,6 +101,9 @@ func (_c *FxRateCreate) check() error {
 	}
 	if _, ok := _c.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`ent: missing required field "FxRate.currency"`)}
+	}
+	if _, ok := _c.mutation.Base(); !ok {
+		return &ValidationError{Name: "base", err: errors.New(`ent: missing required field "FxRate.base"`)}
 	}
 	if _, ok := _c.mutation.Rate(); !ok {
 		return &ValidationError{Name: "rate", err: errors.New(`ent: missing required field "FxRate.rate"`)}
@@ -116,6 +142,10 @@ func (_c *FxRateCreate) createSpec() (*FxRate, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(fxrate.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
+	}
+	if value, ok := _c.mutation.Base(); ok {
+		_spec.SetField(fxrate.FieldBase, field.TypeString, value)
+		_node.Base = value
 	}
 	if value, ok := _c.mutation.Rate(); ok {
 		_spec.SetField(fxrate.FieldRate, field.TypeFloat64, value)
@@ -194,6 +224,18 @@ func (u *FxRateUpsert) SetCurrency(v string) *FxRateUpsert {
 // UpdateCurrency sets the "currency" field to the value that was provided on create.
 func (u *FxRateUpsert) UpdateCurrency() *FxRateUpsert {
 	u.SetExcluded(fxrate.FieldCurrency)
+	return u
+}
+
+// SetBase sets the "base" field.
+func (u *FxRateUpsert) SetBase(v string) *FxRateUpsert {
+	u.Set(fxrate.FieldBase, v)
+	return u
+}
+
+// UpdateBase sets the "base" field to the value that was provided on create.
+func (u *FxRateUpsert) UpdateBase() *FxRateUpsert {
+	u.SetExcluded(fxrate.FieldBase)
 	return u
 }
 
@@ -283,6 +325,20 @@ func (u *FxRateUpsertOne) UpdateCurrency() *FxRateUpsertOne {
 	})
 }
 
+// SetBase sets the "base" field.
+func (u *FxRateUpsertOne) SetBase(v string) *FxRateUpsertOne {
+	return u.Update(func(s *FxRateUpsert) {
+		s.SetBase(v)
+	})
+}
+
+// UpdateBase sets the "base" field to the value that was provided on create.
+func (u *FxRateUpsertOne) UpdateBase() *FxRateUpsertOne {
+	return u.Update(func(s *FxRateUpsert) {
+		s.UpdateBase()
+	})
+}
+
 // SetRate sets the "rate" field.
 func (u *FxRateUpsertOne) SetRate(v float64) *FxRateUpsertOne {
 	return u.Update(func(s *FxRateUpsert) {
@@ -356,6 +412,7 @@ func (_c *FxRateCreateBulk) Save(ctx context.Context) ([]*FxRate, error) {
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*FxRateMutation)
 				if !ok {
@@ -532,6 +589,20 @@ func (u *FxRateUpsertBulk) SetCurrency(v string) *FxRateUpsertBulk {
 func (u *FxRateUpsertBulk) UpdateCurrency() *FxRateUpsertBulk {
 	return u.Update(func(s *FxRateUpsert) {
 		s.UpdateCurrency()
+	})
+}
+
+// SetBase sets the "base" field.
+func (u *FxRateUpsertBulk) SetBase(v string) *FxRateUpsertBulk {
+	return u.Update(func(s *FxRateUpsert) {
+		s.SetBase(v)
+	})
+}
+
+// UpdateBase sets the "base" field to the value that was provided on create.
+func (u *FxRateUpsertBulk) UpdateBase() *FxRateUpsertBulk {
+	return u.Update(func(s *FxRateUpsert) {
+		s.UpdateBase()
 	})
 }
 

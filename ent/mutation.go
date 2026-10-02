@@ -8094,6 +8094,7 @@ type FxRateMutation struct {
 	id            *int
 	date          *string
 	currency      *string
+	base          *string
 	rate          *float64
 	addrate       *float64
 	clearedFields map[string]struct{}
@@ -8272,6 +8273,42 @@ func (m *FxRateMutation) ResetCurrency() {
 	m.currency = nil
 }
 
+// SetBase sets the "base" field.
+func (m *FxRateMutation) SetBase(s string) {
+	m.base = &s
+}
+
+// Base returns the value of the "base" field in the mutation.
+func (m *FxRateMutation) Base() (r string, exists bool) {
+	v := m.base
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBase returns the old "base" field's value of the FxRate entity.
+// If the FxRate object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FxRateMutation) OldBase(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBase is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBase requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBase: %w", err)
+	}
+	return oldValue.Base, nil
+}
+
+// ResetBase resets all changes to the "base" field.
+func (m *FxRateMutation) ResetBase() {
+	m.base = nil
+}
+
 // SetRate sets the "rate" field.
 func (m *FxRateMutation) SetRate(f float64) {
 	m.rate = &f
@@ -8362,12 +8399,15 @@ func (m *FxRateMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *FxRateMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
 	if m.date != nil {
 		fields = append(fields, fxrate.FieldDate)
 	}
 	if m.currency != nil {
 		fields = append(fields, fxrate.FieldCurrency)
+	}
+	if m.base != nil {
+		fields = append(fields, fxrate.FieldBase)
 	}
 	if m.rate != nil {
 		fields = append(fields, fxrate.FieldRate)
@@ -8384,6 +8424,8 @@ func (m *FxRateMutation) Field(name string) (ent.Value, bool) {
 		return m.Date()
 	case fxrate.FieldCurrency:
 		return m.Currency()
+	case fxrate.FieldBase:
+		return m.Base()
 	case fxrate.FieldRate:
 		return m.Rate()
 	}
@@ -8399,6 +8441,8 @@ func (m *FxRateMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldDate(ctx)
 	case fxrate.FieldCurrency:
 		return m.OldCurrency(ctx)
+	case fxrate.FieldBase:
+		return m.OldBase(ctx)
 	case fxrate.FieldRate:
 		return m.OldRate(ctx)
 	}
@@ -8423,6 +8467,13 @@ func (m *FxRateMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCurrency(v)
+		return nil
+	case fxrate.FieldBase:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBase(v)
 		return nil
 	case fxrate.FieldRate:
 		v, ok := value.(float64)
@@ -8500,6 +8551,9 @@ func (m *FxRateMutation) ResetField(name string) error {
 		return nil
 	case fxrate.FieldCurrency:
 		m.ResetCurrency()
+		return nil
+	case fxrate.FieldBase:
+		m.ResetBase()
 		return nil
 	case fxrate.FieldRate:
 		m.ResetRate()

@@ -80,7 +80,7 @@ func main() {
 
 	rw := remnawave.NewClient(cfg.RemnawaveURL, cfg.RemnawaveToken, cfg.RemnawaveAPIKey)
 	st := settings.New(db)
-	fxs := fx.New(db)
+	fxs := fx.New(db, st.Base)
 	syncSvc := rwsync.New(db, rw, cfg.AddonsConfig)
 	expSvc := expenses.New(db, rw, fxs, cfg.Location)
 

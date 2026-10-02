@@ -11,7 +11,6 @@ import {
     PiClockDuotone,
     PiCoinsDuotone,
     PiCreditCardDuotone,
-    PiCurrencyRub,
     PiHexagonDuotone,
     PiNotePencil,
     PiPuzzlePieceDuotone,
@@ -26,7 +25,7 @@ import { useState } from 'react'
 import { api } from '@/api/client'
 import { useApiMutation } from '@/api/hooks'
 import type { ExtensionResult, PaymentPreview, PlanItem, ReferralInfo } from '@/api/types'
-import { durationLabel, fmtDate, fmtMoney } from '@/components/format'
+import { durationLabel, fmtDate, fmtMoney, currencySymbol } from '@/components/format'
 import { notifyError } from '@/components/notify'
 import { periodCost } from '@/components/pricing'
 import { StatCard } from '@/components/ui'
@@ -34,6 +33,7 @@ import { FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-sectio
 import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
 
 import { openModal } from './open'
+import { CurrencyIcon } from '@shared/currencies'
 
 export function openPaymentModal(p: { customerId: number; name: string }) {
     openModal({ icon: PiCreditCardDuotone, color: 'teal', title: 'Платёж', subtitle: p.name }, (close) => <PaymentForm customerId={p.customerId} onDone={close} />, 'xl')
@@ -147,8 +147,8 @@ function PaymentForm({ customerId, onDone }: { customerId: number; onDone: () =>
                 <FormSection icon={PiCreditCardDuotone} color="teal" title="Поступление" description="Деньги зачислятся на баланс, затем продлятся подписки">
                     <SimpleGrid cols={{ base: 1, xs: 2 }}>
                         <NumberInput
-                            label="Сумма, ₽"
-                            leftSection={<PiCurrencyRub size={16} />}
+                            label={`Сумма, ${currencySymbol()}`}
+                            leftSection={<CurrencyIcon size={16} />}
                             min={0}
                             decimalScale={2}
                             value={amount || ''}
@@ -243,8 +243,8 @@ function PaymentForm({ customerId, onDone }: { customerId: number; onDone: () =>
                                         onChange={(v) => update(r.key, { days: Number(v) || 0 })}
                                     />
                                     <NumberInput
-                                        label="Сумма, ₽"
-                                        leftSection={<PiCurrencyRub size={14} />}
+                                        label={`Сумма, ${currencySymbol()}`}
+                                        leftSection={<CurrencyIcon size={14} />}
                                         min={0}
                                         decimalScale={2}
                                         size="xs"

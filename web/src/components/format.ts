@@ -1,16 +1,44 @@
 import dayjs from 'dayjs'
 
-const rub = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2, minimumFractionDigits: 0 })
-const rub2 = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2, minimumFractionDigits: 2 })
+// Money is shown in the base currency (a setting) with the UI locale; the
+// app root calls setFormat as soon as both are known, before any page
+// renders, so the plain functions below can stay synchronous.
+let base = 'RUB'
+let locale = 'ru-RU'
+let money0: Intl.NumberFormat
+let money2: Intl.NumberFormat
+
+function build() {
+    const opts = { style: 'currency', currency: base, currencyDisplay: 'narrowSymbol' } as const
+    money0 = new Intl.NumberFormat(locale, { ...opts, maximumFractionDigits: 2, minimumFractionDigits: 0 })
+    money2 = new Intl.NumberFormat(locale, { ...opts, maximumFractionDigits: 2, minimumFractionDigits: 2 })
+}
+build()
+
+export function setFormat(opts: { base?: string; locale?: string }) {
+    const b = opts.base || base
+    const l = opts.locale || locale
+    if (b === base && l === locale) return
+    base = b
+    locale = l
+    build()
+}
+
+export const baseCurrency = () => base
+export const fmtLocale = () => locale
+
+// currencySymbol is the short sign of a currency (₽, €, $), or its code.
+export const currencySymbol = (cur = base) =>
+    new Intl.NumberFormat(locale, { style: 'currency', currency: cur, currencyDisplay: 'narrowSymbol' })
+        .formatToParts(0)
+        .find((p) => p.type === 'currency')?.value ?? cur
 
 export const fmtMoney = (v: number | null | undefined, digits: 0 | 2 = 0) =>
-    v === null || v === undefined ? '—' : `${(digits ? rub2 : rub).format(v)} ₽`
+    v === null || v === undefined ? '—' : (digits ? money2 : money0).format(v)
 
-export const fmtNum = (v: number, digits = 2) =>
-    new Intl.NumberFormat('ru-RU', { maximumFractionDigits: digits }).format(v)
+export const fmtNum = (v: number, digits = 2) => new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(v)
 
-export const fmtCurrency = (v: number, cur: string) =>
-    cur === 'RUB' ? fmtMoney(v, 2) : `${fmtNum(v)} ${cur}`
+export const fmtCurrency = (v: number, cur: string) => (cur === base ? fmtMoney(v, 2) : `${fmtNum(v)} ${cur}`)
 
 export function fmtBytes(b: number | null | undefined): string {
     if (!b) return '0'

@@ -10,6 +10,7 @@ import (
 	"vpn-control/ent/expense"
 	"vpn-control/ent/expenseitem"
 	"vpn-control/ent/extension"
+	"vpn-control/ent/fxrate"
 	"vpn-control/ent/ledgerentry"
 	"vpn-control/ent/payment"
 	"vpn-control/ent/referralaccrual"
@@ -197,6 +198,12 @@ func init() {
 	extensionDescAmount := extensionFields[7].Descriptor()
 	// extension.DefaultAmount holds the default value on creation for the amount field.
 	extension.DefaultAmount = extensionDescAmount.Default.(int64)
+	fxrateFields := schema.FxRate{}.Fields()
+	_ = fxrateFields
+	// fxrateDescBase is the schema descriptor for base field.
+	fxrateDescBase := fxrateFields[2].Descriptor()
+	// fxrate.DefaultBase holds the default value on creation for the base field.
+	fxrate.DefaultBase = fxrateDescBase.Default.(string)
 	ledgerentryMixin := schema.LedgerEntry{}.Mixin()
 	ledgerentryMixinFields0 := ledgerentryMixin[0].Fields()
 	_ = ledgerentryMixinFields0

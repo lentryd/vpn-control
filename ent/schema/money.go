@@ -195,7 +195,7 @@ func (Expense) Fields() []ent.Field {
 	}
 }
 
-// FxRate caches a CBR rate (RUB per one unit) for a date.
+// FxRate caches a rate (units of Base per one unit of Currency) for a date.
 type FxRate struct {
 	ent.Schema
 }
@@ -204,12 +204,13 @@ func (FxRate) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("date"),
 		field.String("currency"),
+		field.String("base").Default("RUB"),
 		field.Float("rate"),
 	}
 }
 
 func (FxRate) Indexes() []ent.Index {
-	return []ent.Index{index.Fields("date", "currency").Unique()}
+	return []ent.Index{index.Fields("date", "currency", "base").Unique()}
 }
 
 // TrafficSnapshot is a node's traffic for one day.

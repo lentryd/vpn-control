@@ -6,7 +6,6 @@ import {
     PiCalendarDuotone,
     PiCoinsDuotone,
     PiCurrencyCircleDollar,
-    PiCurrencyRub,
     PiNotePencil,
     PiPercent,
     PiReceiptDuotone
@@ -20,15 +19,15 @@ import { useEffect } from 'react'
 import { api } from '@/api/client'
 import { useApiMutation, useExpenseItems, useExpenses, useSettings } from '@/api/hooks'
 import type { Expense } from '@/api/types'
-import { fmtMoney } from '@/components/format'
+import { fmtMoney, baseCurrency } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { FormColumns, FormFooter, FormSection } from '@shared/ui/forms/form-section'
 import { ProviderInput } from '@shared/ui/infra/provider'
 
 import { openModal } from './open'
 import { SearchSelect } from '@shared/ui/forms/search-select'
+import { CurrencyIcon, CURRENCIES } from '@shared/currencies'
 
-const currencies = ['RUB', 'EUR', 'USD', 'GBP', 'CHF', 'CNY', 'TRY', 'KZT', 'BYN', 'UAH', 'AMD', 'GEL']
 
 export function openExpenseForm(p: { expense?: Expense; refundOf?: Expense }) {
     const title = p.expense ? 'Трата' : p.refundOf ? 'Возврат средств' : 'Новая трата'
@@ -49,7 +48,7 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
             expense_item_id: src?.expense_item_id ? String(src.expense_item_id) : null,
             kind: expense?.kind ?? (refundOf ? 'refund' : 'charge'),
             orig_amount: expense?.orig_amount ?? 0,
-            orig_currency: src?.orig_currency ?? 'RUB',
+            orig_currency: src?.orig_currency ?? baseCurrency(),
             fx_rate: expense?.fx_rate ?? (1 as number | ''),
             fee_percent: src?.fee_percent ?? 0,
             share_percent: src?.share_percent ?? 100,
@@ -60,16 +59,16 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
     const v = form.values
     const rate = useQuery({
         queryKey: ['fx', v.orig_currency, v.date],
-        enabled: v.orig_currency !== 'RUB' && !!v.date,
+        enabled: v.orig_currency !== baseCurrency() && !!v.date,
         queryFn: () => api.get<{ rate: number }>(`fx/rate?currency=${v.orig_currency}&date=${v.date}`)
     })
     useEffect(() => {
-        if (v.orig_currency === 'RUB') form.setFieldValue('fx_rate', 1)
+        if (v.orig_currency === baseCurrency()) form.setFieldValue('fx_rate', 1)
         else if (rate.data && !expense) form.setFieldValue('fx_rate', rate.data.rate)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rate.data, v.orig_currency])
     useEffect(() => {
-        if (!expense && v.orig_currency !== 'RUB' && v.fee_percent === 0 && settings.data) {
+        if (!expense && v.orig_currency !== baseCurrency() && v.fee_percent === 0 && settings.data) {
             form.setFieldValue('fee_percent', Number(settings.data.default_fee_percent) || 0)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -165,22 +164,22 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
                 }
                 right={
                     <>
-                        <FormSection icon={PiCoinsDuotone} color="teal" title="Сумма" description="Рубли считаются по курсу ЦБ на дату и фиксируются">
+                        <FormSection icon={PiCoinsDuotone} color="teal" title="Сумма" description={`Сумма в ${baseCurrency()} считается по курсу на дату и фиксируется`}>
                             <SimpleGrid cols={{ base: 1, xs: 2 }}>
                                 <NumberInput label="Сумма" leftSection={<PiCoinsDuotone size={16} />} min={0} decimalScale={2} {...form.getInputProps('orig_amount')} />
                                 <SearchSelect
                                     label="Валюта"
                                     leftSection={<PiCurrencyCircleDollar size={16} />}
-                                    data={currencies}
+                                    data={CURRENCIES}
                                     {...form.getInputProps('orig_currency')}
                                 />
                             </SimpleGrid>
-                            {v.orig_currency !== 'RUB' && (
+                            {v.orig_currency !== baseCurrency() && (
                                 <SimpleGrid cols={{ base: 1, xs: 2 }}>
                                     <NumberInput
-                                        label="Курс ЦБ"
+                                        label={`Курс, ${baseCurrency()} за 1 ${v.orig_currency}`}
                                         description={rate.isFetching ? 'загрузка…' : 'на дату, можно изменить'}
-                                        leftSection={<PiCurrencyRub size={16} />}
+                                        leftSection={<CurrencyIcon size={16} />}
                                         decimalScale={4}
                                         min={0}
                                         {...form.getInputProps('fx_rate')}
@@ -196,7 +195,7 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
                             )}
                             <NumberInput
                                 label="Наша доля, %"
-                                description="Например, домен на троих — 30%"
+                                description="Если расход делится с кем-то: 30% — платим треть"
                                 leftSection={<PiPercent size={16} />}
                                 min={0}
                                 max={100}
@@ -211,7 +210,7 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
                             <Paper bd="1px solid rgba(251, 146, 60, 0.25)" bg="rgba(251, 146, 60, 0.08)" p="sm" radius="md">
                                 <Group justify="space-between">
                                     <Text c="dimmed" size="sm">
-                                        Итого в рублях (зафиксируется)
+                                        Итого в {baseCurrency()} (зафиксируется)
                                     </Text>
                                     <Text c={v.kind === 'refund' ? 'teal' : 'orange'} ff="monospace" fw={700}>
                                         {v.kind === 'refund' ? '−' : ''}

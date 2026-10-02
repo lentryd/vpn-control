@@ -63,6 +63,11 @@ func Currency(v string) predicate.FxRate {
 	return predicate.FxRate(sql.FieldEQ(FieldCurrency, v))
 }
 
+// Base applies equality check predicate on the "base" field. It's identical to BaseEQ.
+func Base(v string) predicate.FxRate {
+	return predicate.FxRate(sql.FieldEQ(FieldBase, v))
+}
+
 // Rate applies equality check predicate on the "rate" field. It's identical to RateEQ.
 func Rate(v float64) predicate.FxRate {
 	return predicate.FxRate(sql.FieldEQ(FieldRate, v))
@@ -196,6 +201,71 @@ func CurrencyEqualFold(v string) predicate.FxRate {
 // CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
 func CurrencyContainsFold(v string) predicate.FxRate {
 	return predicate.FxRate(sql.FieldContainsFold(FieldCurrency, v))
+}
+
+// BaseEQ applies the EQ predicate on the "base" field.
+func BaseEQ(v string) predicate.FxRate {
+	return predicate.FxRate(sql.FieldEQ(FieldBase, v))
+}
+
+// BaseNEQ applies the NEQ predicate on the "base" field.
+func BaseNEQ(v string) predicate.FxRate {
+	return predicate.FxRate(sql.FieldNEQ(FieldBase, v))
+}
+
+// BaseIn applies the In predicate on the "base" field.
+func BaseIn(vs ...string) predicate.FxRate {
+	return predicate.FxRate(sql.FieldIn(FieldBase, vs...))
+}
+
+// BaseNotIn applies the NotIn predicate on the "base" field.
+func BaseNotIn(vs ...string) predicate.FxRate {
+	return predicate.FxRate(sql.FieldNotIn(FieldBase, vs...))
+}
+
+// BaseGT applies the GT predicate on the "base" field.
+func BaseGT(v string) predicate.FxRate {
+	return predicate.FxRate(sql.FieldGT(FieldBase, v))
+}
+
+// BaseGTE applies the GTE predicate on the "base" field.
+func BaseGTE(v string) predicate.FxRate {
+	return predicate.FxRate(sql.FieldGTE(FieldBase, v))
+}
+
+// BaseLT applies the LT predicate on the "base" field.
+func BaseLT(v string) predicate.FxRate {
+	return predicate.FxRate(sql.FieldLT(FieldBase, v))
+}
+
+// BaseLTE applies the LTE predicate on the "base" field.
+func BaseLTE(v string) predicate.FxRate {
+	return predicate.FxRate(sql.FieldLTE(FieldBase, v))
+}
+
+// BaseContains applies the Contains predicate on the "base" field.
+func BaseContains(v string) predicate.FxRate {
+	return predicate.FxRate(sql.FieldContains(FieldBase, v))
+}
+
+// BaseHasPrefix applies the HasPrefix predicate on the "base" field.
+func BaseHasPrefix(v string) predicate.FxRate {
+	return predicate.FxRate(sql.FieldHasPrefix(FieldBase, v))
+}
+
+// BaseHasSuffix applies the HasSuffix predicate on the "base" field.
+func BaseHasSuffix(v string) predicate.FxRate {
+	return predicate.FxRate(sql.FieldHasSuffix(FieldBase, v))
+}
+
+// BaseEqualFold applies the EqualFold predicate on the "base" field.
+func BaseEqualFold(v string) predicate.FxRate {
+	return predicate.FxRate(sql.FieldEqualFold(FieldBase, v))
+}
+
+// BaseContainsFold applies the ContainsFold predicate on the "base" field.
+func BaseContainsFold(v string) predicate.FxRate {
+	return predicate.FxRate(sql.FieldContainsFold(FieldBase, v))
 }
 
 // RateEQ applies the EQ predicate on the "rate" field.

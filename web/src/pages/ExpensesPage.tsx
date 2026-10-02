@@ -7,7 +7,7 @@ import { useMemo } from 'react'
 import { api } from '@/api/client'
 import { useExpenses, useInvalidateAll, useProviders } from '@/api/hooks'
 import type { Expense, ProviderTotals } from '@/api/types'
-import { fmtCurrency, fmtDate, fmtMoney, fmtNum } from '@/components/format'
+import { fmtCurrency, fmtDate, fmtMoney, fmtNum, baseCurrency } from '@/components/format'
 import { notifyError } from '@/components/notify'
 import { Money, PageHeader, StatCard } from '@/components/ui'
 import { openExpenseForm } from '@/modals/ExpenseModal'
@@ -77,7 +77,7 @@ export function ExpensesPage() {
                     )
                 }
             },
-            { accessorKey: 'rub_amount', header: 'В рублях', enableColumnFilter: false, Cell: ({ cell }) => <Money value={-cell.getValue<number>()} signed digits={2} /> },
+            { accessorKey: 'rub_amount', header: `В ${baseCurrency()}`, enableColumnFilter: false, Cell: ({ cell }) => <Money value={-cell.getValue<number>()} signed digits={2} /> },
             {
                 id: 'extra',
                 header: 'Примечание',
@@ -168,7 +168,7 @@ export function ExpensesPage() {
             <PageHeader
                 icon={<PiReceiptDuotone size={24} />}
                 title="Траты"
-                description="Списания и возвраты. Сумма в рублях фиксируется по курсу ЦБ на дату и не пересчитывается"
+                description={`Списания и возвраты. Сумма в ${baseCurrency()} фиксируется по курсу на дату и не пересчитывается`}
                 actions={
                     <Button color="teal" leftSection={<PiPlus size={16} />} onClick={() => openExpenseForm({})} variant="soft">
                         Трата

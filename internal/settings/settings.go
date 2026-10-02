@@ -19,14 +19,22 @@ const (
 	// DefaultFeePercent pre-fills the bank/conversion fee of foreign
 	// currency expenses.
 	DefaultFeePercent = "default_fee_percent"
+	// BaseCurrency is the ISO code every amount (payments, balances,
+	// converted expenses) is kept in. It can't change once there's money
+	// in the books.
+	BaseCurrency = "base_currency"
 )
 
 // Defaults are used when a key was never saved.
 var Defaults = map[string]string{
 	ReferralPercent:    "10",
 	ExpiringWindowDays: "7",
-	DefaultFeePercent:  "3.5",
+	DefaultFeePercent:  "0",
+	BaseCurrency:       "RUB",
 }
+
+// Text lists the keys whose values aren't numbers.
+var Text = map[string]bool{BaseCurrency: true}
 
 type Store struct{ db *ent.Client }
 
@@ -62,6 +70,9 @@ func (s *Store) Float(ctx context.Context, key string) float64 {
 	}
 	return v
 }
+
+// Base is the base currency.
+func (s *Store) Base(ctx context.Context) string { return s.Get(ctx, BaseCurrency) }
 
 func (s *Store) Int(ctx context.Context, key string) int {
 	return int(s.Float(ctx, key))

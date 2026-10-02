@@ -79,8 +79,8 @@ export const useMetered = (id: number, month: string) =>
 export const useReferralTree = () =>
     useQuery({ queryKey: qk.referralTree, queryFn: () => api.get<ReferralNode[]>('referrals/tree') })
 export const useAccruals = () => useQuery({ queryKey: qk.accruals, queryFn: () => api.get<Accrual[]>('referrals/accruals') })
-export const useSettings = () =>
-    useQuery({ queryKey: qk.settings, queryFn: () => api.get<Record<string, string>>('settings') })
+export const useSettings = (enabled = true) =>
+    useQuery({ queryKey: qk.settings, queryFn: () => api.get<Record<string, string>>('settings'), enabled })
 export const useAudit = () => useQuery({ queryKey: qk.audit, queryFn: () => api.get<AuditRow[]>('audit') })
 
 // useInvalidateAll refreshes every query after a mutation: data here is

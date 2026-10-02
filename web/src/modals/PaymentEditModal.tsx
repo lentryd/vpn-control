@@ -7,7 +7,7 @@ import { PiBank, PiCalendarDuotone, PiCoinsDuotone, PiCreditCardDuotone, PiInfo,
 import { api } from '@/api/client'
 import { useApiMutation } from '@/api/hooks'
 import type { Payment } from '@/api/types'
-import { fmtMoney } from '@/components/format'
+import { fmtMoney, currencySymbol } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
 
@@ -59,7 +59,7 @@ function PaymentEditForm({ payment, onDone }: { payment: Payment; onDone: () => 
                         <NumberInput
                             data-autofocus
                             decimalScale={2}
-                            label="Сумма, ₽"
+                            label={`Сумма, ${currencySymbol()}`}
                             leftSection={<PiCoinsDuotone size={16} />}
                             min={0}
                             {...form.getInputProps('amount')}

@@ -15,6 +15,8 @@ const (
 	FieldDate = "date"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
+	// FieldBase holds the string denoting the base field in the database.
+	FieldBase = "base"
 	// FieldRate holds the string denoting the rate field in the database.
 	FieldRate = "rate"
 	// Table holds the table name of the fxrate in the database.
@@ -26,6 +28,7 @@ var Columns = []string{
 	FieldID,
 	FieldDate,
 	FieldCurrency,
+	FieldBase,
 	FieldRate,
 }
 
@@ -38,6 +41,11 @@ func ValidColumn(column string) bool {
 	}
 	return false
 }
+
+var (
+	// DefaultBase holds the default value on creation for the "base" field.
+	DefaultBase string
+)
 
 // OrderOption defines the ordering options for the FxRate queries.
 type OrderOption func(*sql.Selector)
@@ -55,6 +63,11 @@ func ByDate(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByBase orders the results by the base field.
+func ByBase(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBase, opts...).ToFunc()
 }
 
 // ByRate orders the results by the rate field.

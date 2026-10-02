@@ -5,6 +5,7 @@ import { ReactNode } from 'react'
 import { ShimmerSkeleton } from '@shared/ui/shimmer-skeleton'
 
 import classes from './metric-card.module.css'
+import { fmtLocale } from '@/components/format'
 
 export interface IMetricCardProps {
     iconColor?: ThemeIconProps['color']
@@ -55,7 +56,7 @@ export function MetricCardShared(props: IMetricCardProps) {
                     ) : (
                         (rollingNumberComponent ?? (
                             <Text className={classes.value} component="div" truncate="end">
-                                {typeof value === 'number' ? value.toLocaleString('ru-RU') : value}
+                                {typeof value === 'number' ? value.toLocaleString(fmtLocale()) : value}
                             </Text>
                         ))
                     )}

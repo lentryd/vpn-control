@@ -5,7 +5,6 @@ import {
     PiArrowsClockwiseDuotone,
     PiArrowsLeftRight,
     PiArrowsLeftRightDuotone,
-    PiCurrencyRub,
     PiLinkDuotone,
     PiPlusCircle,
     PiPlusCircleDuotone,
@@ -27,7 +26,7 @@ import { api } from '@/api/client'
 import { useApiMutation, useCustomers, useRwUsers, useTariffs } from '@/api/hooks'
 import type { RwUserRow, Subscription, Tariff } from '@/api/types'
 import { expiryColor, StatusBadge } from '@/components/badges'
-import { daysLeft, fmtBytes, fmtDate, fmtMoney, isUnlimited } from '@/components/format'
+import { daysLeft, fmtBytes, fmtDate, fmtMoney, isUnlimited, currencySymbol } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { periodCost } from '@/components/pricing'
 import { PaymentSection, tariffPresets, type Term, termBetween, type TermPreset, TermSection } from '@/components/term'
@@ -35,6 +34,7 @@ import { FormColumns, FormFooter, FormSection } from '@shared/ui/forms/form-sect
 
 import { openModal } from './open'
 import { SearchSelect } from '@shared/ui/forms/search-select'
+import { CurrencyIcon } from '@shared/currencies'
 
 export const tariffLabel = (t: Tariff) => `${t.name} — ${fmtMoney(t.monthly_price)}/мес${t.active ? '' : ' (отключён)'}`
 
@@ -209,8 +209,8 @@ function SubscriptionForm({ customerId, rwUserId, onDone }: { customerId?: numbe
                             <NumberInput
                                 decimalScale={2}
                                 description="Пусто — цена тарифа"
-                                label="Индивидуальная цена, ₽/мес"
-                                leftSection={<PiCurrencyRub size={16} />}
+                                label={`Индивидуальная цена, ${currencySymbol()}/мес`}
+                                leftSection={<CurrencyIcon size={16} />}
                                 min={0}
                                 {...form.getInputProps('price_override')}
                             />
@@ -554,9 +554,9 @@ function ChangeTariffForm({
                 right={
                     <FormSection icon={PiWalletDuotone} color="orange" title="Доплата" description="Пропорционально оставшемуся сроку">
                         <NumberInput
-                            label="Доплата, ₽"
+                            label={`Доплата, ${currencySymbol()}`}
                             description="Списывается с баланса; отрицательная — вернуть на баланс"
-                            leftSection={<PiCurrencyRub size={16} />}
+                            leftSection={<CurrencyIcon size={16} />}
                             decimalScale={2}
                             value={surcharge}
                             onChange={(v) => setSurcharge(Number(v) || 0)}

@@ -160,6 +160,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "date", Type: field.TypeString},
 		{Name: "currency", Type: field.TypeString},
+		{Name: "base", Type: field.TypeString, Default: "RUB"},
 		{Name: "rate", Type: field.TypeFloat64},
 	}
 	// FxRatesTable holds the schema information for the "fx_rates" table.
@@ -169,9 +170,9 @@ var (
 		PrimaryKey: []*schema.Column{FxRatesColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "fxrate_date_currency",
+				Name:    "fxrate_date_currency_base",
 				Unique:  true,
-				Columns: []*schema.Column{FxRatesColumns[1], FxRatesColumns[2]},
+				Columns: []*schema.Column{FxRatesColumns[1], FxRatesColumns[2], FxRatesColumns[3]},
 			},
 		},
 	}

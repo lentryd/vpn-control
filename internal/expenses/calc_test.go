@@ -5,13 +5,13 @@ import (
 	"time"
 )
 
-func TestToRub(t *testing.T) {
+func TestToBase(t *testing.T) {
 	// 3.90 EUR at 93.5 with 3.5% fee, full share.
-	if got := ToRub(390, 93.5, 3.5, 100); got != 37741 {
+	if got := ToBase(390, 93.5, 3.5, 100); got != 37741 {
 		t.Errorf("EUR = %d", got)
 	}
 	// Domain 460 RUB, 30% share.
-	if got := ToRub(46000, 1, 0, 30); got != 13800 {
+	if got := ToBase(46000, 1, 0, 30); got != 13800 {
 		t.Errorf("share = %d", got)
 	}
 }

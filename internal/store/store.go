@@ -13,6 +13,7 @@ import (
 	"modernc.org/sqlite"
 
 	"vpn-control/ent"
+	"vpn-control/ent/migrate"
 )
 
 func init() {
@@ -46,7 +47,7 @@ func OpenDB(ctx context.Context, path string) (*ent.Client, *sql.DB, error) {
 	db.SetMaxOpenConns(1)
 
 	client := ent.NewClient(ent.Driver(entsql.OpenDB(dialect.SQLite, db)))
-	if err := client.Schema.Create(ctx); err != nil {
+	if err := client.Schema.Create(ctx, migrate.WithDropIndex(true)); err != nil {
 		_ = client.Close()
 		return nil, nil, fmt.Errorf("run schema migration: %w", err)
 	}

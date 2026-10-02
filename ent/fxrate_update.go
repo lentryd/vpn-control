@@ -55,6 +55,20 @@ func (_u *FxRateUpdate) SetNillableCurrency(v *string) *FxRateUpdate {
 	return _u
 }
 
+// SetBase sets the "base" field.
+func (_u *FxRateUpdate) SetBase(v string) *FxRateUpdate {
+	_u.mutation.SetBase(v)
+	return _u
+}
+
+// SetNillableBase sets the "base" field if the given value is not nil.
+func (_u *FxRateUpdate) SetNillableBase(v *string) *FxRateUpdate {
+	if v != nil {
+		_u.SetBase(*v)
+	}
+	return _u
+}
+
 // SetRate sets the "rate" field.
 func (_u *FxRateUpdate) SetRate(v float64) *FxRateUpdate {
 	_u.mutation.ResetRate()
@@ -123,6 +137,9 @@ func (_u *FxRateUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Currency(); ok {
 		_spec.SetField(fxrate.FieldCurrency, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.Base(); ok {
+		_spec.SetField(fxrate.FieldBase, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.Rate(); ok {
 		_spec.SetField(fxrate.FieldRate, field.TypeFloat64, value)
 	}
@@ -173,6 +190,20 @@ func (_u *FxRateUpdateOne) SetCurrency(v string) *FxRateUpdateOne {
 func (_u *FxRateUpdateOne) SetNillableCurrency(v *string) *FxRateUpdateOne {
 	if v != nil {
 		_u.SetCurrency(*v)
+	}
+	return _u
+}
+
+// SetBase sets the "base" field.
+func (_u *FxRateUpdateOne) SetBase(v string) *FxRateUpdateOne {
+	_u.mutation.SetBase(v)
+	return _u
+}
+
+// SetNillableBase sets the "base" field if the given value is not nil.
+func (_u *FxRateUpdateOne) SetNillableBase(v *string) *FxRateUpdateOne {
+	if v != nil {
+		_u.SetBase(*v)
 	}
 	return _u
 }
@@ -274,6 +305,9 @@ func (_u *FxRateUpdateOne) sqlSave(ctx context.Context) (_node *FxRate, err erro
 	}
 	if value, ok := _u.mutation.Currency(); ok {
 		_spec.SetField(fxrate.FieldCurrency, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Base(); ok {
+		_spec.SetField(fxrate.FieldBase, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Rate(); ok {
 		_spec.SetField(fxrate.FieldRate, field.TypeFloat64, value)

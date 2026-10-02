@@ -5,7 +5,6 @@ import { useForm } from '@mantine/form'
 import { HiIdentification } from 'react-icons/hi'
 import {
     PiArchiveDuotone,
-    PiCurrencyRub,
     PiNotePencil,
     PiPercentDuotone,
     PiScalesDuotone,
@@ -24,6 +23,8 @@ import { FormColumns, FormFooter, FormSection, FormStack } from '@shared/ui/form
 
 import { openModal } from './open'
 import { SearchSelect } from '@shared/ui/forms/search-select'
+import { CurrencyIcon } from '@shared/currencies'
+import { currencySymbol } from '@/components/format'
 
 export function openCustomerForm(customer?: Customer, onCreated?: (id: number) => void) {
     openModal(
@@ -168,7 +169,7 @@ function AdjustForm({ id, onDone }: { id: number; onDone: () => void }) {
         >
             <FormStack>
                 <FormSection icon={PiScalesDuotone} color="yellow" title="Корректировка" description="Положительная сумма — зачислить, отрицательная — списать">
-                    <NumberInput label="Сумма, ₽" leftSection={<PiCurrencyRub size={16} />} decimalScale={2} {...form.getInputProps('amount')} />
+                    <NumberInput label={`Сумма, ${currencySymbol()}`} leftSection={<CurrencyIcon size={16} />} decimalScale={2} {...form.getInputProps('amount')} />
                     <TextInput label="Причина" leftSection={<PiNotePencil size={16} />} required {...form.getInputProps('note')} />
                 </FormSection>
             </FormStack>

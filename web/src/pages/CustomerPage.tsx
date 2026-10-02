@@ -288,7 +288,7 @@ export function CustomerPage() {
                                             {r.name}
                                         </Anchor>
                                         <Text size="xs" c="dimmed">
-                                            {r.monthly ? `${Math.round(r.monthly)} ₽/мес` : 'неактивен'} · оплатил {Math.round(r.total_paid)} ₽
+                                            {r.monthly ? `${fmtMoney(r.monthly)}/мес` : 'неактивен'} · оплатил {fmtMoney(r.total_paid)}
                                         </Text>
                                     </Group>
                                 ))}
@@ -310,7 +310,7 @@ export function CustomerPage() {
                                             {fmtDate(a.date)} · {a.referrer_id === c.id ? `от ${a.referee_name}` : `для ${a.referrer_name}`}
                                         </Text>
                                         <Text size="sm" c={a.referrer_id === c.id ? 'teal' : 'dimmed'}>
-                                            {a.amount.toFixed(2)} ₽ ({a.percent}%)
+                                            {fmtMoney(a.amount, 2)} ({a.percent}%)
                                         </Text>
                                     </Group>
                                 ))}

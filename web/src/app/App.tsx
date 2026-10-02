@@ -3,7 +3,8 @@ import { useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router'
 
 import { setUnauthorizedHandler } from '@/api/client'
-import { useMe } from '@/api/hooks'
+import { useMe, useSettings } from '@/api/hooks'
+import { setFormat } from '@/components/format'
 import { CustomerPage } from '@/pages/CustomerPage'
 import { CustomersPage } from '@/pages/CustomersPage'
 import { DashboardPage } from '@/pages/DashboardPage'
@@ -34,6 +35,7 @@ export function App() {
     }, [navigate, qc])
 
     const me = useMe()
+    const settings = useSettings(!!me.data)
     if (location.pathname === '/login') {
         return (
             <Routes>
@@ -43,10 +45,12 @@ export function App() {
             </Routes>
         )
     }
-    if (me.isPending) {
+    if (me.isPending || (me.data && settings.isPending)) {
         return <LoadingScreen height="60vh" />
     }
     if (!me.data) return <Navigate to="/login" replace />
+    // money formatting follows the base currency; set before pages render
+    setFormat({ base: settings.data?.base_currency })
 
     return (
         <Routes>

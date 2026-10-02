@@ -1,5 +1,6 @@
 // Package expenses books infrastructure costs in any currency (frozen in
-// RUB at the date's CBR rate, with bank fee and cost-share), refunds, and
+// the base currency at the date's rate, with bank fee and cost-share),
+// refunds, and
 // traffic-metered items like a CDN billed per GB (see package metered).
 package expenses
 
@@ -13,7 +14,7 @@ import (
 
 // ToRub converts minor units of a currency to kopecks:
 // orig × rate × (1 + fee%) × share%.
-func ToRub(orig int64, rate, feePercent, sharePercent float64) int64 {
+func ToBase(orig int64, rate, feePercent, sharePercent float64) int64 {
 	return int64(math.Round(float64(orig) * rate * (1 + feePercent/100) * sharePercent / 100))
 }
 

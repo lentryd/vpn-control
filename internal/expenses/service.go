@@ -50,7 +50,7 @@ type ExpenseInput struct {
 	Kind         string // charge | refund
 	OrigAmount   int64
 	Currency     string
-	FxRate       *float64 // nil = CBR rate on Date
+	FxRate       *float64 // nil = the published rate on Date
 	FeePercent   float64
 	SharePercent float64
 	RefundOfID   *int
@@ -64,9 +64,10 @@ func (s *Service) prepare(ctx context.Context, in *ExpenseInput) (int64, float64
 	if in.Kind == "" {
 		in.Kind = "charge"
 	}
+	base := s.fx.Base(ctx)
 	in.Currency = strings.ToUpper(strings.TrimSpace(in.Currency))
 	if in.Currency == "" {
-		in.Currency = "RUB"
+		in.Currency = base
 	}
 	if in.SharePercent <= 0 {
 		in.SharePercent = 100
@@ -74,14 +75,14 @@ func (s *Service) prepare(ctx context.Context, in *ExpenseInput) (int64, float64
 	rate := 1.0
 	if in.FxRate != nil && *in.FxRate > 0 {
 		rate = *in.FxRate
-	} else if in.Currency != "RUB" {
+	} else if in.Currency != base {
 		r, err := s.fx.Rate(ctx, in.Currency, in.Date)
 		if err != nil {
 			return 0, 0, fmt.Errorf("курс %s на %s: %w", in.Currency, in.Date.Format("02.01.2006"), err)
 		}
 		rate = r
 	}
-	rub := ToRub(in.OrigAmount, rate, in.FeePercent, in.SharePercent)
+	rub := ToBase(in.OrigAmount, rate, in.FeePercent, in.SharePercent)
 	if in.Kind == "refund" {
 		rub = -rub
 	}
@@ -235,7 +236,7 @@ func (s *Service) Planned(ctx context.Context) ([]PlannedItem, int64, error) {
 				orig /= 12
 			}
 		}
-		p.MonthlyRub = ToRub(orig, rate, it.FeePercent, it.SharePercent)
+		p.MonthlyRub = ToBase(orig, rate, it.FeePercent, it.SharePercent)
 		total += p.MonthlyRub
 		out = append(out, p)
 	}
@@ -453,10 +454,10 @@ func (s *Service) MeteredSummary(ctx context.Context, it *ent.ExpenseItem, t tim
 	}
 	sum.UsedGB = round2(metered.GB(used, unit))
 	sum.Cost = pricing.Cost(used)
-	sum.CostRub = ToRub(sum.Cost, rate, it.FeePercent, it.SharePercent)
+	sum.CostRub = ToBase(sum.Cost, rate, it.FeePercent, it.SharePercent)
 	sum.ForecastGB = round2(metered.GB(forecast, unit))
 	sum.ForecastCost = pricing.Cost(forecast)
-	sum.ForecastRub = ToRub(sum.ForecastCost, rate, it.FeePercent, it.SharePercent)
+	sum.ForecastRub = ToBase(sum.ForecastCost, rate, it.FeePercent, it.SharePercent)
 	return sum, nil
 }
 
