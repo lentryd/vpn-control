@@ -1,15 +1,15 @@
 // Package expenses books infrastructure costs in any currency (frozen in
 // RUB at the date's CBR rate, with bank fee and cost-share), refunds, and
-// traffic-metered items like a CDN billed per GB with a minimum charge.
+// traffic-metered items like a CDN billed per GB (see package metered).
 package expenses
 
 import (
 	"math"
 	"time"
-)
 
-// bytesPerGB: providers bill "ГБ" as GiB (Yandex Cloud: 1 ГБ = 1024 МБ).
-const bytesPerGB = 1 << 30
+	"vpn-control/ent"
+	"vpn-control/internal/metered"
+)
 
 // ToRub converts minor units of a currency to kopecks:
 // orig × rate × (1 + fee%) × share%.
@@ -17,26 +17,12 @@ func ToRub(orig int64, rate, feePercent, sharePercent float64) int64 {
 	return int64(math.Round(float64(orig) * rate * (1 + feePercent/100) * sharePercent / 100))
 }
 
-// GB converts bytes to (binary) gigabytes.
-func GB(bytes int64) float64 { return float64(bytes) / bytesPerGB }
-
-// MeteredCost is max(minCharge, GB × pricePerGB) in the item's minor units:
-// the minimum covers the first minCharge/pricePerGB GB, the rest is billed
-// per GB.
-func MeteredCost(bytes, pricePerGB, minCharge int64) int64 {
-	cost := int64(math.Round(GB(bytes) * float64(pricePerGB)))
-	if cost < minCharge {
-		return minCharge
+// PricingOf is the metered pricing of an item.
+func PricingOf(it *ent.ExpenseItem) metered.Pricing {
+	return metered.Pricing{
+		Unit: metered.Unit(it.GBUnit), MinMode: metered.MinMode(it.MinMode),
+		PricePerGB: it.PricePerGB, MinCharge: it.MinCharge, FreeGB: it.FreeGB, Tiers: it.Tiers,
 	}
-	return cost
-}
-
-// IncludedGB is how many GB the minimum charge covers.
-func IncludedGB(pricePerGB, minCharge int64) float64 {
-	if pricePerGB <= 0 {
-		return 0
-	}
-	return float64(minCharge) / float64(pricePerGB)
 }
 
 // Forecast extrapolates a period's traffic: used so far plus the average of
@@ -78,6 +64,26 @@ func Forecast(daily []int64, today, periodEnd time.Time) int64 {
 
 // MonthBounds returns the first and last day of t's month.
 func MonthBounds(t time.Time) (time.Time, time.Time) {
-	start := time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, t.Location())
+	return PeriodBounds(t, 1)
+}
+
+// PeriodBounds returns the first and last day of the billing period that
+// contains t, for periods starting on billingDay of a month.
+func PeriodBounds(t time.Time, billingDay int) (time.Time, time.Time) {
+	billingDay = max(1, min(28, billingDay))
+	start := time.Date(t.Year(), t.Month(), billingDay, 0, 0, 0, 0, t.Location())
+	if t.Day() < billingDay {
+		start = start.AddDate(0, -1, 0)
+	}
 	return start, start.AddDate(0, 1, -1)
+}
+
+// PeriodStart is the first day of the period keyed "YYYY-MM" (the month it
+// starts in).
+func PeriodStart(key string, billingDay int, loc *time.Location) (time.Time, error) {
+	m, err := time.ParseInLocation("2006-01", key, loc)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return m.AddDate(0, 0, max(1, min(28, billingDay))-1), nil
 }

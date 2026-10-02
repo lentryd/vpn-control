@@ -26,6 +26,7 @@ import (
 	"vpn-control/ent/tariff"
 	"vpn-control/ent/tariffperiod"
 	"vpn-control/ent/trafficsnapshot"
+	"vpn-control/internal/metered"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -4646,6 +4647,14 @@ type ExpenseItemMutation struct {
 	addprice_per_gb  *int64
 	min_charge       *int64
 	addmin_charge    *int64
+	gb_unit          *expenseitem.GBUnit
+	min_mode         *expenseitem.MinMode
+	free_gb          *float64
+	addfree_gb       *float64
+	tiers            *[]metered.Tier
+	appendtiers      []metered.Tier
+	billing_day      *int
+	addbilling_day   *int
 	rw_node_uuid     *string
 	rw_squad_uuid    *string
 	next_due_date    *time.Time
@@ -5349,6 +5358,255 @@ func (m *ExpenseItemMutation) ResetMinCharge() {
 	m.addmin_charge = nil
 }
 
+// SetGBUnit sets the "gb_unit" field.
+func (m *ExpenseItemMutation) SetGBUnit(eu expenseitem.GBUnit) {
+	m.gb_unit = &eu
+}
+
+// GBUnit returns the value of the "gb_unit" field in the mutation.
+func (m *ExpenseItemMutation) GBUnit() (r expenseitem.GBUnit, exists bool) {
+	v := m.gb_unit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGBUnit returns the old "gb_unit" field's value of the ExpenseItem entity.
+// If the ExpenseItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ExpenseItemMutation) OldGBUnit(ctx context.Context) (v expenseitem.GBUnit, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGBUnit is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGBUnit requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGBUnit: %w", err)
+	}
+	return oldValue.GBUnit, nil
+}
+
+// ResetGBUnit resets all changes to the "gb_unit" field.
+func (m *ExpenseItemMutation) ResetGBUnit() {
+	m.gb_unit = nil
+}
+
+// SetMinMode sets the "min_mode" field.
+func (m *ExpenseItemMutation) SetMinMode(em expenseitem.MinMode) {
+	m.min_mode = &em
+}
+
+// MinMode returns the value of the "min_mode" field in the mutation.
+func (m *ExpenseItemMutation) MinMode() (r expenseitem.MinMode, exists bool) {
+	v := m.min_mode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMinMode returns the old "min_mode" field's value of the ExpenseItem entity.
+// If the ExpenseItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ExpenseItemMutation) OldMinMode(ctx context.Context) (v expenseitem.MinMode, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMinMode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMinMode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMinMode: %w", err)
+	}
+	return oldValue.MinMode, nil
+}
+
+// ResetMinMode resets all changes to the "min_mode" field.
+func (m *ExpenseItemMutation) ResetMinMode() {
+	m.min_mode = nil
+}
+
+// SetFreeGB sets the "free_gb" field.
+func (m *ExpenseItemMutation) SetFreeGB(f float64) {
+	m.free_gb = &f
+	m.addfree_gb = nil
+}
+
+// FreeGB returns the value of the "free_gb" field in the mutation.
+func (m *ExpenseItemMutation) FreeGB() (r float64, exists bool) {
+	v := m.free_gb
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFreeGB returns the old "free_gb" field's value of the ExpenseItem entity.
+// If the ExpenseItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ExpenseItemMutation) OldFreeGB(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFreeGB is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFreeGB requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFreeGB: %w", err)
+	}
+	return oldValue.FreeGB, nil
+}
+
+// AddFreeGB adds f to the "free_gb" field.
+func (m *ExpenseItemMutation) AddFreeGB(f float64) {
+	if m.addfree_gb != nil {
+		*m.addfree_gb += f
+	} else {
+		m.addfree_gb = &f
+	}
+}
+
+// AddedFreeGB returns the value that was added to the "free_gb" field in this mutation.
+func (m *ExpenseItemMutation) AddedFreeGB() (r float64, exists bool) {
+	v := m.addfree_gb
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetFreeGB resets all changes to the "free_gb" field.
+func (m *ExpenseItemMutation) ResetFreeGB() {
+	m.free_gb = nil
+	m.addfree_gb = nil
+}
+
+// SetTiers sets the "tiers" field.
+func (m *ExpenseItemMutation) SetTiers(value []metered.Tier) {
+	m.tiers = &value
+	m.appendtiers = nil
+}
+
+// Tiers returns the value of the "tiers" field in the mutation.
+func (m *ExpenseItemMutation) Tiers() (r []metered.Tier, exists bool) {
+	v := m.tiers
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTiers returns the old "tiers" field's value of the ExpenseItem entity.
+// If the ExpenseItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ExpenseItemMutation) OldTiers(ctx context.Context) (v []metered.Tier, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTiers is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTiers requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTiers: %w", err)
+	}
+	return oldValue.Tiers, nil
+}
+
+// AppendTiers adds value to the "tiers" field.
+func (m *ExpenseItemMutation) AppendTiers(value []metered.Tier) {
+	m.appendtiers = append(m.appendtiers, value...)
+}
+
+// AppendedTiers returns the list of values that were appended to the "tiers" field in this mutation.
+func (m *ExpenseItemMutation) AppendedTiers() ([]metered.Tier, bool) {
+	if len(m.appendtiers) == 0 {
+		return nil, false
+	}
+	return m.appendtiers, true
+}
+
+// ClearTiers clears the value of the "tiers" field.
+func (m *ExpenseItemMutation) ClearTiers() {
+	m.tiers = nil
+	m.appendtiers = nil
+	m.clearedFields[expenseitem.FieldTiers] = struct{}{}
+}
+
+// TiersCleared returns if the "tiers" field was cleared in this mutation.
+func (m *ExpenseItemMutation) TiersCleared() bool {
+	_, ok := m.clearedFields[expenseitem.FieldTiers]
+	return ok
+}
+
+// ResetTiers resets all changes to the "tiers" field.
+func (m *ExpenseItemMutation) ResetTiers() {
+	m.tiers = nil
+	m.appendtiers = nil
+	delete(m.clearedFields, expenseitem.FieldTiers)
+}
+
+// SetBillingDay sets the "billing_day" field.
+func (m *ExpenseItemMutation) SetBillingDay(i int) {
+	m.billing_day = &i
+	m.addbilling_day = nil
+}
+
+// BillingDay returns the value of the "billing_day" field in the mutation.
+func (m *ExpenseItemMutation) BillingDay() (r int, exists bool) {
+	v := m.billing_day
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBillingDay returns the old "billing_day" field's value of the ExpenseItem entity.
+// If the ExpenseItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ExpenseItemMutation) OldBillingDay(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBillingDay is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBillingDay requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillingDay: %w", err)
+	}
+	return oldValue.BillingDay, nil
+}
+
+// AddBillingDay adds i to the "billing_day" field.
+func (m *ExpenseItemMutation) AddBillingDay(i int) {
+	if m.addbilling_day != nil {
+		*m.addbilling_day += i
+	} else {
+		m.addbilling_day = &i
+	}
+}
+
+// AddedBillingDay returns the value that was added to the "billing_day" field in this mutation.
+func (m *ExpenseItemMutation) AddedBillingDay() (r int, exists bool) {
+	v := m.addbilling_day
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBillingDay resets all changes to the "billing_day" field.
+func (m *ExpenseItemMutation) ResetBillingDay() {
+	m.billing_day = nil
+	m.addbilling_day = nil
+}
+
 // SetRwNodeUUID sets the "rw_node_uuid" field.
 func (m *ExpenseItemMutation) SetRwNodeUUID(s string) {
 	m.rw_node_uuid = &s
@@ -5615,7 +5873,7 @@ func (m *ExpenseItemMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ExpenseItemMutation) Fields() []string {
-	fields := make([]string, 0, 18)
+	fields := make([]string, 0, 23)
 	if m.created_at != nil {
 		fields = append(fields, expenseitem.FieldCreatedAt)
 	}
@@ -5654,6 +5912,21 @@ func (m *ExpenseItemMutation) Fields() []string {
 	}
 	if m.min_charge != nil {
 		fields = append(fields, expenseitem.FieldMinCharge)
+	}
+	if m.gb_unit != nil {
+		fields = append(fields, expenseitem.FieldGBUnit)
+	}
+	if m.min_mode != nil {
+		fields = append(fields, expenseitem.FieldMinMode)
+	}
+	if m.free_gb != nil {
+		fields = append(fields, expenseitem.FieldFreeGB)
+	}
+	if m.tiers != nil {
+		fields = append(fields, expenseitem.FieldTiers)
+	}
+	if m.billing_day != nil {
+		fields = append(fields, expenseitem.FieldBillingDay)
 	}
 	if m.rw_node_uuid != nil {
 		fields = append(fields, expenseitem.FieldRwNodeUUID)
@@ -5704,6 +5977,16 @@ func (m *ExpenseItemMutation) Field(name string) (ent.Value, bool) {
 		return m.PricePerGB()
 	case expenseitem.FieldMinCharge:
 		return m.MinCharge()
+	case expenseitem.FieldGBUnit:
+		return m.GBUnit()
+	case expenseitem.FieldMinMode:
+		return m.MinMode()
+	case expenseitem.FieldFreeGB:
+		return m.FreeGB()
+	case expenseitem.FieldTiers:
+		return m.Tiers()
+	case expenseitem.FieldBillingDay:
+		return m.BillingDay()
 	case expenseitem.FieldRwNodeUUID:
 		return m.RwNodeUUID()
 	case expenseitem.FieldRwSquadUUID:
@@ -5749,6 +6032,16 @@ func (m *ExpenseItemMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldPricePerGB(ctx)
 	case expenseitem.FieldMinCharge:
 		return m.OldMinCharge(ctx)
+	case expenseitem.FieldGBUnit:
+		return m.OldGBUnit(ctx)
+	case expenseitem.FieldMinMode:
+		return m.OldMinMode(ctx)
+	case expenseitem.FieldFreeGB:
+		return m.OldFreeGB(ctx)
+	case expenseitem.FieldTiers:
+		return m.OldTiers(ctx)
+	case expenseitem.FieldBillingDay:
+		return m.OldBillingDay(ctx)
 	case expenseitem.FieldRwNodeUUID:
 		return m.OldRwNodeUUID(ctx)
 	case expenseitem.FieldRwSquadUUID:
@@ -5859,6 +6152,41 @@ func (m *ExpenseItemMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetMinCharge(v)
 		return nil
+	case expenseitem.FieldGBUnit:
+		v, ok := value.(expenseitem.GBUnit)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGBUnit(v)
+		return nil
+	case expenseitem.FieldMinMode:
+		v, ok := value.(expenseitem.MinMode)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMinMode(v)
+		return nil
+	case expenseitem.FieldFreeGB:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFreeGB(v)
+		return nil
+	case expenseitem.FieldTiers:
+		v, ok := value.([]metered.Tier)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTiers(v)
+		return nil
+	case expenseitem.FieldBillingDay:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillingDay(v)
+		return nil
 	case expenseitem.FieldRwNodeUUID:
 		v, ok := value.(string)
 		if !ok {
@@ -5917,6 +6245,12 @@ func (m *ExpenseItemMutation) AddedFields() []string {
 	if m.addmin_charge != nil {
 		fields = append(fields, expenseitem.FieldMinCharge)
 	}
+	if m.addfree_gb != nil {
+		fields = append(fields, expenseitem.FieldFreeGB)
+	}
+	if m.addbilling_day != nil {
+		fields = append(fields, expenseitem.FieldBillingDay)
+	}
 	return fields
 }
 
@@ -5935,6 +6269,10 @@ func (m *ExpenseItemMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedPricePerGB()
 	case expenseitem.FieldMinCharge:
 		return m.AddedMinCharge()
+	case expenseitem.FieldFreeGB:
+		return m.AddedFreeGB()
+	case expenseitem.FieldBillingDay:
+		return m.AddedBillingDay()
 	}
 	return nil, false
 }
@@ -5979,6 +6317,20 @@ func (m *ExpenseItemMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddMinCharge(v)
 		return nil
+	case expenseitem.FieldFreeGB:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddFreeGB(v)
+		return nil
+	case expenseitem.FieldBillingDay:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBillingDay(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ExpenseItem numeric field %s", name)
 }
@@ -5992,6 +6344,9 @@ func (m *ExpenseItemMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(expenseitem.FieldRwProviderUUID) {
 		fields = append(fields, expenseitem.FieldRwProviderUUID)
+	}
+	if m.FieldCleared(expenseitem.FieldTiers) {
+		fields = append(fields, expenseitem.FieldTiers)
 	}
 	if m.FieldCleared(expenseitem.FieldRwNodeUUID) {
 		fields = append(fields, expenseitem.FieldRwNodeUUID)
@@ -6024,6 +6379,9 @@ func (m *ExpenseItemMutation) ClearField(name string) error {
 		return nil
 	case expenseitem.FieldRwProviderUUID:
 		m.ClearRwProviderUUID()
+		return nil
+	case expenseitem.FieldTiers:
+		m.ClearTiers()
 		return nil
 	case expenseitem.FieldRwNodeUUID:
 		m.ClearRwNodeUUID()
@@ -6083,6 +6441,21 @@ func (m *ExpenseItemMutation) ResetField(name string) error {
 		return nil
 	case expenseitem.FieldMinCharge:
 		m.ResetMinCharge()
+		return nil
+	case expenseitem.FieldGBUnit:
+		m.ResetGBUnit()
+		return nil
+	case expenseitem.FieldMinMode:
+		m.ResetMinMode()
+		return nil
+	case expenseitem.FieldFreeGB:
+		m.ResetFreeGB()
+		return nil
+	case expenseitem.FieldTiers:
+		m.ResetTiers()
+		return nil
+	case expenseitem.FieldBillingDay:
+		m.ResetBillingDay()
 		return nil
 	case expenseitem.FieldRwNodeUUID:
 		m.ResetRwNodeUUID()

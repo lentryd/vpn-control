@@ -48,6 +48,9 @@ type Config struct {
 
 	// SyncInterval is how often Remnawave users are re-synced.
 	SyncInterval time.Duration
+	// TrafficSyncInterval is how often node traffic for metered expenses
+	// is pulled from the panel.
+	TrafficSyncInterval time.Duration
 	// Location is the time zone dates (expiry, expense dates) are shown in.
 	Location *time.Location
 }
@@ -56,6 +59,10 @@ func Load() (*Config, error) {
 	syncInterval, err := time.ParseDuration(envOrDefault("SYNC_INTERVAL", "10m"))
 	if err != nil {
 		return nil, fmt.Errorf("SYNC_INTERVAL: %w", err)
+	}
+	trafficInterval, err := time.ParseDuration(envOrDefault("TRAFFIC_SYNC_INTERVAL", "1h"))
+	if err != nil {
+		return nil, fmt.Errorf("TRAFFIC_SYNC_INTERVAL: %w", err)
 	}
 	loc, err := time.LoadLocation(envOrDefault("TZ", "Europe/Moscow"))
 	if err != nil {
@@ -81,8 +88,9 @@ func Load() (*Config, error) {
 
 		WebhookSecret: getenv("WEBHOOK_SECRET"),
 
-		SyncInterval: syncInterval,
-		Location:     loc,
+		SyncInterval:        syncInterval,
+		TrafficSyncInterval: trafficInterval,
+		Location:            loc,
 	}
 
 	if cfg.RemnawaveURL == "" {

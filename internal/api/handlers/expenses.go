@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"vpn-control/ent/expenseitem"
 	"vpn-control/internal/audit"
 	"vpn-control/internal/expenses"
+	"vpn-control/internal/metered"
 	"vpn-control/internal/money"
 )
 
@@ -172,6 +174,11 @@ type ExpenseItemView struct {
 	SharePercent float64    `json:"share_percent"`
 	PricePerGB   float64    `json:"price_per_gb"`
 	MinCharge    float64    `json:"min_charge"`
+	GBUnit       string     `json:"gb_unit"`
+	MinMode      string     `json:"min_mode"`
+	FreeGB       float64    `json:"free_gb"`
+	Tiers        []tierView `json:"tiers"`
+	BillingDay   int        `json:"billing_day"`
 	RwNodeUUID   string     `json:"rw_node_uuid"`
 	RwSquadUUID  string     `json:"rw_squad_uuid"`
 	NextDueDate  *time.Time `json:"next_due_date"`
@@ -182,11 +189,26 @@ type ExpenseItemView struct {
 	PlanError    string     `json:"plan_error,omitempty"`
 }
 
+// tierView is a metered.Tier with the price in major units.
+type tierView struct {
+	UpToGB     float64 `json:"up_to_gb"`
+	PricePerGB float64 `json:"price_per_gb"`
+}
+
+func tierViews(ts []metered.Tier) []tierView {
+	out := make([]tierView, 0, len(ts))
+	for _, t := range ts {
+		out = append(out, tierView{UpToGB: t.UpToGB, PricePerGB: money.ToMajor(t.PricePerGB)})
+	}
+	return out
+}
+
 func expenseItemView(it *ent.ExpenseItem) ExpenseItemView {
 	return ExpenseItemView{
 		ID: it.ID, Name: it.Name, Provider: it.Provider, ProviderUUID: it.RwProviderUUID, Currency: it.Currency, Pricing: it.Pricing.String(),
 		Amount: money.ToMajor(it.Amount), Period: it.Period.String(), FeePercent: it.FeePercent,
 		SharePercent: it.SharePercent, PricePerGB: money.ToMajor(it.PricePerGB), MinCharge: money.ToMajor(it.MinCharge),
+		GBUnit: it.GBUnit.String(), MinMode: it.MinMode.String(), FreeGB: it.FreeGB, Tiers: tierViews(it.Tiers), BillingDay: it.BillingDay,
 		RwNodeUUID: it.RwNodeUUID, RwSquadUUID: it.RwSquadUUID, NextDueDate: it.NextDueDate, Active: it.Active, Notes: it.Notes,
 	}
 }
@@ -221,22 +243,27 @@ func (h *Handlers) ListExpenseItems(c *fiber.Ctx) error {
 }
 
 type expenseItemRequest struct {
-	Name         string  `json:"name"`
-	Provider     string  `json:"provider"`
-	ProviderUUID string  `json:"provider_uuid"`
-	Currency     string  `json:"currency"`
-	Pricing      string  `json:"pricing"`
-	Amount       float64 `json:"amount"`
-	Period       string  `json:"period"`
-	FeePercent   float64 `json:"fee_percent"`
-	SharePercent float64 `json:"share_percent"`
-	PricePerGB   float64 `json:"price_per_gb"`
-	MinCharge    float64 `json:"min_charge"`
-	RwNodeUUID   string  `json:"rw_node_uuid"`
-	RwSquadUUID  string  `json:"rw_squad_uuid"`
-	NextDueDate  Date    `json:"next_due_date"`
-	Active       bool    `json:"active"`
-	Notes        string  `json:"notes"`
+	Name         string     `json:"name"`
+	Provider     string     `json:"provider"`
+	ProviderUUID string     `json:"provider_uuid"`
+	Currency     string     `json:"currency"`
+	Pricing      string     `json:"pricing"`
+	Amount       float64    `json:"amount"`
+	Period       string     `json:"period"`
+	FeePercent   float64    `json:"fee_percent"`
+	SharePercent float64    `json:"share_percent"`
+	PricePerGB   float64    `json:"price_per_gb"`
+	MinCharge    float64    `json:"min_charge"`
+	GBUnit       string     `json:"gb_unit"`
+	MinMode      string     `json:"min_mode"`
+	FreeGB       float64    `json:"free_gb"`
+	Tiers        []tierView `json:"tiers"`
+	BillingDay   int        `json:"billing_day"`
+	RwNodeUUID   string     `json:"rw_node_uuid"`
+	RwSquadUUID  string     `json:"rw_squad_uuid"`
+	NextDueDate  Date       `json:"next_due_date"`
+	Active       bool       `json:"active"`
+	Notes        string     `json:"notes"`
 }
 
 func (r *expenseItemRequest) normalize() {
@@ -253,9 +280,40 @@ func (r *expenseItemRequest) normalize() {
 	if r.SharePercent <= 0 {
 		r.SharePercent = 100
 	}
+	if r.GBUnit == "" {
+		r.GBUnit = string(metered.Binary)
+	}
+	if r.MinMode == "" {
+		r.MinMode = string(metered.Floor)
+	}
+	if r.BillingDay == 0 {
+		r.BillingDay = 1
+	}
 	if r.Pricing != "metered" {
 		r.RwSquadUUID = ""
+		r.Tiers = nil
 	}
+}
+
+// tiers validates and converts the request's tiers: bounds must be
+// positive and distinct, with at most one unlimited (0) step.
+func (r *expenseItemRequest) tiers() ([]metered.Tier, error) {
+	if len(r.Tiers) == 0 {
+		return nil, nil
+	}
+	out := make([]metered.Tier, 0, len(r.Tiers))
+	seen := map[float64]bool{}
+	for _, t := range r.Tiers {
+		if t.UpToGB < 0 || t.PricePerGB < 0 {
+			return nil, errors.New("tiers: negative value")
+		}
+		if seen[t.UpToGB] {
+			return nil, errors.New("tiers: duplicate bound")
+		}
+		seen[t.UpToGB] = true
+		out = append(out, metered.Tier{UpToGB: t.UpToGB, PricePerGB: money.FromMajor(t.PricePerGB)})
+	}
+	return metered.NormalizeTiers(out), nil
 }
 
 func (h *Handlers) CreateExpenseItem(c *fiber.Ctx) error {
@@ -264,11 +322,17 @@ func (h *Handlers) CreateExpenseItem(c *fiber.Ctx) error {
 		return err
 	}
 	r.normalize()
+	tiers, err := r.tiers()
+	if err != nil {
+		return badRequest(err)
+	}
 	it, err := h.DB.ExpenseItem.Create().
 		SetName(r.Name).SetProvider(r.Provider).SetRwProviderUUID(r.ProviderUUID).SetCurrency(r.Currency).
 		SetPricing(expenseitem.Pricing(r.Pricing)).SetAmount(money.FromMajor(r.Amount)).
 		SetPeriod(expenseitem.Period(r.Period)).SetFeePercent(r.FeePercent).SetSharePercent(r.SharePercent).
 		SetPricePerGB(money.FromMajor(r.PricePerGB)).SetMinCharge(money.FromMajor(r.MinCharge)).
+		SetGBUnit(expenseitem.GBUnit(r.GBUnit)).SetMinMode(expenseitem.MinMode(r.MinMode)).
+		SetFreeGB(r.FreeGB).SetTiers(tiers).SetBillingDay(r.BillingDay).
 		SetRwNodeUUID(r.RwNodeUUID).SetRwSquadUUID(r.RwSquadUUID).SetNillableNextDueDate(r.NextDueDate.Ptr()).
 		SetActive(r.Active).SetNotes(r.Notes).
 		Save(c.UserContext())
@@ -289,11 +353,17 @@ func (h *Handlers) UpdateExpenseItem(c *fiber.Ctx) error {
 		return err
 	}
 	r.normalize()
+	tiers, err := r.tiers()
+	if err != nil {
+		return badRequest(err)
+	}
 	q := h.DB.ExpenseItem.UpdateOneID(id).
 		SetName(r.Name).SetProvider(r.Provider).SetRwProviderUUID(r.ProviderUUID).SetCurrency(r.Currency).
 		SetPricing(expenseitem.Pricing(r.Pricing)).SetAmount(money.FromMajor(r.Amount)).
 		SetPeriod(expenseitem.Period(r.Period)).SetFeePercent(r.FeePercent).SetSharePercent(r.SharePercent).
 		SetPricePerGB(money.FromMajor(r.PricePerGB)).SetMinCharge(money.FromMajor(r.MinCharge)).
+		SetGBUnit(expenseitem.GBUnit(r.GBUnit)).SetMinMode(expenseitem.MinMode(r.MinMode)).
+		SetFreeGB(r.FreeGB).SetTiers(tiers).SetBillingDay(r.BillingDay).
 		SetRwNodeUUID(r.RwNodeUUID).SetRwSquadUUID(r.RwSquadUUID).SetActive(r.Active).SetNotes(r.Notes)
 	if d := r.NextDueDate.Ptr(); d != nil {
 		q.SetNextDueDate(*d)
@@ -338,7 +408,7 @@ func (h *Handlers) MeteredSummary(c *fiber.Ctx) error {
 	}
 	t := time.Now().In(h.Config.Location)
 	if m := c.Query("month"); m != "" {
-		if t, err = time.ParseInLocation("2006-01", m, h.Config.Location); err != nil {
+		if t, err = expenses.PeriodStart(m, it.BillingDay, h.Config.Location); err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "month: YYYY-MM")
 		}
 	}
@@ -363,7 +433,8 @@ func meteredView(s *expenses.MeteredSummary) fiber.Map {
 	return fiber.Map{
 		"item_id": s.ItemID, "name": s.Name, "node_uuid": s.NodeUUID, "node_name": s.NodeName,
 		"squad_uuid": s.SquadUUID, "squad_share_percent": s.SquadSharePct,
-		"period": s.Period, "currency": s.Currency,
+		"period": s.Period, "period_start": s.PeriodStart, "period_end": s.PeriodEnd, "currency": s.Currency,
+		"gb_unit": s.GBUnit, "min_mode": s.MinMode, "free_gb": s.FreeGB, "tiers": tierViews(s.Tiers),
 		"price_per_gb": money.ToMajor(s.PricePerGB), "min_charge": money.ToMajor(s.MinCharge),
 		"included_gb": s.IncludedGB, "used_gb": s.UsedGB,
 		"cost": money.ToMajor(s.Cost), "cost_rub": money.ToMajor(s.CostRub),
@@ -395,7 +466,7 @@ func (h *Handlers) ClosePeriod(c *fiber.Ctx) error {
 
 func (h *Handlers) SyncTraffic(c *fiber.Ctx) error {
 	now := time.Now().In(h.Config.Location)
-	start, _ := expenses.MonthBounds(now.AddDate(0, -1, 0))
+	start := expenses.SyncFrom(now)
 	if err := h.Expenses.SyncTraffic(c.UserContext(), start, now); err != nil {
 		return badRequest(err)
 	}

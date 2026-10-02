@@ -21,7 +21,7 @@ import {
     Tooltip
 } from '@mantine/core'
 import { DateInput, MonthPickerInput } from '@mantine/dates'
-import { useForm } from '@mantine/form'
+import { type UseFormReturnType, useForm } from '@mantine/form'
 import dayjs from 'dayjs'
 import { useMemo, useState } from 'react'
 import {
@@ -47,7 +47,7 @@ import { TbCloudDataConnection, TbDots, TbServer2 } from 'react-icons/tb'
 
 import { api } from '@/api/client'
 import { useApiMutation, useExpenseItems, useInfra, useInvalidateAll, useMetered, useNodes, useSettings } from '@/api/hooks'
-import type { ExpenseItem } from '@/api/types'
+import type { ExpenseItem, GBUnit, MinMode, Tier } from '@/api/types'
 import { expiryColor } from '@/components/badges'
 import { fmtCurrency, fmtDate, fmtMoney, fmtNum } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
@@ -201,10 +201,12 @@ export function ExpenseItemsPage() {
                     return it.pricing === 'metered' ? (
                         <Stack gap={0}>
                             <Text ff="monospace" fw={500} size="sm">
-                                {fmtCurrency(it.price_per_gb, it.currency)}/ГБ
+                                {it.tiers?.length ? `${it.tiers.length} ступ.` : `${fmtCurrency(it.price_per_gb, it.currency)}/ГБ`}
                             </Text>
                             <Text c="dimmed" size="xs">
-                                мин. {fmtCurrency(it.min_charge, it.currency)}
+                                {it.min_mode === 'free'
+                                    ? `${fmtCurrency(it.min_charge, it.currency)} + ${fmtNum(it.free_gb)} ГБ бесплатно`
+                                    : `мин. ${fmtCurrency(it.min_charge, it.currency)}`}
                             </Text>
                         </Stack>
                     ) : (
@@ -501,6 +503,11 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
             share_percent: item.share_percent ?? 100,
             price_per_gb: item.price_per_gb ?? 1,
             min_charge: item.min_charge ?? 0,
+            gb_unit: item.gb_unit ?? 'binary',
+            min_mode: item.min_mode ?? 'floor',
+            free_gb: item.free_gb ?? 0,
+            tiers: item.tiers ?? [],
+            billing_day: item.billing_day ?? 1,
             rw_node_uuid: item.rw_node_uuid || null,
             rw_squad_uuid: item.rw_squad_uuid || null,
             next_due_date: item.next_due_date ? dayjs(item.next_due_date).format('YYYY-MM-DD') : null,
@@ -604,11 +611,13 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
                             />
                         ) : (
                             <NumberInput
-                                label={`Цена за ГБ, ${v.currency}`}
-                                leftSection={<TbCloudDataConnection size={16} />}
-                                min={0}
-                                decimalScale={4}
-                                {...form.getInputProps('price_per_gb')}
+                                label="День начала периода"
+                                description="Когда провайдер начинает новый расчётный период"
+                                leftSection={<PiCalendarDuotone size={16} />}
+                                min={1}
+                                max={28}
+                                allowDecimal={false}
+                                {...form.getInputProps('billing_day')}
                             />
                         )}
                     </SimpleGrid>
@@ -621,16 +630,7 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
                             {...form.getInputProps('amount')}
                         />
                     ) : (
-                        <NumberInput
-                            label={`Минимальный платёж, ${v.currency}`}
-                            description={`Стоимость месяца = max(минимум, ГБ × цена). Минимум покрывает ${
-                                v.price_per_gb ? fmtNum(v.min_charge / v.price_per_gb) : '—'
-                            } ГБ`}
-                            leftSection={<PiCoinsDuotone size={16} />}
-                            min={0}
-                            decimalScale={2}
-                            {...form.getInputProps('min_charge')}
-                        />
+                        <MeteredPricingFields form={form} />
                     )}
                     <SimpleGrid cols={{ base: 1, xs: 2 }}>
                         <NumberInput
@@ -641,7 +641,7 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
                         />
                         <NumberInput
                             label="Наша доля, %"
-                            description="Домен на троих — 30%"
+                            description="Если расход делится с кем-то: 30% — платим треть"
                             leftSection={<PiPercent size={16} />}
                             min={0}
                             max={100}
@@ -678,5 +678,136 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
                 <FormFooter inline loading={m.isPending} onCancel={onDone} />
             </Stack>
         </form>
+    )
+}
+
+type ItemFormValues = {
+    currency: string
+    price_per_gb: number
+    min_charge: number
+    gb_unit: GBUnit
+    min_mode: MinMode
+    free_gb: number
+    tiers: Tier[]
+}
+
+// MeteredPricingFields edits how a per-GB provider bills: the GB unit, a
+// minimum vs. a fixed fee with a free allowance, and flat vs. tiered prices.
+function MeteredPricingFields<T extends ItemFormValues>({ form }: { form: UseFormReturnType<T> }) {
+    const v = form.getValues() as ItemFormValues
+    const set = <K extends keyof ItemFormValues>(k: K, val: ItemFormValues[K]) => form.setFieldValue(k as never, val as never)
+    const tiered = v.tiers.length > 0
+    const free = v.min_mode === 'free'
+    const firstPrice = tiered ? v.tiers[0].price_per_gb : v.price_per_gb
+    return (
+        <>
+            <Select
+                label="Как провайдер считает ГБ"
+                leftSection={<TbCloudDataConnection size={16} />}
+                data={[
+                    { value: 'binary', label: '1 ГБ = 1024³ байт (ГиБ — Яндекс Облако и др.)' },
+                    { value: 'decimal', label: '1 ГБ = 10⁹ байт (большинство CDN)' }
+                ]}
+                {...form.getInputProps('gb_unit')}
+            />
+            <SegmentedControl
+                data={[
+                    { value: 'floor', label: 'Минимальный платёж' },
+                    { value: 'free', label: 'Абонплата + бесплатный объём' }
+                ]}
+                fullWidth
+                {...form.getInputProps('min_mode')}
+            />
+            <SimpleGrid cols={{ base: 1, xs: free ? 2 : 1 }}>
+                <NumberInput
+                    label={`${free ? 'Абонплата' : 'Минимальный платёж'}, ${v.currency}`}
+                    description={
+                        free
+                            ? 'Стоимость = абонплата + ГБ сверх бесплатного объёма × цена'
+                            : `Стоимость = max(минимум, ГБ × цена). Минимум покрывает ${
+                                  !tiered && firstPrice ? fmtNum(v.min_charge / firstPrice) : '—'
+                              } ГБ`
+                    }
+                    leftSection={<PiCoinsDuotone size={16} />}
+                    min={0}
+                    decimalScale={2}
+                    {...form.getInputProps('min_charge')}
+                />
+                {free && (
+                    <NumberInput
+                        label="Бесплатно, ГБ"
+                        leftSection={<TbCloudDataConnection size={16} />}
+                        min={0}
+                        decimalScale={2}
+                        {...form.getInputProps('free_gb')}
+                    />
+                )}
+            </SimpleGrid>
+            <Switch
+                label="Ступенчатая цена"
+                description="Разная цена за ГБ в зависимости от объёма за период"
+                checked={tiered}
+                onChange={(e) =>
+                    set(
+                        'tiers',
+                        e.currentTarget.checked
+                            ? [
+                                  { up_to_gb: 10000, price_per_gb: v.price_per_gb },
+                                  { up_to_gb: 0, price_per_gb: v.price_per_gb }
+                              ]
+                            : []
+                    )
+                }
+            />
+            {tiered ? (
+                <Stack gap="xs">
+                    {v.tiers.map((t, i) => (
+                        <Group align="flex-end" gap="xs" key={i} wrap="nowrap">
+                            <NumberInput
+                                label={i === 0 ? 'До, ГБ (0 — без ограничения)' : undefined}
+                                min={0}
+                                decimalScale={2}
+                                style={{ flex: 1 }}
+                                value={t.up_to_gb}
+                                onChange={(x) => set('tiers', v.tiers.map((y, j) => (j === i ? { ...y, up_to_gb: Number(x) || 0 } : y)))}
+                            />
+                            <NumberInput
+                                label={i === 0 ? `Цена за ГБ, ${v.currency}` : undefined}
+                                min={0}
+                                decimalScale={4}
+                                style={{ flex: 1 }}
+                                value={t.price_per_gb}
+                                onChange={(x) => set('tiers', v.tiers.map((y, j) => (j === i ? { ...y, price_per_gb: Number(x) || 0 } : y)))}
+                            />
+                            <ActionIcon
+                                color="red"
+                                mb={4}
+                                onClick={() => set('tiers', v.tiers.filter((_, j) => j !== i))}
+                                variant="subtle"
+                            >
+                                <PiTrash size={16} />
+                            </ActionIcon>
+                        </Group>
+                    ))}
+                    <Button
+                        leftSection={<PiPlus size={14} />}
+                        onClick={() => set('tiers', [...v.tiers, { up_to_gb: 0, price_per_gb: firstPrice }])}
+                        size="compact-sm"
+                        variant="subtle"
+                        w="fit-content"
+                    >
+                        Добавить ступень
+                    </Button>
+                </Stack>
+            ) : (
+                <NumberInput
+                    label={`Цена за ГБ, ${v.currency}`}
+                    leftSection={<TbCloudDataConnection size={16} />}
+                    min={0}
+                    decimalScale={4}
+                    {...form.getInputProps('price_per_gb')}
+                />
+            )}
+        </>
     )
 }

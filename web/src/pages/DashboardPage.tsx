@@ -100,7 +100,7 @@ export function DashboardPage() {
             icon: PiCoinsDuotone,
             color: 'cyan'
         },
-        { title: 'Расходы в месяц', value: fmtMoney(data.planned_expenses), hint: 'по текущему курсу и прогнозу CDN', icon: PiReceiptDuotone, color: 'orange' },
+        { title: 'Расходы в месяц', value: fmtMoney(data.planned_expenses), hint: 'по текущему курсу и прогнозу трафика', icon: PiReceiptDuotone, color: 'orange' },
         { title: 'Профит в месяц', value: fmtMoney(data.profit), hint: 'MRR − плановые расходы', icon: PiChartLineUpDuotone, color: data.profit >= 0 ? 'teal' : 'red' },
         {
             title: 'Касса',
@@ -358,11 +358,18 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
     const progress = m.included_gb ? Math.min(100, (m.used_gb / m.included_gb) * 100) : 0
     const forecastOver = m.forecast_gb > m.included_gb
     const avgDaily = m.daily.length ? m.daily.reduce((sum, d) => sum + d.gb, 0) / m.daily.length : 0
+    const free = m.min_mode === 'free'
+    // a period starting on the 1st reads as a month, any other as dates
+    const periodLabel =
+        dayjs(m.period_start).date() === 1
+            ? dayjs(m.period_start).format('MMMM YYYY')
+            : `${dayjs(m.period_start).format('DD.MM')} – ${dayjs(m.period_end).format('DD.MM.YYYY')}`
+    const priceHint = m.tiers?.length ? 'ступенчатая цена' : `${fmtMoney(m.price_per_gb, 2)}/ГБ сверх`
     return (
         <Block
             actions={
                 <Badge color="gray" size="lg" variant="soft">
-                    {dayjs(m.period + '-01').format('MMMM YYYY')}
+                    {periodLabel}
                 </Badge>
             }
             description={
@@ -389,7 +396,7 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                         />
                         <Stack gap={0}>
                             <Text c="dimmed" fw={500} size="sm">
-                                Израсходовано / в минимуме
+                                {free ? 'Израсходовано / бесплатно' : 'Израсходовано / в минимуме'}
                             </Text>
                             <Text ff="monospace" fw={700} size="lg">
                                 {fmtNum(m.used_gb)} / {fmtNum(m.included_gb)} ГБ
@@ -398,16 +405,22 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                     </Group>
                 </Paper>
                 <StatCard
-                    hint={`минимум ${fmtMoney(m.min_charge)} · ${fmtMoney(m.price_per_gb, 2)}/ГБ сверх`}
+                    hint={`${free ? 'абонплата' : 'минимум'} ${fmtMoney(m.min_charge)} · ${priceHint}`}
                     icon={PiCoinsDuotone}
                     title="Сейчас к оплате"
                     value={fmtMoney(m.cost_rub, 2)}
                 />
                 <StatCard
                     color={forecastOver ? 'orange' : 'teal'}
-                    hint={forecastOver ? `≈ ${fmtNum(m.forecast_gb - m.included_gb)} ГБ сверх минимума` : 'укладываемся в минимальный платёж'}
+                    hint={
+                        forecastOver
+                            ? `≈ ${fmtNum(m.forecast_gb - m.included_gb)} ГБ сверх ${free ? 'бесплатного объёма' : 'минимума'}`
+                            : free
+                              ? 'укладываемся в бесплатный объём'
+                              : 'укладываемся в минимальный платёж'
+                    }
                     icon={PiChartLineUpDuotone}
-                    title="Прогноз на конец месяца"
+                    title="Прогноз на конец периода"
                     value={`${fmtNum(m.forecast_gb)} ГБ · ${fmtMoney(m.forecast_rub)}`}
                 />
             </SimpleGrid>
@@ -417,7 +430,7 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                         <BaseOverlayHeader
                             IconComponent={PiChartLineUpDuotone}
                             iconColor="cyan"
-                            subtitle={`за ${dayjs(m.period + '-01').format('MMMM')} — ${fmtNum(m.used_gb)} ГБ`}
+                            subtitle={`за ${periodLabel} — ${fmtNum(m.used_gb)} ГБ`}
                             title="Трафик по дням"
                             titleOrder={6}
                         />

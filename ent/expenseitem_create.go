@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 	"vpn-control/ent/expenseitem"
+	"vpn-control/internal/metered"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -196,6 +197,68 @@ func (_c *ExpenseItemCreate) SetNillableMinCharge(v *int64) *ExpenseItemCreate {
 	return _c
 }
 
+// SetGBUnit sets the "gb_unit" field.
+func (_c *ExpenseItemCreate) SetGBUnit(v expenseitem.GBUnit) *ExpenseItemCreate {
+	_c.mutation.SetGBUnit(v)
+	return _c
+}
+
+// SetNillableGBUnit sets the "gb_unit" field if the given value is not nil.
+func (_c *ExpenseItemCreate) SetNillableGBUnit(v *expenseitem.GBUnit) *ExpenseItemCreate {
+	if v != nil {
+		_c.SetGBUnit(*v)
+	}
+	return _c
+}
+
+// SetMinMode sets the "min_mode" field.
+func (_c *ExpenseItemCreate) SetMinMode(v expenseitem.MinMode) *ExpenseItemCreate {
+	_c.mutation.SetMinMode(v)
+	return _c
+}
+
+// SetNillableMinMode sets the "min_mode" field if the given value is not nil.
+func (_c *ExpenseItemCreate) SetNillableMinMode(v *expenseitem.MinMode) *ExpenseItemCreate {
+	if v != nil {
+		_c.SetMinMode(*v)
+	}
+	return _c
+}
+
+// SetFreeGB sets the "free_gb" field.
+func (_c *ExpenseItemCreate) SetFreeGB(v float64) *ExpenseItemCreate {
+	_c.mutation.SetFreeGB(v)
+	return _c
+}
+
+// SetNillableFreeGB sets the "free_gb" field if the given value is not nil.
+func (_c *ExpenseItemCreate) SetNillableFreeGB(v *float64) *ExpenseItemCreate {
+	if v != nil {
+		_c.SetFreeGB(*v)
+	}
+	return _c
+}
+
+// SetTiers sets the "tiers" field.
+func (_c *ExpenseItemCreate) SetTiers(v []metered.Tier) *ExpenseItemCreate {
+	_c.mutation.SetTiers(v)
+	return _c
+}
+
+// SetBillingDay sets the "billing_day" field.
+func (_c *ExpenseItemCreate) SetBillingDay(v int) *ExpenseItemCreate {
+	_c.mutation.SetBillingDay(v)
+	return _c
+}
+
+// SetNillableBillingDay sets the "billing_day" field if the given value is not nil.
+func (_c *ExpenseItemCreate) SetNillableBillingDay(v *int) *ExpenseItemCreate {
+	if v != nil {
+		_c.SetBillingDay(*v)
+	}
+	return _c
+}
+
 // SetRwNodeUUID sets the "rw_node_uuid" field.
 func (_c *ExpenseItemCreate) SetRwNodeUUID(v string) *ExpenseItemCreate {
 	_c.mutation.SetRwNodeUUID(v)
@@ -341,6 +404,22 @@ func (_c *ExpenseItemCreate) defaults() {
 		v := expenseitem.DefaultMinCharge
 		_c.mutation.SetMinCharge(v)
 	}
+	if _, ok := _c.mutation.GBUnit(); !ok {
+		v := expenseitem.DefaultGBUnit
+		_c.mutation.SetGBUnit(v)
+	}
+	if _, ok := _c.mutation.MinMode(); !ok {
+		v := expenseitem.DefaultMinMode
+		_c.mutation.SetMinMode(v)
+	}
+	if _, ok := _c.mutation.FreeGB(); !ok {
+		v := expenseitem.DefaultFreeGB
+		_c.mutation.SetFreeGB(v)
+	}
+	if _, ok := _c.mutation.BillingDay(); !ok {
+		v := expenseitem.DefaultBillingDay
+		_c.mutation.SetBillingDay(v)
+	}
 	if _, ok := _c.mutation.Active(); !ok {
 		v := expenseitem.DefaultActive
 		_c.mutation.SetActive(v)
@@ -396,6 +475,33 @@ func (_c *ExpenseItemCreate) check() error {
 	}
 	if _, ok := _c.mutation.MinCharge(); !ok {
 		return &ValidationError{Name: "min_charge", err: errors.New(`ent: missing required field "ExpenseItem.min_charge"`)}
+	}
+	if _, ok := _c.mutation.GBUnit(); !ok {
+		return &ValidationError{Name: "gb_unit", err: errors.New(`ent: missing required field "ExpenseItem.gb_unit"`)}
+	}
+	if v, ok := _c.mutation.GBUnit(); ok {
+		if err := expenseitem.GBUnitValidator(v); err != nil {
+			return &ValidationError{Name: "gb_unit", err: fmt.Errorf(`ent: validator failed for field "ExpenseItem.gb_unit": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.MinMode(); !ok {
+		return &ValidationError{Name: "min_mode", err: errors.New(`ent: missing required field "ExpenseItem.min_mode"`)}
+	}
+	if v, ok := _c.mutation.MinMode(); ok {
+		if err := expenseitem.MinModeValidator(v); err != nil {
+			return &ValidationError{Name: "min_mode", err: fmt.Errorf(`ent: validator failed for field "ExpenseItem.min_mode": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.FreeGB(); !ok {
+		return &ValidationError{Name: "free_gb", err: errors.New(`ent: missing required field "ExpenseItem.free_gb"`)}
+	}
+	if _, ok := _c.mutation.BillingDay(); !ok {
+		return &ValidationError{Name: "billing_day", err: errors.New(`ent: missing required field "ExpenseItem.billing_day"`)}
+	}
+	if v, ok := _c.mutation.BillingDay(); ok {
+		if err := expenseitem.BillingDayValidator(v); err != nil {
+			return &ValidationError{Name: "billing_day", err: fmt.Errorf(`ent: validator failed for field "ExpenseItem.billing_day": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.Active(); !ok {
 		return &ValidationError{Name: "active", err: errors.New(`ent: missing required field "ExpenseItem.active"`)}
@@ -478,6 +584,26 @@ func (_c *ExpenseItemCreate) createSpec() (*ExpenseItem, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.MinCharge(); ok {
 		_spec.SetField(expenseitem.FieldMinCharge, field.TypeInt64, value)
 		_node.MinCharge = value
+	}
+	if value, ok := _c.mutation.GBUnit(); ok {
+		_spec.SetField(expenseitem.FieldGBUnit, field.TypeEnum, value)
+		_node.GBUnit = value
+	}
+	if value, ok := _c.mutation.MinMode(); ok {
+		_spec.SetField(expenseitem.FieldMinMode, field.TypeEnum, value)
+		_node.MinMode = value
+	}
+	if value, ok := _c.mutation.FreeGB(); ok {
+		_spec.SetField(expenseitem.FieldFreeGB, field.TypeFloat64, value)
+		_node.FreeGB = value
+	}
+	if value, ok := _c.mutation.Tiers(); ok {
+		_spec.SetField(expenseitem.FieldTiers, field.TypeJSON, value)
+		_node.Tiers = value
+	}
+	if value, ok := _c.mutation.BillingDay(); ok {
+		_spec.SetField(expenseitem.FieldBillingDay, field.TypeInt, value)
+		_node.BillingDay = value
 	}
 	if value, ok := _c.mutation.RwNodeUUID(); ok {
 		_spec.SetField(expenseitem.FieldRwNodeUUID, field.TypeString, value)
@@ -734,6 +860,84 @@ func (u *ExpenseItemUpsert) UpdateMinCharge() *ExpenseItemUpsert {
 // AddMinCharge adds v to the "min_charge" field.
 func (u *ExpenseItemUpsert) AddMinCharge(v int64) *ExpenseItemUpsert {
 	u.Add(expenseitem.FieldMinCharge, v)
+	return u
+}
+
+// SetGBUnit sets the "gb_unit" field.
+func (u *ExpenseItemUpsert) SetGBUnit(v expenseitem.GBUnit) *ExpenseItemUpsert {
+	u.Set(expenseitem.FieldGBUnit, v)
+	return u
+}
+
+// UpdateGBUnit sets the "gb_unit" field to the value that was provided on create.
+func (u *ExpenseItemUpsert) UpdateGBUnit() *ExpenseItemUpsert {
+	u.SetExcluded(expenseitem.FieldGBUnit)
+	return u
+}
+
+// SetMinMode sets the "min_mode" field.
+func (u *ExpenseItemUpsert) SetMinMode(v expenseitem.MinMode) *ExpenseItemUpsert {
+	u.Set(expenseitem.FieldMinMode, v)
+	return u
+}
+
+// UpdateMinMode sets the "min_mode" field to the value that was provided on create.
+func (u *ExpenseItemUpsert) UpdateMinMode() *ExpenseItemUpsert {
+	u.SetExcluded(expenseitem.FieldMinMode)
+	return u
+}
+
+// SetFreeGB sets the "free_gb" field.
+func (u *ExpenseItemUpsert) SetFreeGB(v float64) *ExpenseItemUpsert {
+	u.Set(expenseitem.FieldFreeGB, v)
+	return u
+}
+
+// UpdateFreeGB sets the "free_gb" field to the value that was provided on create.
+func (u *ExpenseItemUpsert) UpdateFreeGB() *ExpenseItemUpsert {
+	u.SetExcluded(expenseitem.FieldFreeGB)
+	return u
+}
+
+// AddFreeGB adds v to the "free_gb" field.
+func (u *ExpenseItemUpsert) AddFreeGB(v float64) *ExpenseItemUpsert {
+	u.Add(expenseitem.FieldFreeGB, v)
+	return u
+}
+
+// SetTiers sets the "tiers" field.
+func (u *ExpenseItemUpsert) SetTiers(v []metered.Tier) *ExpenseItemUpsert {
+	u.Set(expenseitem.FieldTiers, v)
+	return u
+}
+
+// UpdateTiers sets the "tiers" field to the value that was provided on create.
+func (u *ExpenseItemUpsert) UpdateTiers() *ExpenseItemUpsert {
+	u.SetExcluded(expenseitem.FieldTiers)
+	return u
+}
+
+// ClearTiers clears the value of the "tiers" field.
+func (u *ExpenseItemUpsert) ClearTiers() *ExpenseItemUpsert {
+	u.SetNull(expenseitem.FieldTiers)
+	return u
+}
+
+// SetBillingDay sets the "billing_day" field.
+func (u *ExpenseItemUpsert) SetBillingDay(v int) *ExpenseItemUpsert {
+	u.Set(expenseitem.FieldBillingDay, v)
+	return u
+}
+
+// UpdateBillingDay sets the "billing_day" field to the value that was provided on create.
+func (u *ExpenseItemUpsert) UpdateBillingDay() *ExpenseItemUpsert {
+	u.SetExcluded(expenseitem.FieldBillingDay)
+	return u
+}
+
+// AddBillingDay adds v to the "billing_day" field.
+func (u *ExpenseItemUpsert) AddBillingDay(v int) *ExpenseItemUpsert {
+	u.Add(expenseitem.FieldBillingDay, v)
 	return u
 }
 
@@ -1080,6 +1284,97 @@ func (u *ExpenseItemUpsertOne) AddMinCharge(v int64) *ExpenseItemUpsertOne {
 func (u *ExpenseItemUpsertOne) UpdateMinCharge() *ExpenseItemUpsertOne {
 	return u.Update(func(s *ExpenseItemUpsert) {
 		s.UpdateMinCharge()
+	})
+}
+
+// SetGBUnit sets the "gb_unit" field.
+func (u *ExpenseItemUpsertOne) SetGBUnit(v expenseitem.GBUnit) *ExpenseItemUpsertOne {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.SetGBUnit(v)
+	})
+}
+
+// UpdateGBUnit sets the "gb_unit" field to the value that was provided on create.
+func (u *ExpenseItemUpsertOne) UpdateGBUnit() *ExpenseItemUpsertOne {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.UpdateGBUnit()
+	})
+}
+
+// SetMinMode sets the "min_mode" field.
+func (u *ExpenseItemUpsertOne) SetMinMode(v expenseitem.MinMode) *ExpenseItemUpsertOne {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.SetMinMode(v)
+	})
+}
+
+// UpdateMinMode sets the "min_mode" field to the value that was provided on create.
+func (u *ExpenseItemUpsertOne) UpdateMinMode() *ExpenseItemUpsertOne {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.UpdateMinMode()
+	})
+}
+
+// SetFreeGB sets the "free_gb" field.
+func (u *ExpenseItemUpsertOne) SetFreeGB(v float64) *ExpenseItemUpsertOne {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.SetFreeGB(v)
+	})
+}
+
+// AddFreeGB adds v to the "free_gb" field.
+func (u *ExpenseItemUpsertOne) AddFreeGB(v float64) *ExpenseItemUpsertOne {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.AddFreeGB(v)
+	})
+}
+
+// UpdateFreeGB sets the "free_gb" field to the value that was provided on create.
+func (u *ExpenseItemUpsertOne) UpdateFreeGB() *ExpenseItemUpsertOne {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.UpdateFreeGB()
+	})
+}
+
+// SetTiers sets the "tiers" field.
+func (u *ExpenseItemUpsertOne) SetTiers(v []metered.Tier) *ExpenseItemUpsertOne {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.SetTiers(v)
+	})
+}
+
+// UpdateTiers sets the "tiers" field to the value that was provided on create.
+func (u *ExpenseItemUpsertOne) UpdateTiers() *ExpenseItemUpsertOne {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.UpdateTiers()
+	})
+}
+
+// ClearTiers clears the value of the "tiers" field.
+func (u *ExpenseItemUpsertOne) ClearTiers() *ExpenseItemUpsertOne {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.ClearTiers()
+	})
+}
+
+// SetBillingDay sets the "billing_day" field.
+func (u *ExpenseItemUpsertOne) SetBillingDay(v int) *ExpenseItemUpsertOne {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.SetBillingDay(v)
+	})
+}
+
+// AddBillingDay adds v to the "billing_day" field.
+func (u *ExpenseItemUpsertOne) AddBillingDay(v int) *ExpenseItemUpsertOne {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.AddBillingDay(v)
+	})
+}
+
+// UpdateBillingDay sets the "billing_day" field to the value that was provided on create.
+func (u *ExpenseItemUpsertOne) UpdateBillingDay() *ExpenseItemUpsertOne {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.UpdateBillingDay()
 	})
 }
 
@@ -1606,6 +1901,97 @@ func (u *ExpenseItemUpsertBulk) AddMinCharge(v int64) *ExpenseItemUpsertBulk {
 func (u *ExpenseItemUpsertBulk) UpdateMinCharge() *ExpenseItemUpsertBulk {
 	return u.Update(func(s *ExpenseItemUpsert) {
 		s.UpdateMinCharge()
+	})
+}
+
+// SetGBUnit sets the "gb_unit" field.
+func (u *ExpenseItemUpsertBulk) SetGBUnit(v expenseitem.GBUnit) *ExpenseItemUpsertBulk {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.SetGBUnit(v)
+	})
+}
+
+// UpdateGBUnit sets the "gb_unit" field to the value that was provided on create.
+func (u *ExpenseItemUpsertBulk) UpdateGBUnit() *ExpenseItemUpsertBulk {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.UpdateGBUnit()
+	})
+}
+
+// SetMinMode sets the "min_mode" field.
+func (u *ExpenseItemUpsertBulk) SetMinMode(v expenseitem.MinMode) *ExpenseItemUpsertBulk {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.SetMinMode(v)
+	})
+}
+
+// UpdateMinMode sets the "min_mode" field to the value that was provided on create.
+func (u *ExpenseItemUpsertBulk) UpdateMinMode() *ExpenseItemUpsertBulk {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.UpdateMinMode()
+	})
+}
+
+// SetFreeGB sets the "free_gb" field.
+func (u *ExpenseItemUpsertBulk) SetFreeGB(v float64) *ExpenseItemUpsertBulk {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.SetFreeGB(v)
+	})
+}
+
+// AddFreeGB adds v to the "free_gb" field.
+func (u *ExpenseItemUpsertBulk) AddFreeGB(v float64) *ExpenseItemUpsertBulk {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.AddFreeGB(v)
+	})
+}
+
+// UpdateFreeGB sets the "free_gb" field to the value that was provided on create.
+func (u *ExpenseItemUpsertBulk) UpdateFreeGB() *ExpenseItemUpsertBulk {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.UpdateFreeGB()
+	})
+}
+
+// SetTiers sets the "tiers" field.
+func (u *ExpenseItemUpsertBulk) SetTiers(v []metered.Tier) *ExpenseItemUpsertBulk {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.SetTiers(v)
+	})
+}
+
+// UpdateTiers sets the "tiers" field to the value that was provided on create.
+func (u *ExpenseItemUpsertBulk) UpdateTiers() *ExpenseItemUpsertBulk {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.UpdateTiers()
+	})
+}
+
+// ClearTiers clears the value of the "tiers" field.
+func (u *ExpenseItemUpsertBulk) ClearTiers() *ExpenseItemUpsertBulk {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.ClearTiers()
+	})
+}
+
+// SetBillingDay sets the "billing_day" field.
+func (u *ExpenseItemUpsertBulk) SetBillingDay(v int) *ExpenseItemUpsertBulk {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.SetBillingDay(v)
+	})
+}
+
+// AddBillingDay adds v to the "billing_day" field.
+func (u *ExpenseItemUpsertBulk) AddBillingDay(v int) *ExpenseItemUpsertBulk {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.AddBillingDay(v)
+	})
+}
+
+// UpdateBillingDay sets the "billing_day" field to the value that was provided on create.
+func (u *ExpenseItemUpsertBulk) UpdateBillingDay() *ExpenseItemUpsertBulk {
+	return u.Update(func(s *ExpenseItemUpsert) {
+		s.UpdateBillingDay()
 	})
 }
 

@@ -109,6 +109,16 @@ func MinCharge(v int64) predicate.ExpenseItem {
 	return predicate.ExpenseItem(sql.FieldEQ(FieldMinCharge, v))
 }
 
+// FreeGB applies equality check predicate on the "free_gb" field. It's identical to FreeGBEQ.
+func FreeGB(v float64) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldEQ(FieldFreeGB, v))
+}
+
+// BillingDay applies equality check predicate on the "billing_day" field. It's identical to BillingDayEQ.
+func BillingDay(v int) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldEQ(FieldBillingDay, v))
+}
+
 // RwNodeUUID applies equality check predicate on the "rw_node_uuid" field. It's identical to RwNodeUUIDEQ.
 func RwNodeUUID(v string) predicate.ExpenseItem {
 	return predicate.ExpenseItem(sql.FieldEQ(FieldRwNodeUUID, v))
@@ -732,6 +742,136 @@ func MinChargeLT(v int64) predicate.ExpenseItem {
 // MinChargeLTE applies the LTE predicate on the "min_charge" field.
 func MinChargeLTE(v int64) predicate.ExpenseItem {
 	return predicate.ExpenseItem(sql.FieldLTE(FieldMinCharge, v))
+}
+
+// GBUnitEQ applies the EQ predicate on the "gb_unit" field.
+func GBUnitEQ(v GBUnit) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldEQ(FieldGBUnit, v))
+}
+
+// GBUnitNEQ applies the NEQ predicate on the "gb_unit" field.
+func GBUnitNEQ(v GBUnit) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldNEQ(FieldGBUnit, v))
+}
+
+// GBUnitIn applies the In predicate on the "gb_unit" field.
+func GBUnitIn(vs ...GBUnit) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldIn(FieldGBUnit, vs...))
+}
+
+// GBUnitNotIn applies the NotIn predicate on the "gb_unit" field.
+func GBUnitNotIn(vs ...GBUnit) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldNotIn(FieldGBUnit, vs...))
+}
+
+// MinModeEQ applies the EQ predicate on the "min_mode" field.
+func MinModeEQ(v MinMode) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldEQ(FieldMinMode, v))
+}
+
+// MinModeNEQ applies the NEQ predicate on the "min_mode" field.
+func MinModeNEQ(v MinMode) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldNEQ(FieldMinMode, v))
+}
+
+// MinModeIn applies the In predicate on the "min_mode" field.
+func MinModeIn(vs ...MinMode) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldIn(FieldMinMode, vs...))
+}
+
+// MinModeNotIn applies the NotIn predicate on the "min_mode" field.
+func MinModeNotIn(vs ...MinMode) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldNotIn(FieldMinMode, vs...))
+}
+
+// FreeGBEQ applies the EQ predicate on the "free_gb" field.
+func FreeGBEQ(v float64) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldEQ(FieldFreeGB, v))
+}
+
+// FreeGBNEQ applies the NEQ predicate on the "free_gb" field.
+func FreeGBNEQ(v float64) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldNEQ(FieldFreeGB, v))
+}
+
+// FreeGBIn applies the In predicate on the "free_gb" field.
+func FreeGBIn(vs ...float64) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldIn(FieldFreeGB, vs...))
+}
+
+// FreeGBNotIn applies the NotIn predicate on the "free_gb" field.
+func FreeGBNotIn(vs ...float64) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldNotIn(FieldFreeGB, vs...))
+}
+
+// FreeGBGT applies the GT predicate on the "free_gb" field.
+func FreeGBGT(v float64) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldGT(FieldFreeGB, v))
+}
+
+// FreeGBGTE applies the GTE predicate on the "free_gb" field.
+func FreeGBGTE(v float64) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldGTE(FieldFreeGB, v))
+}
+
+// FreeGBLT applies the LT predicate on the "free_gb" field.
+func FreeGBLT(v float64) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldLT(FieldFreeGB, v))
+}
+
+// FreeGBLTE applies the LTE predicate on the "free_gb" field.
+func FreeGBLTE(v float64) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldLTE(FieldFreeGB, v))
+}
+
+// TiersIsNil applies the IsNil predicate on the "tiers" field.
+func TiersIsNil() predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldIsNull(FieldTiers))
+}
+
+// TiersNotNil applies the NotNil predicate on the "tiers" field.
+func TiersNotNil() predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldNotNull(FieldTiers))
+}
+
+// BillingDayEQ applies the EQ predicate on the "billing_day" field.
+func BillingDayEQ(v int) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldEQ(FieldBillingDay, v))
+}
+
+// BillingDayNEQ applies the NEQ predicate on the "billing_day" field.
+func BillingDayNEQ(v int) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldNEQ(FieldBillingDay, v))
+}
+
+// BillingDayIn applies the In predicate on the "billing_day" field.
+func BillingDayIn(vs ...int) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldIn(FieldBillingDay, vs...))
+}
+
+// BillingDayNotIn applies the NotIn predicate on the "billing_day" field.
+func BillingDayNotIn(vs ...int) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldNotIn(FieldBillingDay, vs...))
+}
+
+// BillingDayGT applies the GT predicate on the "billing_day" field.
+func BillingDayGT(v int) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldGT(FieldBillingDay, v))
+}
+
+// BillingDayGTE applies the GTE predicate on the "billing_day" field.
+func BillingDayGTE(v int) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldGTE(FieldBillingDay, v))
+}
+
+// BillingDayLT applies the LT predicate on the "billing_day" field.
+func BillingDayLT(v int) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldLT(FieldBillingDay, v))
+}
+
+// BillingDayLTE applies the LTE predicate on the "billing_day" field.
+func BillingDayLTE(v int) predicate.ExpenseItem {
+	return predicate.ExpenseItem(sql.FieldLTE(FieldBillingDay, v))
 }
 
 // RwNodeUUIDEQ applies the EQ predicate on the "rw_node_uuid" field.

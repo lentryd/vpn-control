@@ -7,6 +7,8 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+
+	"vpn-control/internal/metered"
 )
 
 // Payment is money received from a customer.
@@ -116,7 +118,8 @@ func (Extension) Fields() []ent.Field {
 }
 
 // ExpenseItem is a recurring infrastructure cost: either a fixed amount per
-// period, or metered by the traffic of a Remnawave node with a minimum.
+// period, or metered by the traffic of a Remnawave node (see package
+// metered for the pricing models).
 type ExpenseItem struct {
 	ent.Schema
 }
@@ -139,6 +142,16 @@ func (ExpenseItem) Fields() []ent.Field {
 		// Metered pricing: PricePerGB and MinCharge in minor units of Currency.
 		field.Int64("price_per_gb").Default(0),
 		field.Int64("min_charge").Default(0),
+		// GBUnit is how the provider counts a GB: binary (1024³) or decimal (10⁹).
+		field.Enum("gb_unit").Values("binary", "decimal").Default("binary"),
+		// MinMode: floor = max(min_charge, usage); free = min_charge plus
+		// usage beyond free_gb.
+		field.Enum("min_mode").Values("floor", "free").Default("floor"),
+		field.Float("free_gb").Default(0),
+		// Tiers, when set, replace price_per_gb with graduated prices.
+		field.JSON("tiers", []metered.Tier{}).Optional(),
+		// BillingDay is the day of month a metered period starts on (1–28).
+		field.Int("billing_day").Range(1, 28).Default(1),
 		field.String("rw_node_uuid").Optional(),
 		// RwSquadUUID narrows metered traffic to the users of one internal
 		// squad: the node's traffic is split by their share of it.

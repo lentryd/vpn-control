@@ -3,10 +3,12 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 	"vpn-control/ent/expenseitem"
+	"vpn-control/internal/metered"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -43,6 +45,16 @@ type ExpenseItem struct {
 	PricePerGB int64 `json:"price_per_gb,omitempty"`
 	// MinCharge holds the value of the "min_charge" field.
 	MinCharge int64 `json:"min_charge,omitempty"`
+	// GBUnit holds the value of the "gb_unit" field.
+	GBUnit expenseitem.GBUnit `json:"gb_unit,omitempty"`
+	// MinMode holds the value of the "min_mode" field.
+	MinMode expenseitem.MinMode `json:"min_mode,omitempty"`
+	// FreeGB holds the value of the "free_gb" field.
+	FreeGB float64 `json:"free_gb,omitempty"`
+	// Tiers holds the value of the "tiers" field.
+	Tiers []metered.Tier `json:"tiers,omitempty"`
+	// BillingDay holds the value of the "billing_day" field.
+	BillingDay int `json:"billing_day,omitempty"`
 	// RwNodeUUID holds the value of the "rw_node_uuid" field.
 	RwNodeUUID string `json:"rw_node_uuid,omitempty"`
 	// RwSquadUUID holds the value of the "rw_squad_uuid" field.
@@ -61,13 +73,15 @@ func (*ExpenseItem) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case expenseitem.FieldTiers:
+			values[i] = new([]byte)
 		case expenseitem.FieldActive:
 			values[i] = new(sql.NullBool)
-		case expenseitem.FieldFeePercent, expenseitem.FieldSharePercent:
+		case expenseitem.FieldFeePercent, expenseitem.FieldSharePercent, expenseitem.FieldFreeGB:
 			values[i] = new(sql.NullFloat64)
-		case expenseitem.FieldID, expenseitem.FieldAmount, expenseitem.FieldPricePerGB, expenseitem.FieldMinCharge:
+		case expenseitem.FieldID, expenseitem.FieldAmount, expenseitem.FieldPricePerGB, expenseitem.FieldMinCharge, expenseitem.FieldBillingDay:
 			values[i] = new(sql.NullInt64)
-		case expenseitem.FieldName, expenseitem.FieldProvider, expenseitem.FieldRwProviderUUID, expenseitem.FieldCurrency, expenseitem.FieldPricing, expenseitem.FieldPeriod, expenseitem.FieldRwNodeUUID, expenseitem.FieldRwSquadUUID, expenseitem.FieldNotes:
+		case expenseitem.FieldName, expenseitem.FieldProvider, expenseitem.FieldRwProviderUUID, expenseitem.FieldCurrency, expenseitem.FieldPricing, expenseitem.FieldPeriod, expenseitem.FieldGBUnit, expenseitem.FieldMinMode, expenseitem.FieldRwNodeUUID, expenseitem.FieldRwSquadUUID, expenseitem.FieldNotes:
 			values[i] = new(sql.NullString)
 		case expenseitem.FieldCreatedAt, expenseitem.FieldUpdatedAt, expenseitem.FieldNextDueDate:
 			values[i] = new(sql.NullTime)
@@ -169,6 +183,38 @@ func (_m *ExpenseItem) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field min_charge", values[i])
 			} else if value.Valid {
 				_m.MinCharge = value.Int64
+			}
+		case expenseitem.FieldGBUnit:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field gb_unit", values[i])
+			} else if value.Valid {
+				_m.GBUnit = expenseitem.GBUnit(value.String)
+			}
+		case expenseitem.FieldMinMode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field min_mode", values[i])
+			} else if value.Valid {
+				_m.MinMode = expenseitem.MinMode(value.String)
+			}
+		case expenseitem.FieldFreeGB:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field free_gb", values[i])
+			} else if value.Valid {
+				_m.FreeGB = value.Float64
+			}
+		case expenseitem.FieldTiers:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field tiers", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Tiers); err != nil {
+					return fmt.Errorf("unmarshal field tiers: %w", err)
+				}
+			}
+		case expenseitem.FieldBillingDay:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field billing_day", values[i])
+			} else if value.Valid {
+				_m.BillingDay = int(value.Int64)
 			}
 		case expenseitem.FieldRwNodeUUID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -275,6 +321,21 @@ func (_m *ExpenseItem) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("min_charge=")
 	builder.WriteString(fmt.Sprintf("%v", _m.MinCharge))
+	builder.WriteString(", ")
+	builder.WriteString("gb_unit=")
+	builder.WriteString(fmt.Sprintf("%v", _m.GBUnit))
+	builder.WriteString(", ")
+	builder.WriteString("min_mode=")
+	builder.WriteString(fmt.Sprintf("%v", _m.MinMode))
+	builder.WriteString(", ")
+	builder.WriteString("free_gb=")
+	builder.WriteString(fmt.Sprintf("%v", _m.FreeGB))
+	builder.WriteString(", ")
+	builder.WriteString("tiers=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Tiers))
+	builder.WriteString(", ")
+	builder.WriteString("billing_day=")
+	builder.WriteString(fmt.Sprintf("%v", _m.BillingDay))
 	builder.WriteString(", ")
 	builder.WriteString("rw_node_uuid=")
 	builder.WriteString(_m.RwNodeUUID)

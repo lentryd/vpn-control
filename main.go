@@ -86,7 +86,7 @@ func main() {
 
 	if !*noSync {
 		go syncSvc.Run(ctx, cfg.SyncInterval)
-		go expSvc.RunTrafficSync(ctx, time.Hour)
+		go expSvc.RunTrafficSync(ctx, cfg.TrafficSyncInterval)
 	} else if err := syncSvc.SyncAddons(ctx); err != nil {
 		slog.Warn("addons sync failed", "error", err)
 	}

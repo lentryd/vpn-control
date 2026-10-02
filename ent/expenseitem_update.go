@@ -9,9 +9,11 @@ import (
 	"time"
 	"vpn-control/ent/expenseitem"
 	"vpn-control/ent/predicate"
+	"vpn-control/internal/metered"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 )
 
@@ -235,6 +237,94 @@ func (_u *ExpenseItemUpdate) AddMinCharge(v int64) *ExpenseItemUpdate {
 	return _u
 }
 
+// SetGBUnit sets the "gb_unit" field.
+func (_u *ExpenseItemUpdate) SetGBUnit(v expenseitem.GBUnit) *ExpenseItemUpdate {
+	_u.mutation.SetGBUnit(v)
+	return _u
+}
+
+// SetNillableGBUnit sets the "gb_unit" field if the given value is not nil.
+func (_u *ExpenseItemUpdate) SetNillableGBUnit(v *expenseitem.GBUnit) *ExpenseItemUpdate {
+	if v != nil {
+		_u.SetGBUnit(*v)
+	}
+	return _u
+}
+
+// SetMinMode sets the "min_mode" field.
+func (_u *ExpenseItemUpdate) SetMinMode(v expenseitem.MinMode) *ExpenseItemUpdate {
+	_u.mutation.SetMinMode(v)
+	return _u
+}
+
+// SetNillableMinMode sets the "min_mode" field if the given value is not nil.
+func (_u *ExpenseItemUpdate) SetNillableMinMode(v *expenseitem.MinMode) *ExpenseItemUpdate {
+	if v != nil {
+		_u.SetMinMode(*v)
+	}
+	return _u
+}
+
+// SetFreeGB sets the "free_gb" field.
+func (_u *ExpenseItemUpdate) SetFreeGB(v float64) *ExpenseItemUpdate {
+	_u.mutation.ResetFreeGB()
+	_u.mutation.SetFreeGB(v)
+	return _u
+}
+
+// SetNillableFreeGB sets the "free_gb" field if the given value is not nil.
+func (_u *ExpenseItemUpdate) SetNillableFreeGB(v *float64) *ExpenseItemUpdate {
+	if v != nil {
+		_u.SetFreeGB(*v)
+	}
+	return _u
+}
+
+// AddFreeGB adds value to the "free_gb" field.
+func (_u *ExpenseItemUpdate) AddFreeGB(v float64) *ExpenseItemUpdate {
+	_u.mutation.AddFreeGB(v)
+	return _u
+}
+
+// SetTiers sets the "tiers" field.
+func (_u *ExpenseItemUpdate) SetTiers(v []metered.Tier) *ExpenseItemUpdate {
+	_u.mutation.SetTiers(v)
+	return _u
+}
+
+// AppendTiers appends value to the "tiers" field.
+func (_u *ExpenseItemUpdate) AppendTiers(v []metered.Tier) *ExpenseItemUpdate {
+	_u.mutation.AppendTiers(v)
+	return _u
+}
+
+// ClearTiers clears the value of the "tiers" field.
+func (_u *ExpenseItemUpdate) ClearTiers() *ExpenseItemUpdate {
+	_u.mutation.ClearTiers()
+	return _u
+}
+
+// SetBillingDay sets the "billing_day" field.
+func (_u *ExpenseItemUpdate) SetBillingDay(v int) *ExpenseItemUpdate {
+	_u.mutation.ResetBillingDay()
+	_u.mutation.SetBillingDay(v)
+	return _u
+}
+
+// SetNillableBillingDay sets the "billing_day" field if the given value is not nil.
+func (_u *ExpenseItemUpdate) SetNillableBillingDay(v *int) *ExpenseItemUpdate {
+	if v != nil {
+		_u.SetBillingDay(*v)
+	}
+	return _u
+}
+
+// AddBillingDay adds value to the "billing_day" field.
+func (_u *ExpenseItemUpdate) AddBillingDay(v int) *ExpenseItemUpdate {
+	_u.mutation.AddBillingDay(v)
+	return _u
+}
+
 // SetRwNodeUUID sets the "rw_node_uuid" field.
 func (_u *ExpenseItemUpdate) SetRwNodeUUID(v string) *ExpenseItemUpdate {
 	_u.mutation.SetRwNodeUUID(v)
@@ -387,6 +477,21 @@ func (_u *ExpenseItemUpdate) check() error {
 			return &ValidationError{Name: "period", err: fmt.Errorf(`ent: validator failed for field "ExpenseItem.period": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.GBUnit(); ok {
+		if err := expenseitem.GBUnitValidator(v); err != nil {
+			return &ValidationError{Name: "gb_unit", err: fmt.Errorf(`ent: validator failed for field "ExpenseItem.gb_unit": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.MinMode(); ok {
+		if err := expenseitem.MinModeValidator(v); err != nil {
+			return &ValidationError{Name: "min_mode", err: fmt.Errorf(`ent: validator failed for field "ExpenseItem.min_mode": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.BillingDay(); ok {
+		if err := expenseitem.BillingDayValidator(v); err != nil {
+			return &ValidationError{Name: "billing_day", err: fmt.Errorf(`ent: validator failed for field "ExpenseItem.billing_day": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -458,6 +563,35 @@ func (_u *ExpenseItemUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	}
 	if value, ok := _u.mutation.AddedMinCharge(); ok {
 		_spec.AddField(expenseitem.FieldMinCharge, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.GBUnit(); ok {
+		_spec.SetField(expenseitem.FieldGBUnit, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.MinMode(); ok {
+		_spec.SetField(expenseitem.FieldMinMode, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.FreeGB(); ok {
+		_spec.SetField(expenseitem.FieldFreeGB, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedFreeGB(); ok {
+		_spec.AddField(expenseitem.FieldFreeGB, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.Tiers(); ok {
+		_spec.SetField(expenseitem.FieldTiers, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedTiers(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, expenseitem.FieldTiers, value)
+		})
+	}
+	if _u.mutation.TiersCleared() {
+		_spec.ClearField(expenseitem.FieldTiers, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.BillingDay(); ok {
+		_spec.SetField(expenseitem.FieldBillingDay, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedBillingDay(); ok {
+		_spec.AddField(expenseitem.FieldBillingDay, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.RwNodeUUID(); ok {
 		_spec.SetField(expenseitem.FieldRwNodeUUID, field.TypeString, value)
@@ -713,6 +847,94 @@ func (_u *ExpenseItemUpdateOne) AddMinCharge(v int64) *ExpenseItemUpdateOne {
 	return _u
 }
 
+// SetGBUnit sets the "gb_unit" field.
+func (_u *ExpenseItemUpdateOne) SetGBUnit(v expenseitem.GBUnit) *ExpenseItemUpdateOne {
+	_u.mutation.SetGBUnit(v)
+	return _u
+}
+
+// SetNillableGBUnit sets the "gb_unit" field if the given value is not nil.
+func (_u *ExpenseItemUpdateOne) SetNillableGBUnit(v *expenseitem.GBUnit) *ExpenseItemUpdateOne {
+	if v != nil {
+		_u.SetGBUnit(*v)
+	}
+	return _u
+}
+
+// SetMinMode sets the "min_mode" field.
+func (_u *ExpenseItemUpdateOne) SetMinMode(v expenseitem.MinMode) *ExpenseItemUpdateOne {
+	_u.mutation.SetMinMode(v)
+	return _u
+}
+
+// SetNillableMinMode sets the "min_mode" field if the given value is not nil.
+func (_u *ExpenseItemUpdateOne) SetNillableMinMode(v *expenseitem.MinMode) *ExpenseItemUpdateOne {
+	if v != nil {
+		_u.SetMinMode(*v)
+	}
+	return _u
+}
+
+// SetFreeGB sets the "free_gb" field.
+func (_u *ExpenseItemUpdateOne) SetFreeGB(v float64) *ExpenseItemUpdateOne {
+	_u.mutation.ResetFreeGB()
+	_u.mutation.SetFreeGB(v)
+	return _u
+}
+
+// SetNillableFreeGB sets the "free_gb" field if the given value is not nil.
+func (_u *ExpenseItemUpdateOne) SetNillableFreeGB(v *float64) *ExpenseItemUpdateOne {
+	if v != nil {
+		_u.SetFreeGB(*v)
+	}
+	return _u
+}
+
+// AddFreeGB adds value to the "free_gb" field.
+func (_u *ExpenseItemUpdateOne) AddFreeGB(v float64) *ExpenseItemUpdateOne {
+	_u.mutation.AddFreeGB(v)
+	return _u
+}
+
+// SetTiers sets the "tiers" field.
+func (_u *ExpenseItemUpdateOne) SetTiers(v []metered.Tier) *ExpenseItemUpdateOne {
+	_u.mutation.SetTiers(v)
+	return _u
+}
+
+// AppendTiers appends value to the "tiers" field.
+func (_u *ExpenseItemUpdateOne) AppendTiers(v []metered.Tier) *ExpenseItemUpdateOne {
+	_u.mutation.AppendTiers(v)
+	return _u
+}
+
+// ClearTiers clears the value of the "tiers" field.
+func (_u *ExpenseItemUpdateOne) ClearTiers() *ExpenseItemUpdateOne {
+	_u.mutation.ClearTiers()
+	return _u
+}
+
+// SetBillingDay sets the "billing_day" field.
+func (_u *ExpenseItemUpdateOne) SetBillingDay(v int) *ExpenseItemUpdateOne {
+	_u.mutation.ResetBillingDay()
+	_u.mutation.SetBillingDay(v)
+	return _u
+}
+
+// SetNillableBillingDay sets the "billing_day" field if the given value is not nil.
+func (_u *ExpenseItemUpdateOne) SetNillableBillingDay(v *int) *ExpenseItemUpdateOne {
+	if v != nil {
+		_u.SetBillingDay(*v)
+	}
+	return _u
+}
+
+// AddBillingDay adds value to the "billing_day" field.
+func (_u *ExpenseItemUpdateOne) AddBillingDay(v int) *ExpenseItemUpdateOne {
+	_u.mutation.AddBillingDay(v)
+	return _u
+}
+
 // SetRwNodeUUID sets the "rw_node_uuid" field.
 func (_u *ExpenseItemUpdateOne) SetRwNodeUUID(v string) *ExpenseItemUpdateOne {
 	_u.mutation.SetRwNodeUUID(v)
@@ -878,6 +1100,21 @@ func (_u *ExpenseItemUpdateOne) check() error {
 			return &ValidationError{Name: "period", err: fmt.Errorf(`ent: validator failed for field "ExpenseItem.period": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.GBUnit(); ok {
+		if err := expenseitem.GBUnitValidator(v); err != nil {
+			return &ValidationError{Name: "gb_unit", err: fmt.Errorf(`ent: validator failed for field "ExpenseItem.gb_unit": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.MinMode(); ok {
+		if err := expenseitem.MinModeValidator(v); err != nil {
+			return &ValidationError{Name: "min_mode", err: fmt.Errorf(`ent: validator failed for field "ExpenseItem.min_mode": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.BillingDay(); ok {
+		if err := expenseitem.BillingDayValidator(v); err != nil {
+			return &ValidationError{Name: "billing_day", err: fmt.Errorf(`ent: validator failed for field "ExpenseItem.billing_day": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -966,6 +1203,35 @@ func (_u *ExpenseItemUpdateOne) sqlSave(ctx context.Context) (_node *ExpenseItem
 	}
 	if value, ok := _u.mutation.AddedMinCharge(); ok {
 		_spec.AddField(expenseitem.FieldMinCharge, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.GBUnit(); ok {
+		_spec.SetField(expenseitem.FieldGBUnit, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.MinMode(); ok {
+		_spec.SetField(expenseitem.FieldMinMode, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.FreeGB(); ok {
+		_spec.SetField(expenseitem.FieldFreeGB, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedFreeGB(); ok {
+		_spec.AddField(expenseitem.FieldFreeGB, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.Tiers(); ok {
+		_spec.SetField(expenseitem.FieldTiers, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedTiers(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, expenseitem.FieldTiers, value)
+		})
+	}
+	if _u.mutation.TiersCleared() {
+		_spec.ClearField(expenseitem.FieldTiers, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.BillingDay(); ok {
+		_spec.SetField(expenseitem.FieldBillingDay, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedBillingDay(); ok {
+		_spec.AddField(expenseitem.FieldBillingDay, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.RwNodeUUID(); ok {
 		_spec.SetField(expenseitem.FieldRwNodeUUID, field.TypeString, value)

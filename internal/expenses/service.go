@@ -18,6 +18,7 @@ import (
 	"vpn-control/ent/trafficsnapshot"
 	"vpn-control/internal/audit"
 	"vpn-control/internal/fx"
+	"vpn-control/internal/metered"
 	"vpn-control/internal/remnawave"
 )
 
@@ -293,13 +294,21 @@ func dayList(from, to time.Time) []string {
 	return out
 }
 
-// RunTrafficSync refreshes this and last month's node traffic every interval.
+// SyncFrom is where a routine traffic sync starts: early enough to cover
+// the current and previous period of any billing day.
+func SyncFrom(now time.Time) time.Time {
+	start, _ := MonthBounds(now.AddDate(0, -2, 0))
+	return start
+}
+
+// RunTrafficSync refreshes the current and previous periods' node traffic
+// every interval.
 func (s *Service) RunTrafficSync(ctx context.Context, interval time.Duration) {
 	t := time.NewTicker(interval)
 	defer t.Stop()
 	for {
 		now := time.Now().In(s.loc)
-		start, _ := MonthBounds(now.AddDate(0, -1, 0))
+		start := SyncFrom(now)
 		if err := s.SyncTraffic(ctx, start, now); err != nil && ctx.Err() == nil {
 			slog.Error("traffic sync failed", "error", err)
 		}
@@ -332,37 +341,43 @@ type Consumer struct {
 	CostRub        int64   `json:"cost_rub"`
 }
 
-// MeteredSummary is the state of a metered item for t's month.
+// MeteredSummary is the state of a metered item for the period containing t.
 type MeteredSummary struct {
-	ItemID        int          `json:"item_id"`
-	Name          string       `json:"name"`
-	NodeUUID      string       `json:"node_uuid"`
-	NodeName      string       `json:"node_name"`
-	SquadUUID     string       `json:"squad_uuid"`
-	SquadSharePct float64      `json:"squad_share_percent"`
-	Period        string       `json:"period"`
-	Currency      string       `json:"currency"`
-	PricePerGB    int64        `json:"price_per_gb"`
-	MinCharge     int64        `json:"min_charge"`
-	IncludedGB    float64      `json:"included_gb"`
-	UsedGB        float64      `json:"used_gb"`
-	Cost          int64        `json:"cost"`
-	CostRub       int64        `json:"cost_rub"`
-	ForecastGB    float64      `json:"forecast_gb"`
-	ForecastCost  int64        `json:"forecast_cost"`
-	ForecastRub   int64        `json:"forecast_rub"`
-	Daily         []DayTraffic `json:"daily"`
-	TopConsumers  []Consumer   `json:"top_consumers,omitempty"`
-	ConsumerError string       `json:"consumer_error,omitempty"`
+	ItemID        int            `json:"item_id"`
+	Name          string         `json:"name"`
+	NodeUUID      string         `json:"node_uuid"`
+	NodeName      string         `json:"node_name"`
+	SquadUUID     string         `json:"squad_uuid"`
+	SquadSharePct float64        `json:"squad_share_percent"`
+	Period        string         `json:"period"`
+	PeriodStart   time.Time      `json:"period_start"`
+	PeriodEnd     time.Time      `json:"period_end"`
+	Currency      string         `json:"currency"`
+	GBUnit        string         `json:"gb_unit"`
+	MinMode       string         `json:"min_mode"`
+	FreeGB        float64        `json:"free_gb"`
+	Tiers         []metered.Tier `json:"tiers"`
+	PricePerGB    int64          `json:"price_per_gb"`
+	MinCharge     int64          `json:"min_charge"`
+	IncludedGB    float64        `json:"included_gb"`
+	UsedGB        float64        `json:"used_gb"`
+	Cost          int64          `json:"cost"`
+	CostRub       int64          `json:"cost_rub"`
+	ForecastGB    float64        `json:"forecast_gb"`
+	ForecastCost  int64          `json:"forecast_cost"`
+	ForecastRub   int64          `json:"forecast_rub"`
+	Daily         []DayTraffic   `json:"daily"`
+	TopConsumers  []Consumer     `json:"top_consumers,omitempty"`
+	ConsumerError string         `json:"consumer_error,omitempty"`
 }
 
 // MeteredSummary computes usage, cost and forecast of a metered item for
-// the month containing t, from stored snapshots.
+// the billing period containing t, from stored snapshots.
 func (s *Service) MeteredSummary(ctx context.Context, it *ent.ExpenseItem, t time.Time) (*MeteredSummary, error) {
 	if it.RwNodeUUID == "" {
 		return nil, fmt.Errorf("у статьи «%s» не выбрана нода", it.Name)
 	}
-	start, end := MonthBounds(t.In(s.loc))
+	start, end := PeriodBounds(t.In(s.loc), it.BillingDay)
 	now := time.Now().In(s.loc)
 	last := end
 	current := !now.Before(start) && !now.After(end.AddDate(0, 0, 1))
@@ -385,12 +400,15 @@ func (s *Service) MeteredSummary(ctx context.Context, it *ent.ExpenseItem, t tim
 		nodeName = sn.NodeName
 	}
 
+	pricing := PricingOf(it)
+	unit := pricing.Unit
 	sum := &MeteredSummary{
 		ItemID: it.ID, Name: it.Name, NodeUUID: it.RwNodeUUID, NodeName: nodeName,
 		SquadUUID: it.RwSquadUUID,
-		Period:    start.Format("2006-01"), Currency: it.Currency,
+		Period:    start.Format("2006-01"), PeriodStart: start, PeriodEnd: end, Currency: it.Currency,
+		GBUnit: it.GBUnit.String(), MinMode: it.MinMode.String(), FreeGB: it.FreeGB, Tiers: it.Tiers,
 		PricePerGB: it.PricePerGB, MinCharge: it.MinCharge,
-		IncludedGB: IncludedGB(it.PricePerGB, it.MinCharge),
+		IncludedGB: pricing.IncludedGB(),
 	}
 	// With a squad, the node's daily traffic is scaled by the squad's share
 	// of it over the month: the panel gives per-user totals, not per-day.
@@ -423,7 +441,7 @@ func (s *Service) MeteredSummary(ctx context.Context, it *ent.ExpenseItem, t tim
 		b := int64(float64(byDay[d]) * ratio)
 		daily = append(daily, b)
 		used += b
-		sum.Daily = append(sum.Daily, DayTraffic{Date: d, GB: round2(GB(b))})
+		sum.Daily = append(sum.Daily, DayTraffic{Date: d, GB: round2(metered.GB(b, unit))})
 	}
 	forecast := used
 	if current {
@@ -433,23 +451,19 @@ func (s *Service) MeteredSummary(ctx context.Context, it *ent.ExpenseItem, t tim
 	if err != nil {
 		return nil, err
 	}
-	sum.UsedGB = round2(GB(used))
-	sum.Cost = MeteredCost(used, it.PricePerGB, it.MinCharge)
+	sum.UsedGB = round2(metered.GB(used, unit))
+	sum.Cost = pricing.Cost(used)
 	sum.CostRub = ToRub(sum.Cost, rate, it.FeePercent, it.SharePercent)
-	sum.ForecastGB = round2(GB(forecast))
-	sum.ForecastCost = MeteredCost(forecast, it.PricePerGB, it.MinCharge)
+	sum.ForecastGB = round2(metered.GB(forecast, unit))
+	sum.ForecastCost = pricing.Cost(forecast)
 	sum.ForecastRub = ToRub(sum.ForecastCost, rate, it.FeePercent, it.SharePercent)
 	return sum, nil
 }
 
-// WithConsumers adds the top users of the node over the summary's month,
+// WithConsumers adds the top users of the node over the summary's period,
 // with their share of the (forecast) cost.
 func (s *Service) WithConsumers(ctx context.Context, sum *MeteredSummary, limit int) {
-	start, err := time.ParseInLocation("2006-01", sum.Period, s.loc)
-	if err != nil {
-		return
-	}
-	_, end := MonthBounds(start)
+	start, end := sum.PeriodStart, sum.PeriodEnd
 	users, err := s.nodeUsers(ctx, sum.NodeUUID, start, end)
 	if err != nil {
 		sum.ConsumerError = err.Error()
@@ -493,7 +507,7 @@ func (s *Service) WithConsumers(ctx context.Context, sum *MeteredSummary, limit 
 		byID[u.ID] = u
 	}
 	for _, u := range users {
-		c := Consumer{RwUserID: u.ID, GB: round2(u.TotalBytes / bytesPerGB)}
+		c := Consumer{RwUserID: u.ID, GB: round2(u.TotalBytes / metered.Unit(sum.GBUnit).BytesPerGB())}
 		if total > 0 {
 			c.SharePercent = round2(u.TotalBytes / total * 100)
 			c.CostRub = int64(float64(sum.ForecastRub) * u.TotalBytes / total)
@@ -578,7 +592,7 @@ func (s *Service) ClosePeriod(ctx context.Context, itemID int, period string) (*
 	if it.Pricing != expenseitem.PricingMetered {
 		return nil, errors.New("статья не тарифицируется по трафику")
 	}
-	start, err := time.ParseInLocation("2006-01", period, s.loc)
+	start, err := PeriodStart(period, it.BillingDay, s.loc)
 	if err != nil {
 		return nil, fmt.Errorf("период: %w", err)
 	}
@@ -589,7 +603,7 @@ func (s *Service) ClosePeriod(ctx context.Context, itemID int, period string) (*
 	if exists {
 		return nil, fmt.Errorf("период %s уже закрыт", period)
 	}
-	_, end := MonthBounds(start)
+	_, end := PeriodBounds(start, it.BillingDay)
 	_ = s.SyncTraffic(ctx, start, end)
 	sum, err := s.MeteredSummary(ctx, it, start)
 	if err != nil {
@@ -598,7 +612,7 @@ func (s *Service) ClosePeriod(ctx context.Context, itemID int, period string) (*
 	e, err := s.Create(ctx, ExpenseInput{
 		Date: end, Provider: it.Provider, ProviderUUID: it.RwProviderUUID, ItemID: &it.ID, Kind: "charge",
 		OrigAmount: sum.Cost, Currency: it.Currency, FeePercent: it.FeePercent, SharePercent: it.SharePercent,
-		Note: fmt.Sprintf("%s за %s: %.2f ГБ", it.Name, period, sum.UsedGB),
+		Note: fmt.Sprintf("%s %s: %.2f GB", it.Name, period, sum.UsedGB),
 	})
 	if err != nil {
 		return nil, err

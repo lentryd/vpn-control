@@ -220,6 +220,15 @@ export interface ProviderTotals {
     last: string
 }
 
+export type GBUnit = 'binary' | 'decimal'
+export type MinMode = 'floor' | 'free'
+
+// Tier is a graduated price step: GB up to up_to_gb (0 = unlimited).
+export interface Tier {
+    up_to_gb: number
+    price_per_gb: number
+}
+
 export interface ExpenseItem {
     id: number
     name: string
@@ -233,6 +242,11 @@ export interface ExpenseItem {
     share_percent: number
     price_per_gb: number
     min_charge: number
+    gb_unit: GBUnit
+    min_mode: MinMode
+    free_gb: number
+    tiers: Tier[]
+    billing_day: number
     rw_node_uuid: string
     rw_squad_uuid: string
     next_due_date: string | null
@@ -263,7 +277,13 @@ export interface MeteredSummary {
     squad_uuid: string
     squad_share_percent: number
     period: string
+    period_start: string
+    period_end: string
     currency: string
+    gb_unit: GBUnit
+    min_mode: MinMode
+    free_gb: number
+    tiers: Tier[]
     price_per_gb: number
     min_charge: number
     included_gb: number

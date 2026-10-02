@@ -40,6 +40,16 @@ const (
 	FieldPricePerGB = "price_per_gb"
 	// FieldMinCharge holds the string denoting the min_charge field in the database.
 	FieldMinCharge = "min_charge"
+	// FieldGBUnit holds the string denoting the gb_unit field in the database.
+	FieldGBUnit = "gb_unit"
+	// FieldMinMode holds the string denoting the min_mode field in the database.
+	FieldMinMode = "min_mode"
+	// FieldFreeGB holds the string denoting the free_gb field in the database.
+	FieldFreeGB = "free_gb"
+	// FieldTiers holds the string denoting the tiers field in the database.
+	FieldTiers = "tiers"
+	// FieldBillingDay holds the string denoting the billing_day field in the database.
+	FieldBillingDay = "billing_day"
 	// FieldRwNodeUUID holds the string denoting the rw_node_uuid field in the database.
 	FieldRwNodeUUID = "rw_node_uuid"
 	// FieldRwSquadUUID holds the string denoting the rw_squad_uuid field in the database.
@@ -70,6 +80,11 @@ var Columns = []string{
 	FieldSharePercent,
 	FieldPricePerGB,
 	FieldMinCharge,
+	FieldGBUnit,
+	FieldMinMode,
+	FieldFreeGB,
+	FieldTiers,
+	FieldBillingDay,
 	FieldRwNodeUUID,
 	FieldRwSquadUUID,
 	FieldNextDueDate,
@@ -108,6 +123,12 @@ var (
 	DefaultPricePerGB int64
 	// DefaultMinCharge holds the default value on creation for the "min_charge" field.
 	DefaultMinCharge int64
+	// DefaultFreeGB holds the default value on creation for the "free_gb" field.
+	DefaultFreeGB float64
+	// DefaultBillingDay holds the default value on creation for the "billing_day" field.
+	DefaultBillingDay int
+	// BillingDayValidator is a validator for the "billing_day" field. It is called by the builders before save.
+	BillingDayValidator func(int) error
 	// DefaultActive holds the default value on creation for the "active" field.
 	DefaultActive bool
 )
@@ -161,6 +182,58 @@ func PeriodValidator(pe Period) error {
 		return nil
 	default:
 		return fmt.Errorf("expenseitem: invalid enum value for period field: %q", pe)
+	}
+}
+
+// GBUnit defines the type for the "gb_unit" enum field.
+type GBUnit string
+
+// GBUnitBinary is the default value of the GBUnit enum.
+const DefaultGBUnit = GBUnitBinary
+
+// GBUnit values.
+const (
+	GBUnitBinary  GBUnit = "binary"
+	GBUnitDecimal GBUnit = "decimal"
+)
+
+func (gu GBUnit) String() string {
+	return string(gu)
+}
+
+// GBUnitValidator is a validator for the "gb_unit" field enum values. It is called by the builders before save.
+func GBUnitValidator(gu GBUnit) error {
+	switch gu {
+	case GBUnitBinary, GBUnitDecimal:
+		return nil
+	default:
+		return fmt.Errorf("expenseitem: invalid enum value for gb_unit field: %q", gu)
+	}
+}
+
+// MinMode defines the type for the "min_mode" enum field.
+type MinMode string
+
+// MinModeFloor is the default value of the MinMode enum.
+const DefaultMinMode = MinModeFloor
+
+// MinMode values.
+const (
+	MinModeFloor MinMode = "floor"
+	MinModeFree  MinMode = "free"
+)
+
+func (mm MinMode) String() string {
+	return string(mm)
+}
+
+// MinModeValidator is a validator for the "min_mode" field enum values. It is called by the builders before save.
+func MinModeValidator(mm MinMode) error {
+	switch mm {
+	case MinModeFloor, MinModeFree:
+		return nil
+	default:
+		return fmt.Errorf("expenseitem: invalid enum value for min_mode field: %q", mm)
 	}
 }
 
@@ -235,6 +308,26 @@ func ByPricePerGB(opts ...sql.OrderTermOption) OrderOption {
 // ByMinCharge orders the results by the min_charge field.
 func ByMinCharge(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMinCharge, opts...).ToFunc()
+}
+
+// ByGBUnit orders the results by the gb_unit field.
+func ByGBUnit(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldGBUnit, opts...).ToFunc()
+}
+
+// ByMinMode orders the results by the min_mode field.
+func ByMinMode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMinMode, opts...).ToFunc()
+}
+
+// ByFreeGB orders the results by the free_gb field.
+func ByFreeGB(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFreeGB, opts...).ToFunc()
+}
+
+// ByBillingDay orders the results by the billing_day field.
+func ByBillingDay(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBillingDay, opts...).ToFunc()
 }
 
 // ByRwNodeUUID orders the results by the rw_node_uuid field.

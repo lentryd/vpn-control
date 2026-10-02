@@ -156,8 +156,18 @@ func init() {
 	expenseitemDescMinCharge := expenseitemFields[10].Descriptor()
 	// expenseitem.DefaultMinCharge holds the default value on creation for the min_charge field.
 	expenseitem.DefaultMinCharge = expenseitemDescMinCharge.Default.(int64)
+	// expenseitemDescFreeGB is the schema descriptor for free_gb field.
+	expenseitemDescFreeGB := expenseitemFields[13].Descriptor()
+	// expenseitem.DefaultFreeGB holds the default value on creation for the free_gb field.
+	expenseitem.DefaultFreeGB = expenseitemDescFreeGB.Default.(float64)
+	// expenseitemDescBillingDay is the schema descriptor for billing_day field.
+	expenseitemDescBillingDay := expenseitemFields[15].Descriptor()
+	// expenseitem.DefaultBillingDay holds the default value on creation for the billing_day field.
+	expenseitem.DefaultBillingDay = expenseitemDescBillingDay.Default.(int)
+	// expenseitem.BillingDayValidator is a validator for the "billing_day" field. It is called by the builders before save.
+	expenseitem.BillingDayValidator = expenseitemDescBillingDay.Validators[0].(func(int) error)
 	// expenseitemDescActive is the schema descriptor for active field.
-	expenseitemDescActive := expenseitemFields[14].Descriptor()
+	expenseitemDescActive := expenseitemFields[19].Descriptor()
 	// expenseitem.DefaultActive holds the default value on creation for the active field.
 	expenseitem.DefaultActive = expenseitemDescActive.Default.(bool)
 	extensionMixin := schema.Extension{}.Mixin()
