@@ -16,6 +16,7 @@ import (
 
 type PeriodView struct {
 	Months int     `json:"months"`
+	Days   int     `json:"days"`
 	Price  float64 `json:"price"`
 }
 
@@ -43,7 +44,7 @@ type TariffView struct {
 func (h *Handlers) ListTariffs(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	ts, err := h.DB.Tariff.Query().WithAddon().WithPeriods(func(q *ent.TariffPeriodQuery) {
-		q.Order(ent.Asc(tariffperiod.FieldMonths))
+		q.Order(ent.Asc(tariffperiod.FieldMonths), ent.Asc(tariffperiod.FieldDays))
 	}).Order(ent.Asc(tariff.FieldKind), ent.Asc(tariff.FieldSortOrder), ent.Asc(tariff.FieldMonthlyPrice)).All(ctx)
 	if err != nil {
 		return err
@@ -98,7 +99,7 @@ func (h *Handlers) ListTariffs(c *fiber.Ctx) error {
 			v.AddonName = t.Edges.Addon.Name
 		}
 		for _, p := range t.Edges.Periods {
-			v.Periods = append(v.Periods, PeriodView{Months: p.Months, Price: money.ToMajor(p.Price)})
+			v.Periods = append(v.Periods, PeriodView{Months: p.Months, Days: p.Days, Price: money.ToMajor(p.Price)})
 		}
 		if a := stats[t.ID]; a != nil {
 			v.Subscribers, v.Overridden, v.MRR = a.n, a.overridden, a.mrr
@@ -178,10 +179,11 @@ func savePeriods(ctx fiberCtx, tx *ent.Tx, tariffID int, periods []PeriodView) e
 		return err
 	}
 	for _, p := range periods {
-		if p.Months <= 1 {
+		// A plain month is the monthly price; empty terms mean nothing.
+		if p.Months < 0 || p.Days < 0 || p.Months+p.Days == 0 || (p.Months == 1 && p.Days == 0) {
 			continue
 		}
-		if err := tx.TariffPeriod.Create().SetTariffID(tariffID).SetMonths(p.Months).SetPrice(money.FromMajor(p.Price)).Exec(ctx); err != nil {
+		if err := tx.TariffPeriod.Create().SetTariffID(tariffID).SetMonths(p.Months).SetDays(p.Days).SetPrice(money.FromMajor(p.Price)).Exec(ctx); err != nil {
 			return err
 		}
 	}

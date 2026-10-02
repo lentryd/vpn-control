@@ -41,7 +41,7 @@ import { useMemo, useState } from 'react'
 import { api } from '@/api/client'
 import { useAddons, useApiMutation, useInvalidateAll, useSquads, useTariffs } from '@/api/hooks'
 import type { Addon, Tariff } from '@/api/types'
-import { fmtBytes, fmtMoney, GB, strategyLabel } from '@/components/format'
+import { durationLabel, fmtBytes, fmtMoney, GB, strategyLabel } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { PageHeader } from '@/components/ui'
 import { confirmDanger } from '@/modals/open'
@@ -49,6 +49,7 @@ import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
 import { Page } from '@shared/ui/page'
 import { FormFooter, FormSection } from '@shared/ui/forms/form-section'
 import { DataTableCard } from '@shared/ui/table'
+import { useTouch } from '@shared/ui/forms/search-select'
 
 type Draft = Partial<Tariff> & { kind: 'base' | 'addon' }
 
@@ -216,8 +217,8 @@ function TariffTable({
                     row.original.periods.length ? (
                         <Group gap={4}>
                             {row.original.periods.map((p) => (
-                                <Badge key={p.months} variant="soft">
-                                    {p.months} мес · {fmtMoney(p.price)}
+                                <Badge key={`${p.months}:${p.days}`} variant="soft">
+                                    {durationLabel(p.months, p.days)} · {fmtMoney(p.price)}
                                 </Badge>
                             ))}
                         </Group>
@@ -309,6 +310,7 @@ function TariffTable({
 
 function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; onDone: () => void }) {
     const squads = useSquads()
+    const touch = useTouch()
     const form = useForm({
         initialValues: {
             kind: draft.kind,
@@ -323,7 +325,7 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
             traffic_strategy: draft.traffic_strategy ?? 'NO_RESET',
             hwid_limit: draft.hwid_limit ?? ('' as number | ''),
             squad_uuids: draft.squad_uuids ?? [],
-            periods: draft.periods ?? [],
+            periods: (draft.periods ?? []).map((p) => ({ ...p, days: p.days ?? 0 })),
             price_change: 'keep'
         },
         validate: {
@@ -347,7 +349,7 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
             traffic_strategy: v.traffic_strategy,
             hwid_limit: v.hwid_limit === '' ? null : Number(v.hwid_limit),
             squad_uuids: v.squad_uuids,
-            periods: v.periods.filter((p) => p.months > 1),
+            periods: v.periods.filter((p) => p.months + p.days > 0 && !(p.months === 1 && !p.days)),
             price_change: v.price_change
         }
         return draft.id ? api.put(`tariffs/${draft.id}`, body) : api.post('tariffs', body)
@@ -418,13 +420,13 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                 <FormSection
                     icon={PiCalendarDuotone}
                     color="teal"
-                    title="Скидки за период"
-                    description="Цена за несколько месяцев сразу"
+                    title="Периоды"
+                    description="Скидка за несколько месяцев или пакет в днях (например пробная неделя)"
                     actions={
                         <Button
                             color="teal"
                             leftSection={<PiPlus size={14} />}
-                            onClick={() => form.insertListItem('periods', { months: 3, price: form.values.monthly_price * 3 })}
+                            onClick={() => form.insertListItem('periods', { months: 3, days: 0, price: form.values.monthly_price * 3 })}
                             size="xs"
                             variant="soft"
                         >
@@ -434,7 +436,7 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                 >
                     {form.values.periods.length === 0 && (
                         <Text c="dimmed" size="sm">
-                            Без скидок: цена = месячная × число месяцев
+                            Без периодов: цена = месячная × число месяцев, дни — месячная / 30
                         </Text>
                     )}
                     {form.values.periods.map((_, i) => (
@@ -442,9 +444,16 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                             <NumberInput
                                 label="Месяцев"
                                 leftSection={<PiCalendarDuotone size={16} />}
-                                min={2}
+                                min={0}
                                 max={36}
                                 {...form.getInputProps(`periods.${i}.months`)}
+                            />
+                            <NumberInput
+                                label="Дней"
+                                leftSection={<PiClockDuotone size={16} />}
+                                min={0}
+                                max={365}
+                                {...form.getInputProps(`periods.${i}.days`)}
                             />
                             <NumberInput
                                 label="Цена за период"
@@ -510,7 +519,7 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                                         </Group>
                                     )
                                 }}
-                                searchable
+                                searchable={!touch}
                                 {...form.getInputProps('squad_uuids')}
                             />
                             {squads.error && <Alert color="red" variant="soft">{squads.error.message}</Alert>}

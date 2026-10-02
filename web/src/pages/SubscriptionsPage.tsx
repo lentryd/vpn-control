@@ -131,6 +131,7 @@ export function SubscriptionsPage() {
                 header: 'Оплачено до',
                 sortingFn: 'datetime',
                 accessorFn: (r) => (r.rw?.expire_at ? new Date(r.rw.expire_at) : undefined),
+                sortDescFirst: false,
                 sortUndefined: 'last',
                 enableColumnFilter: false,
                 mantineTableBodyCellProps: { align: 'center' },

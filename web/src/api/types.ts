@@ -6,6 +6,7 @@ export interface RwUser {
     short_uuid: string
     status: RwStatus
     expire_at: string | null
+    unlimited: boolean
     used_traffic_bytes: number
     traffic_limit_bytes: number
     traffic_limit_strategy: string
@@ -138,6 +139,7 @@ export interface CustomerDetail extends Customer {
 
 export interface Period {
     months: number
+    days: number
     price: number
 }
 
@@ -256,6 +258,8 @@ export interface Consumer {
     username: string
     customer_id: number | null
     customer_name: string
+    subscription_id: number | null
+    sub_title: string
     gb: number
     share_percent: number
     cost_rub: number

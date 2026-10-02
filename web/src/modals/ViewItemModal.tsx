@@ -1,12 +1,19 @@
 // Layout follows remnawave/frontend (AGPL-3.0): shared/_modals/users/view-user-modal
 // and shared/ui/forms/users/forms-components/user-identification-card.
-import { ActionIcon, Anchor, Badge, Button, Group, Menu, Paper, Progress, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core'
+import { ActionIcon, Badge, Button, Group, Menu, NumberInput, Paper, Progress, SimpleGrid, Stack, Switch, Text, TextInput, Tooltip } from '@mantine/core'
+import { useForm } from '@mantine/form'
 import dayjs from 'dayjs'
 import { motion } from 'motion/react'
-import type { ReactNode } from 'react'
+import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import {
+    PiArrowSquareOut,
     PiArrowsLeftRight,
     PiArrowsClockwise,
+    PiCurrencyRub,
+    PiFloppyDiskDuotone,
+    PiTag,
+    PiTagDuotone,
+    PiUser,
     PiCalendarPlus,
     PiCopy,
     PiHexagonDuotone,
@@ -17,23 +24,25 @@ import {
 import { TbCalendar, TbDots, TbUser, TbWifi } from 'react-icons/tb'
 import { Link } from 'react-router'
 
-import { useSubscriptions } from '@/api/hooks'
+import { api } from '@/api/client'
+import { useApiMutation, useCustomers, useRwUsers, useSubscriptions, useTariffs } from '@/api/hooks'
 import type { AddonItem, RwUser, Subscription } from '@/api/types'
 import { StatusBadge } from '@/components/badges'
-import { fmtBytes, fmtDateTime, fromNow } from '@/components/format'
+import { fmtBytes, fmtDate, fmtDateTime, fmtMoney, fromNow } from '@/components/format'
+import { notifyError, notifyOk } from '@/components/notify'
 import { addonTitle, AddonMenuItems, SubscriptionMenuItems, useItemActions } from '@/components/ItemActions'
 import { Money } from '@/components/ui'
 import { openExtendModal } from '@/modals/ExtendModal'
-import { openChangeTariffModal, openConnectAddonModal } from '@/modals/SubscriptionModals'
+import { openChangeTariffModal, openConnectAddonModal, RwUserSelect, rwLabel, tariffLabel } from '@/modals/SubscriptionModals'
+import { FormColumns, FormSection } from '@shared/ui/forms/form-section'
 import { LoadingScreen } from '@shared/ui/loading-screen'
 import { ModalFooter } from '@shared/ui/modal-footer'
 import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
 import { SectionCard } from '@shared/ui/section-card'
 
 import { openModal } from './open'
+import { SearchSelect } from '@shared/ui/forms/search-select'
 
-const MotionStack = motion.create(Stack)
-const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }
 const cardVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.3 } } }
 
 const statusIconColor: Record<string, string> = { ACTIVE: 'teal', DISABLED: 'gray', EXPIRED: 'red', LIMITED: 'yellow' }
@@ -147,7 +156,7 @@ function IdentityCard({ title, rw, icon }: { title: string; rw: RwUser | null; i
                     <SectionCard.Section>
                         <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="xs">
                             <Pill icon={<TbCalendar color={exp.icon} size={18} />} style={exp} tip="Оплачено до">
-                                {rw.expire_at ? dayjs(rw.expire_at).format('DD.MM.YYYY HH:mm') : '—'}
+                                {rw.unlimited ? '∞ бессрочно' : fmtDateTime(rw.expire_at)}
                             </Pill>
                             <Pill
                                 icon={<TbWifi color={onlineStyle.icon} size={18} />}
@@ -164,69 +173,67 @@ function IdentityCard({ title, rw, icon }: { title: string; rw: RwUser | null; i
     )
 }
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
+type SubValues = {
+    customer_id: string
+    rw_user_id: string | null
+    label: string
+    tariff_id: string | null
+    price_override: number | ''
+    auto_extend: boolean
+}
+
+const subValues = (sub: Subscription): SubValues => ({
+    customer_id: String(sub.customer_id),
+    rw_user_id: sub.rw_user ? String(sub.rw_user.id) : null,
+    label: sub.label,
+    tariff_id: sub.tariff_id ? String(sub.tariff_id) : null,
+    price_override: sub.price_override ?? '',
+    auto_extend: sub.auto_extend
+})
+
+type AddonValues = { price_override: number | ''; auto_extend: boolean }
+
+const addonValues = (a: AddonItem): AddonValues => ({ price_override: a.price_override ?? '', auto_extend: a.auto_extend })
+
+// useSyncedForm is a form over server data that also changes elsewhere
+// (another modal, a refetch): fields the user hasn't touched follow the
+// server, edited ones are kept.
+function useSyncedForm<T extends Record<string, unknown>>(server: T) {
+    const form = useForm<T>({ initialValues: server })
+    const base = useRef(server)
+    const key = JSON.stringify(server)
+    useEffect(() => {
+        const prev = base.current
+        if (JSON.stringify(prev) === key) return
+        const next = { ...form.getValues() }
+        for (const k of Object.keys(server) as (keyof T)[]) {
+            if (next[k] === prev[k]) next[k] = server[k]
+        }
+        base.current = server
+        form.setInitialValues(server)
+        form.setValues(next)
+        form.resetDirty(server)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [key])
+    return form
+}
+
+function CustomerLink({ id, onNavigate }: { id: number; onNavigate: () => void }) {
     return (
-        <Group justify="space-between" wrap="nowrap">
-            <Text c="dimmed" size="sm">
-                {label}
-            </Text>
-            <Text component="div" fw={500} size="sm" ta="right">
-                {children}
-            </Text>
-        </Group>
+        <Button color="indigo" component={Link} onClick={onNavigate} rightSection={<PiArrowSquareOut size={14} />} size="xs" to={`/customers/${id}`} variant="subtle">
+            Клиент
+        </Button>
     )
 }
 
-function BillingCard({
-    customerId,
-    customerName,
-    tariff,
-    price,
-    override,
-    auto,
-    onNavigate
-}: {
-    customerId: number
-    customerName: string
-    tariff: string
-    price: number
-    override: boolean
-    auto: boolean
-    onNavigate: () => void
-}) {
+function SwitchAutoExtend(props: ReturnType<ReturnType<typeof useForm>['getInputProps']>) {
     return (
-        <motion.div variants={cardVariants}>
-            <SectionCard.Root>
-                <SectionCard.Section>
-                    <BaseOverlayHeader IconComponent={TbUser} iconColor="indigo" title="Учёт" titleOrder={5} />
-                </SectionCard.Section>
-                <SectionCard.Section>
-                    <Stack gap="xs">
-                        <Row label="Клиент">
-                            <Anchor component={Link} onClick={onNavigate} size="sm" to={`/customers/${customerId}`}>
-                                {customerName}
-                            </Anchor>
-                        </Row>
-                        <Row label="Тариф">{tariff || '—'}</Row>
-                        <Row label="Цена в месяц">
-                            <Group gap={4} justify="flex-end" wrap="nowrap">
-                                <Money value={price} />
-                                {override && (
-                                    <Badge color="yellow" size="xs" variant="soft">
-                                        инд.
-                                    </Badge>
-                                )}
-                            </Group>
-                        </Row>
-                        <Row label="Автопродление из платежей">
-                            <Badge color={auto ? 'teal' : 'gray'} leftSection={<PiArrowsClockwise size={14} />} variant="soft">
-                                {auto ? 'включено' : 'выключено'}
-                            </Badge>
-                        </Row>
-                    </Stack>
-                </SectionCard.Section>
-            </SectionCard.Root>
-        </motion.div>
+        <Switch
+            description="Продлевать из платежей клиента"
+            label="Автопродление"
+            thumbIcon={<PiArrowsClockwise size={10} />}
+            {...props}
+        />
     )
 }
 
@@ -272,7 +279,7 @@ function AddonsCard({ sub }: { sub: Subscription }) {
                                 </Text>
                             </Group>
                             <Text c="dimmed" size="xs">
-                                до {a.rw_user?.expire_at ? dayjs(a.rw_user.expire_at).format('DD.MM.YYYY') : '—'} · <Money value={a.price} />
+                                {a.rw_user?.unlimited ? 'бессрочно' : `до ${fmtDate(a.rw_user?.expire_at)}`} · <Money value={a.price} />
                             </Text>
                         </Stack>
                         <StatusBadge size="md" user={a.rw_user} />
@@ -280,19 +287,6 @@ function AddonsCard({ sub }: { sub: Subscription }) {
                 ))}
             </SectionCard.Root>
         </motion.div>
-    )
-}
-
-function Columns({ left, right }: { left: ReactNode; right: ReactNode }) {
-    return (
-        <Group align="flex-start" gap="md" grow={false} wrap="wrap">
-            <MotionStack animate="visible" gap="md" initial="hidden" style={{ flex: '1 1 400px' }} variants={containerVariants}>
-                {left}
-            </MotionStack>
-            <MotionStack animate="visible" gap="md" initial="hidden" style={{ flex: '1 1 400px' }} variants={containerVariants}>
-                {right}
-            </MotionStack>
-        </Group>
     )
 }
 
@@ -319,29 +313,106 @@ function ViewSubscription({ id, close }: { id: number; close: () => void }) {
                 Подписка удалена
             </Text>
         )
+    return <SubscriptionEditor close={close} sub={sub} />
+}
+
+// SubscriptionEditor is the subscription modal: like the panel's user
+// modal, the cards are the edit form and the footer saves them.
+function SubscriptionEditor({ sub, close }: { sub: Subscription; close: () => void }) {
+    const customers = useCustomers()
+    const tariffs = useTariffs()
+    const rwUsers = useRwUsers()
+    const form = useSyncedForm(subValues(sub))
+    const rwOptions = useMemo(
+        () => (rwUsers.data ?? []).filter((u) => !u.linked || u.id === sub.rw_user?.id).map((u) => ({ value: String(u.id), label: rwLabel(u) })),
+        [rwUsers.data, sub.rw_user?.id]
+    )
+    const tariff = tariffs.data?.find((t) => String(t.id) === form.values.tariff_id)
+    const m = useApiMutation((v: SubValues) =>
+        api.put(`subscriptions/${sub.id}`, {
+            customer_id: Number(v.customer_id),
+            rw_user_id: v.rw_user_id ? Number(v.rw_user_id) : null,
+            tariff_id: v.tariff_id ? Number(v.tariff_id) : null,
+            label: v.label,
+            price_override: v.price_override === '' ? null : Number(v.price_override),
+            auto_extend: v.auto_extend
+        })
+    )
+    const save = form.onSubmit((v) =>
+        m.mutate(v, {
+            onSuccess: () => {
+                form.resetDirty(v)
+                notifyOk('Сохранено')
+            },
+            onError: (e) => notifyError(e)
+        })
+    )
 
     return (
-        <motion.div animate={{ opacity: 1 }} initial={{ opacity: 0 }} transition={{ duration: 0.4, ease: 'easeInOut' }}>
-            <Columns
+        <motion.form animate={{ opacity: 1 }} initial={{ opacity: 0 }} onSubmit={save} transition={{ duration: 0.4, ease: 'easeInOut' }}>
+            <FormColumns
                 left={
                     <>
                         <IdentityCard icon={PiHexagonDuotone} rw={sub.rw_user} title={sub.title} />
-                        <BillingCard
-                            auto={sub.auto_extend}
-                            customerId={sub.customer_id}
-                            customerName={sub.customer_name}
-                            onNavigate={close}
-                            override={sub.price_override !== null}
-                            price={sub.price}
-                            tariff={sub.tariff_name}
-                        />
+                        <FormSection
+                            actions={<CustomerLink id={sub.customer_id} onNavigate={close} />}
+                            color="indigo"
+                            description="Чья подписка и как её отличать"
+                            icon={TbUser}
+                            title="Учёт"
+                        >
+                            <SearchSelect
+                                data={(customers.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))}
+                                label="Клиент"
+                                leftSection={<PiUser size={16} />}
+                                {...form.getInputProps('customer_id')}
+                            />
+                            <TextInput
+                                description="Чтобы отличать подписки одного клиента"
+                                label="Метка"
+                                leftSection={<PiTag size={16} />}
+                                placeholder="например «Родители»"
+                                {...form.getInputProps('label')}
+                            />
+                            <RwUserSelect
+                                description="Только ещё не привязанные"
+                                options={rwOptions}
+                                users={rwUsers.data}
+                                {...form.getInputProps('rw_user_id')}
+                            />
+                        </FormSection>
                     </>
                 }
-                right={<AddonsCard sub={sub} />}
+                right={
+                    <>
+                        <FormSection color="teal" description="Сколько стоит месяц" icon={PiTagDuotone} title="Тариф и цена">
+                            <SearchSelect
+                                allowDeselect
+                                clearable
+                                data={(tariffs.data ?? []).filter((t) => t.kind === 'base').map((t) => ({ value: String(t.id), label: tariffLabel(t) }))}
+                                description="Параметры в панели здесь не меняются — для этого «Сменить тариф»"
+                                label="Тариф"
+                                leftSection={<PiTag size={16} />}
+                                placeholder="Без тарифа"
+                                {...form.getInputProps('tariff_id')}
+                            />
+                            <NumberInput
+                                decimalScale={2}
+                                description={tariff ? `Пусто — цена тарифа, ${fmtMoney(tariff.monthly_price)}` : 'Пусто — цена тарифа'}
+                                label="Индивидуальная цена, ₽/мес"
+                                leftSection={<PiCurrencyRub size={16} />}
+                                min={0}
+                                {...form.getInputProps('price_override')}
+                            />
+                            <SwitchAutoExtend {...form.getInputProps('auto_extend', { type: 'checkbox' })} />
+                        </FormSection>
+                        <AddonsCard sub={sub} />
+                    </>
+                }
             />
             <ModalFooter isMobile={window.matchMedia('(max-width: 40em)').matches}>
                 <MoreMenu>
-                    <SubscriptionMenuItems onUnlinked={close} sub={sub} />
+                    <SubscriptionMenuItems inView onUnlinked={close} sub={sub} />
                 </MoreMenu>
                 <Button
                     color="indigo"
@@ -354,7 +425,7 @@ function ViewSubscription({ id, close }: { id: number; close: () => void }) {
                 </Button>
                 <Button
                     color="teal"
-                    disabled={!sub.rw_user}
+                    disabled={!sub.rw_user || sub.rw_user.unlimited}
                     leftSection={<PiCalendarPlus size={16} />}
                     onClick={() => openExtendModal({ kind: 'subscription', id: sub.id, title: sub.title })}
                     size="md"
@@ -362,8 +433,17 @@ function ViewSubscription({ id, close }: { id: number; close: () => void }) {
                 >
                     Продлить
                 </Button>
+                <SaveButton dirty={form.isDirty()} loading={m.isPending} />
             </ModalFooter>
-        </motion.div>
+        </motion.form>
+    )
+}
+
+function SaveButton({ dirty, loading }: { dirty: boolean; loading: boolean }) {
+    return (
+        <Button color="teal" disabled={!dirty} leftSection={<PiFloppyDiskDuotone size={16} />} loading={loading} size="md" type="submit" variant="light">
+            Сохранить
+        </Button>
     )
 }
 
@@ -378,30 +458,60 @@ function ViewAddon({ id, subId, close }: { id: number; subId: number; close: () 
                 Аддон удалён
             </Text>
         )
+    return <AddonEditor addon={addon} close={close} sub={sub} />
+}
+
+function AddonEditor({ addon, sub, close }: { addon: AddonItem; sub: Subscription; close: () => void }) {
+    const tariffs = useTariffs()
+    const form = useSyncedForm(addonValues(addon))
     const title = addonTitle(addon, sub.title)
+    const tariff = tariffs.data?.find((t) => t.id === addon.tariff_id)
+    const m = useApiMutation((v: AddonValues) =>
+        api.put(`subscription-addons/${addon.id}`, {
+            price_override: v.price_override === '' ? null : Number(v.price_override),
+            auto_extend: v.auto_extend
+        })
+    )
+    const save = form.onSubmit((v) =>
+        m.mutate(v, {
+            onSuccess: () => {
+                form.resetDirty(v)
+                notifyOk('Сохранено')
+            },
+            onError: (e) => notifyError(e)
+        })
+    )
 
     return (
-        <motion.div animate={{ opacity: 1 }} initial={{ opacity: 0 }} transition={{ duration: 0.4, ease: 'easeInOut' }}>
-            <Columns
+        <motion.form animate={{ opacity: 1 }} initial={{ opacity: 0 }} onSubmit={save} transition={{ duration: 0.4, ease: 'easeInOut' }}>
+            <FormColumns
                 left={<IdentityCard icon={PiPuzzlePieceDuotone} rw={addon.rw_user} title={title} />}
                 right={
                     <>
-                        <BillingCard
-                            auto={addon.auto_extend}
-                            customerId={sub.customer_id}
-                            customerName={sub.customer_name}
-                            onNavigate={close}
-                            override={addon.price_override !== null}
-                            price={addon.price}
-                            tariff={addon.tariff_name}
-                        />
+                        <FormSection
+                            actions={<CustomerLink id={sub.customer_id} onNavigate={close} />}
+                            color="grape"
+                            description={`${sub.customer_name} · ${addon.tariff_name || 'без тарифа'}`}
+                            icon={PiTagDuotone}
+                            title="Цена и продление"
+                        >
+                            <NumberInput
+                                decimalScale={2}
+                                description={tariff ? `Пусто — цена тарифа, ${fmtMoney(tariff.monthly_price)}` : 'Пусто — цена тарифа'}
+                                label="Индивидуальная цена, ₽/мес"
+                                leftSection={<PiCurrencyRub size={16} />}
+                                min={0}
+                                {...form.getInputProps('price_override')}
+                            />
+                            <SwitchAutoExtend {...form.getInputProps('auto_extend', { type: 'checkbox' })} />
+                        </FormSection>
                         <IdentityCard icon={PiHexagonDuotone} rw={sub.rw_user} title={`Основная подписка: ${sub.title}`} />
                     </>
                 }
             />
             <ModalFooter isMobile={window.matchMedia('(max-width: 40em)').matches}>
                 <MoreMenu>
-                    <AddonMenuItems addon={addon} onUnlinked={close} subTitle={sub.title} />
+                    <AddonMenuItems addon={addon} inView onUnlinked={close} subTitle={sub.title} />
                 </MoreMenu>
                 <Button
                     color="indigo"
@@ -416,7 +526,7 @@ function ViewAddon({ id, subId, close }: { id: number; subId: number; close: () 
                 </Button>
                 <Button
                     color="teal"
-                    disabled={!addon.rw_user}
+                    disabled={!addon.rw_user || addon.rw_user.unlimited}
                     leftSection={<PiCalendarPlus size={16} />}
                     onClick={() => openExtendModal({ kind: 'addon', id: addon.id, title })}
                     size="md"
@@ -424,8 +534,9 @@ function ViewAddon({ id, subId, close }: { id: number; subId: number; close: () 
                 >
                     Продлить
                 </Button>
+                <SaveButton dirty={form.isDirty()} loading={m.isPending} />
             </ModalFooter>
-        </motion.div>
+        </motion.form>
     )
 }
 

@@ -27,6 +27,7 @@ const (
 var (
 	ErrInsufficientBalance = errors.New("недостаточно средств на балансе")
 	ErrNotLinked           = errors.New("подписка не привязана к пользователю Remnawave")
+	ErrUnlimited           = errors.New("безлимитная подписка (срок до 2099) — продлевать не нужно")
 	usernameRe             = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,36}$`)
 )
 
@@ -93,7 +94,7 @@ func periodsOf(t *ent.Tariff) []Period {
 	}
 	out := make([]Period, 0, len(t.Edges.Periods))
 	for _, p := range t.Edges.Periods {
-		out = append(out, Period{Months: p.Months, Price: p.Price})
+		out = append(out, Period{Months: p.Months, Days: p.Days, Price: p.Price})
 	}
 	return out
 }
@@ -202,9 +203,12 @@ func (s *Service) planItems(ctx context.Context, customerID int) ([]PlanItem, er
 	if err != nil {
 		return nil, err
 	}
+	// Unlimited items never need paying for.
 	var items []PlanItem
 	for _, sub := range subs {
-		items = append(items, toPlanItem(subTarget(sub)))
+		if it := toPlanItem(subTarget(sub)); !Unlimited(it.ExpireAt) {
+			items = append(items, it)
+		}
 		var subExpire *time.Time
 		if sub.Edges.RwUser != nil {
 			subExpire = sub.Edges.RwUser.ExpireAt
@@ -212,6 +216,9 @@ func (s *Service) planItems(ctx context.Context, customerID int) ([]PlanItem, er
 		for _, sa := range sub.Edges.Addons {
 			sa.Edges.Subscription = sub
 			it := toPlanItem(addonTarget(sa))
+			if Unlimited(it.ExpireAt) {
+				continue
+			}
 			it.ParentID, it.ParentExpireAt = sub.ID, subExpire
 			items = append(items, it)
 		}
@@ -408,15 +415,36 @@ func (s *Service) Extend(ctx context.Context, in ExtendInput) (*ExtensionResult,
 	return &r, nil
 }
 
+// ExtendQuote is the default price of an extension plus what the form
+// needs around it: the term's dates, the tariff's prices and the balance.
+type ExtendQuote struct {
+	Amount  int64
+	From    time.Time
+	To      time.Time
+	Monthly int64
+	Periods []Period
+	Balance int64
+}
+
 // QuoteExtend is the default price of extending a target by months+days.
-func (s *Service) QuoteExtend(ctx context.Context, kind string, id, months, days int) (int64, *time.Time, *time.Time, error) {
+func (s *Service) QuoteExtend(ctx context.Context, kind string, id, months, days int) (*ExtendQuote, error) {
 	t, err := s.loadTarget(ctx, kind, id)
 	if err != nil {
-		return 0, nil, nil, err
+		return nil, err
+	}
+	bal, err := s.Balance(ctx, t.customerID)
+	if err != nil {
+		return nil, err
+	}
+	if Unlimited(t.expireAt) {
+		return nil, ErrUnlimited
 	}
 	from := ExtendFrom(s.now(), t.expireAt)
-	to := from.AddDate(0, months, days)
-	return Cost(t.monthly, t.periods, months) + DaysCost(t.monthly, days), &from, &to, nil
+	return &ExtendQuote{
+		Amount: TermCost(t.monthly, t.periods, months, days),
+		From:   from, To: from.AddDate(0, months, days),
+		Monthly: t.monthly, Periods: t.periods, Balance: bal,
+	}, nil
 }
 
 func (s *Service) extend(ctx context.Context, in ExtendInput) ExtensionResult {
@@ -441,6 +469,9 @@ func (s *Service) extend(ctx context.Context, in ExtendInput) ExtensionResult {
 	}
 	if t.rwUserID == nil {
 		return fail(ErrNotLinked)
+	}
+	if Unlimited(t.expireAt) {
+		return fail(ErrUnlimited)
 	}
 	if !in.AllowDebt {
 		bal, err := s.Balance(ctx, t.customerID)

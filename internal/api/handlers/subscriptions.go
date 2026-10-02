@@ -147,11 +147,12 @@ func (h *Handlers) ProvisionSubscription(c *fiber.Ctx) error {
 }
 
 type connectAddonRequest struct {
-	TariffID  int     `json:"tariff_id"`
-	Months    int     `json:"months"`
-	Days      int     `json:"days"`
-	Amount    float64 `json:"amount"`
-	AllowDebt bool    `json:"allow_debt"`
+	TariffID  int        `json:"tariff_id"`
+	Months    int        `json:"months"`
+	Days      int        `json:"days"`
+	Until     *time.Time `json:"until"`
+	Amount    float64    `json:"amount"`
+	AllowDebt bool       `json:"allow_debt"`
 }
 
 func (h *Handlers) ConnectAddon(c *fiber.Ctx) error {
@@ -164,7 +165,7 @@ func (h *Handlers) ConnectAddon(c *fiber.Ctx) error {
 		return err
 	}
 	sa, err := h.Billing.ConnectAddon(c.UserContext(), billing.ConnectAddonInput{
-		SubscriptionID: id, TariffID: req.TariffID, Months: req.Months, Days: req.Days,
+		SubscriptionID: id, TariffID: req.TariffID, Months: req.Months, Days: req.Days, Until: req.Until,
 		Amount: money.FromMajor(req.Amount), AllowDebt: req.AllowDebt,
 	})
 	if err != nil {
@@ -242,11 +243,18 @@ func (h *Handlers) QuoteExtend(c *fiber.Ctx) error {
 	}
 	months, _ := strconv.Atoi(c.Query("months", "1"))
 	days, _ := strconv.Atoi(c.Query("days", "0"))
-	amount, from, to, err := h.Billing.QuoteExtend(c.UserContext(), kind, id, months, days)
+	q, err := h.Billing.QuoteExtend(c.UserContext(), kind, id, months, days)
 	if err != nil {
 		return badRequest(err)
 	}
-	return c.JSON(fiber.Map{"amount": money.ToMajor(amount), "from": from, "to": to})
+	periods := make([]PeriodView, 0, len(q.Periods))
+	for _, p := range q.Periods {
+		periods = append(periods, PeriodView{Months: p.Months, Days: p.Days, Price: money.ToMajor(p.Price)})
+	}
+	return c.JSON(fiber.Map{
+		"amount": money.ToMajor(q.Amount), "from": q.From, "to": q.To,
+		"monthly": money.ToMajor(q.Monthly), "periods": periods, "balance": money.ToMajor(q.Balance),
+	})
 }
 
 type extendRequest struct {

@@ -17,12 +17,8 @@ import { useInvalidateAll } from '@/api/hooks'
 import type { AddonItem, Subscription } from '@/api/types'
 import { openExtendModal } from '@/modals/ExtendModal'
 import { confirmDanger } from '@/modals/open'
-import {
-    openAddonEdit,
-    openChangeTariffModal,
-    openConnectAddonModal,
-    openSubscriptionForm
-} from '@/modals/SubscriptionModals'
+import { openChangeTariffModal, openConnectAddonModal } from '@/modals/SubscriptionModals'
+import { openViewAddonModal, openViewSubscriptionModal } from '@/modals/ViewItemModal'
 
 import { notifyError, notifyOk } from './notify'
 
@@ -83,8 +79,8 @@ export function useItemActions() {
 }
 
 // SubscriptionMenuItems is the "more actions" list shared by row menus and
-// the subscription modal footer.
-export function SubscriptionMenuItems({ sub, onUnlinked }: { sub: Subscription; onUnlinked?: () => void }) {
+// the subscription modal footer (inView: the modal itself is the editor).
+export function SubscriptionMenuItems({ sub, onUnlinked, inView }: { sub: Subscription; onUnlinked?: () => void; inView?: boolean }) {
     const { toggle, copyLink, unlinkSubscription } = useItemActions()
     const disabled = sub.rw_user?.status === 'DISABLED'
     return (
@@ -92,7 +88,7 @@ export function SubscriptionMenuItems({ sub, onUnlinked }: { sub: Subscription; 
             <Menu.Label>Управление</Menu.Label>
             <Menu.Item
                 leftSection={<PiCalendarPlus size={16} />}
-                disabled={!sub.rw_user}
+                disabled={!sub.rw_user || sub.rw_user.unlimited}
                 onClick={() => openExtendModal({ kind: 'subscription', id: sub.id, title: sub.title })}
             >
                 Продлить
@@ -106,9 +102,11 @@ export function SubscriptionMenuItems({ sub, onUnlinked }: { sub: Subscription; 
             >
                 Сменить тариф
             </Menu.Item>
-            <Menu.Item leftSection={<PiPencilSimple size={16} />} onClick={() => openSubscriptionForm({ sub })}>
-                Изменить / привязать
-            </Menu.Item>
+            {!inView && (
+                <Menu.Item leftSection={<PiPencilSimple size={16} />} onClick={() => openViewSubscriptionModal(sub)}>
+                    Изменить
+                </Menu.Item>
+            )}
             {sub.rw_user && (
                 <>
                     <Menu.Item leftSection={<PiCopy size={16} />} onClick={() => copyLink(sub.rw_user!.subscription_url)}>
@@ -131,7 +129,17 @@ export function SubscriptionMenuItems({ sub, onUnlinked }: { sub: Subscription; 
     )
 }
 
-export function AddonMenuItems({ addon, subTitle, onUnlinked }: { addon: AddonItem; subTitle: string; onUnlinked?: () => void }) {
+export function AddonMenuItems({
+    addon,
+    subTitle,
+    onUnlinked,
+    inView
+}: {
+    addon: AddonItem
+    subTitle: string
+    onUnlinked?: () => void
+    inView?: boolean
+}) {
     const { toggle, unlinkAddon } = useItemActions()
     const title = addonTitle(addon, subTitle)
     const disabled = addon.rw_user?.status === 'DISABLED'
@@ -140,7 +148,7 @@ export function AddonMenuItems({ addon, subTitle, onUnlinked }: { addon: AddonIt
             <Menu.Label>Управление</Menu.Label>
             <Menu.Item
                 leftSection={<PiCalendarPlus size={16} />}
-                disabled={!addon.rw_user}
+                disabled={!addon.rw_user || addon.rw_user.unlimited}
                 onClick={() => openExtendModal({ kind: 'addon', id: addon.id, title })}
             >
                 Продлить
@@ -151,9 +159,11 @@ export function AddonMenuItems({ addon, subTitle, onUnlinked }: { addon: AddonIt
             >
                 Сменить тариф
             </Menu.Item>
-            <Menu.Item leftSection={<PiPencilSimple size={16} />} onClick={() => openAddonEdit(addon)}>
-                Цена и автопродление
-            </Menu.Item>
+            {!inView && (
+                <Menu.Item leftSection={<PiPencilSimple size={16} />} onClick={() => openViewAddonModal(addon.id, addon.subscription_id)}>
+                    Изменить
+                </Menu.Item>
+            )}
             {addon.rw_user && (
                 <Menu.Item
                     leftSection={disabled ? <PiPlay size={16} /> : <PiPause size={16} />}

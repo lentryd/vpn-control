@@ -22,6 +22,33 @@ func TestCost(t *testing.T) {
 	}
 }
 
+func TestTermCost(t *testing.T) {
+	periods := []Period{{Months: 3, Price: 25000}, {Days: 7, Price: 0}, {Months: 1, Days: 15, Price: 12000}}
+	cases := []struct {
+		months, days int
+		want         int64
+	}{
+		{0, 7, 0}, {1, 15, 12000}, {0, 6, 2000}, {3, 0, 25000}, {3, 7, 25000 + 2333}, {1, 0, 10000},
+	}
+	for _, c := range cases {
+		if got := TermCost(10000, periods, c.months, c.days); got != c.want {
+			t.Errorf("TermCost(%d, %d) = %d, want %d", c.months, c.days, got, c.want)
+		}
+	}
+}
+
+func TestUnlimited(t *testing.T) {
+	now := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	forever := time.Date(2099, 12, 31, 0, 0, 0, 0, time.UTC)
+	soon := now.AddDate(1, 0, 0)
+	if !Unlimited(&forever) || Unlimited(&soon) || Unlimited(nil) {
+		t.Error("Unlimited: 2099 is forever, next year and nil are not")
+	}
+	if got := ProrateSurcharge(10000, 20000, now, &forever); got != 0 {
+		t.Errorf("surcharge on an unlimited user = %d, want 0", got)
+	}
+}
+
 func TestExtendFrom(t *testing.T) {
 	now := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
 	future := now.AddDate(0, 0, 5)

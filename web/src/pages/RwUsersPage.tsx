@@ -29,6 +29,7 @@ export function RwUsersPage() {
                 header: 'Истекает',
                 sortingFn: 'datetime',
                 accessorFn: (r) => (r.expire_at ? new Date(r.expire_at) : undefined),
+                sortDescFirst: false,
                 sortUndefined: 'last',
                 enableColumnFilter: false,
                 mantineTableBodyCellProps: { align: 'center' },

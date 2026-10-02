@@ -320,13 +320,17 @@ type DayTraffic struct {
 
 // Consumer is one user's share of a metered node's traffic.
 type Consumer struct {
-	RwUserID     int     `json:"rw_user_id"`
-	Username     string  `json:"username"`
-	CustomerID   *int    `json:"customer_id"`
-	CustomerName string  `json:"customer_name"`
-	GB           float64 `json:"gb"`
-	SharePercent float64 `json:"share_percent"`
-	CostRub      int64   `json:"cost_rub"`
+	RwUserID     int    `json:"rw_user_id"`
+	Username     string `json:"username"`
+	CustomerID   *int   `json:"customer_id"`
+	CustomerName string `json:"customer_name"`
+	// SubscriptionID/SubTitle tell a customer's subscriptions apart: the
+	// subscription label (or panel username), plus the add-on name.
+	SubscriptionID *int    `json:"subscription_id"`
+	SubTitle       string  `json:"sub_title"`
+	GB             float64 `json:"gb"`
+	SharePercent   float64 `json:"share_percent"`
+	CostRub        int64   `json:"cost_rub"`
 }
 
 // MeteredSummary is the state of a metered item for t's month.
@@ -490,7 +494,7 @@ func (s *Service) WithConsumers(ctx context.Context, sum *MeteredSummary, limit 
 	cache, _ := s.db.RwUser.Query().Where(rwuser.IDIn(ids...)).
 		WithSubscription(func(q *ent.SubscriptionQuery) { q.WithCustomer() }).
 		WithSubscriptionAddon(func(q *ent.SubscriptionAddonQuery) {
-			q.WithSubscription(func(q *ent.SubscriptionQuery) { q.WithCustomer() })
+			q.WithAddon().WithSubscription(func(q *ent.SubscriptionQuery) { q.WithCustomer().WithRwUser() })
 		}).All(ctx)
 	byID := make(map[int]*ent.RwUser, len(cache))
 	for _, u := range cache {
@@ -505,14 +509,31 @@ func (s *Service) WithConsumers(ctx context.Context, sum *MeteredSummary, limit 
 		if ru := byID[u.ID]; ru != nil {
 			c.Username = ru.Username
 			var sub *ent.Subscription
+			subUsername, addonName := ru.Username, ""
 			if ru.Edges.Subscription != nil {
 				sub = ru.Edges.Subscription
-			} else if ru.Edges.SubscriptionAddon != nil {
-				sub = ru.Edges.SubscriptionAddon.Edges.Subscription
+			} else if sa := ru.Edges.SubscriptionAddon; sa != nil {
+				sub = sa.Edges.Subscription
+				if sa.Edges.Addon != nil {
+					addonName = sa.Edges.Addon.Name
+				}
+				if sub != nil && sub.Edges.RwUser != nil {
+					subUsername = sub.Edges.RwUser.Username
+				}
 			}
-			if sub != nil && sub.Edges.Customer != nil {
-				c.CustomerID = &sub.Edges.Customer.ID
-				c.CustomerName = sub.Edges.Customer.Name
+			if sub != nil {
+				c.SubscriptionID = &sub.ID
+				c.SubTitle = sub.Label
+				if c.SubTitle == "" {
+					c.SubTitle = subUsername
+				}
+				if addonName != "" {
+					c.SubTitle = addonName + " · " + c.SubTitle
+				}
+				if sub.Edges.Customer != nil {
+					c.CustomerID = &sub.Edges.Customer.ID
+					c.CustomerName = sub.Edges.Customer.Name
+				}
 			}
 		}
 		sum.TopConsumers = append(sum.TopConsumers, c)

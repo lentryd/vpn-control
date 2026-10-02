@@ -16,6 +16,8 @@ const (
 	FieldTariffID = "tariff_id"
 	// FieldMonths holds the string denoting the months field in the database.
 	FieldMonths = "months"
+	// FieldDays holds the string denoting the days field in the database.
+	FieldDays = "days"
 	// FieldPrice holds the string denoting the price field in the database.
 	FieldPrice = "price"
 	// EdgeTariff holds the string denoting the tariff edge name in mutations.
@@ -36,6 +38,7 @@ var Columns = []string{
 	FieldID,
 	FieldTariffID,
 	FieldMonths,
+	FieldDays,
 	FieldPrice,
 }
 
@@ -52,6 +55,10 @@ func ValidColumn(column string) bool {
 var (
 	// MonthsValidator is a validator for the "months" field. It is called by the builders before save.
 	MonthsValidator func(int) error
+	// DefaultDays holds the default value on creation for the "days" field.
+	DefaultDays int
+	// DaysValidator is a validator for the "days" field. It is called by the builders before save.
+	DaysValidator func(int) error
 	// PriceValidator is a validator for the "price" field. It is called by the builders before save.
 	PriceValidator func(int64) error
 )
@@ -72,6 +79,11 @@ func ByTariffID(opts ...sql.OrderTermOption) OrderOption {
 // ByMonths orders the results by the months field.
 func ByMonths(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMonths, opts...).ToFunc()
+}
+
+// ByDays orders the results by the days field.
+func ByDays(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDays, opts...).ToFunc()
 }
 
 // ByPrice orders the results by the price field.

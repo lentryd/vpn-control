@@ -449,6 +449,7 @@ var (
 	TariffPeriodsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "months", Type: field.TypeInt},
+		{Name: "days", Type: field.TypeInt, Default: 0},
 		{Name: "price", Type: field.TypeInt64},
 		{Name: "tariff_id", Type: field.TypeInt},
 	}
@@ -460,7 +461,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "tariff_periods_tariffs_periods",
-				Columns:    []*schema.Column{TariffPeriodsColumns[3]},
+				Columns:    []*schema.Column{TariffPeriodsColumns[4]},
 				RefColumns: []*schema.Column{TariffsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},

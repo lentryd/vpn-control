@@ -21,6 +21,8 @@ type TariffPeriod struct {
 	TariffID int `json:"tariff_id,omitempty"`
 	// Months holds the value of the "months" field.
 	Months int `json:"months,omitempty"`
+	// Days holds the value of the "days" field.
+	Days int `json:"days,omitempty"`
 	// Price holds the value of the "price" field.
 	Price int64 `json:"price,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -54,7 +56,7 @@ func (*TariffPeriod) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case tariffperiod.FieldID, tariffperiod.FieldTariffID, tariffperiod.FieldMonths, tariffperiod.FieldPrice:
+		case tariffperiod.FieldID, tariffperiod.FieldTariffID, tariffperiod.FieldMonths, tariffperiod.FieldDays, tariffperiod.FieldPrice:
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -88,6 +90,12 @@ func (_m *TariffPeriod) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field months", values[i])
 			} else if value.Valid {
 				_m.Months = int(value.Int64)
+			}
+		case tariffperiod.FieldDays:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field days", values[i])
+			} else if value.Valid {
+				_m.Days = int(value.Int64)
 			}
 		case tariffperiod.FieldPrice:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -141,6 +149,9 @@ func (_m *TariffPeriod) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("months=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Months))
+	builder.WriteString(", ")
+	builder.WriteString("days=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Days))
 	builder.WriteString(", ")
 	builder.WriteString("price=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Price))

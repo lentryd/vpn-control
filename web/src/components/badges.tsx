@@ -6,7 +6,7 @@ import { PiClockCountdown, PiClockUser, PiLinkBreak, PiProhibit, PiPulse, PiTras
 
 import type { RwUser } from '@/api/types'
 
-import { daysLeft, fmtBytes, fmtDate, fmtDateTime, fromNow, strategyLabel } from './format'
+import { daysLeft, fmtBytes, fmtDate, fmtDateTime, fromNow, isUnlimited, strategyLabel } from './format'
 
 const statusMeta: Record<string, { color: BadgeProps['color']; label: string; icon: React.ReactNode }> = {
     ACTIVE: { color: 'teal', label: 'Активна', icon: <PiPulse size={18} /> },
@@ -54,7 +54,7 @@ export function expiryColor(days: number | null) {
 export function expirationText(date: string | null | undefined) {
     if (!date) return 'неизвестно'
     const d = dayjs(date)
-    if (d.year() === 2099) return '∞'
+    if (isUnlimited(date)) return 'бессрочно'
     if (d.isBefore(dayjs())) return `истекла ${d.fromNow()}`
     return `истекает через ${d.fromNow(true)}`
 }
@@ -62,6 +62,19 @@ export function expirationText(date: string | null | undefined) {
 export function ExpireCell({ date }: { date: string | null | undefined }) {
     const d = daysLeft(date)
     if (!date || d === null) return <Text c="dimmed">—</Text>
+    if (isUnlimited(date))
+        return (
+            <Tooltip label={`${dayjs(date).format('DD.MM.YYYY')} — в панели «навсегда»`}>
+                <Stack gap={0} align="center">
+                    <Text ff="monospace" fw={600} size="md">
+                        ∞
+                    </Text>
+                    <Text c="teal" size="xs">
+                        бессрочно
+                    </Text>
+                </Stack>
+            </Tooltip>
+        )
     return (
         <Tooltip label={fmtDateTime(date)}>
             <Stack gap={0} align="center">

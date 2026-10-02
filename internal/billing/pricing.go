@@ -8,17 +8,19 @@ import (
 	"time"
 )
 
-// Period is a discounted price for paying Months at once (kopecks).
+// Period is a fixed price for a term (kopecks): a whole-month discount
+// (Days == 0) or a package with days, e.g. a week-long trial.
 type Period struct {
 	Months int   `json:"months"`
+	Days   int   `json:"days"`
 	Price  int64 `json:"price"`
 }
 
 // maxMonths caps how far a single payment can extend one item.
 const maxMonths = 36
 
-// Cost is the cheapest price for months, combining discounted periods and
-// the plain monthly price.
+// Cost is the cheapest price for months, combining whole-month discounted
+// periods and the plain monthly price.
 func Cost(monthly int64, periods []Period, months int) int64 {
 	if months <= 0 {
 		return 0
@@ -27,7 +29,7 @@ func Cost(monthly int64, periods []Period, months int) int64 {
 	for m := 1; m <= months; m++ {
 		best[m] = best[m-1] + monthly
 		for _, p := range periods {
-			if p.Months > 0 && p.Months <= m && best[m-p.Months]+p.Price < best[m] {
+			if p.Days == 0 && p.Months > 0 && p.Months <= m && best[m-p.Months]+p.Price < best[m] {
 				best[m] = best[m-p.Months] + p.Price
 			}
 		}
@@ -38,6 +40,28 @@ func Cost(monthly int64, periods []Period, months int) int64 {
 // DaysCost is the price of extra days at monthly/30 per day.
 func DaysCost(monthly int64, days int) int64 {
 	return int64(math.Round(float64(monthly) * float64(days) / 30))
+}
+
+// TermCost prices months+days: a package with exactly that term (one with
+// days) costs its own price, anything else is Cost plus DaysCost.
+func TermCost(monthly int64, periods []Period, months, days int) int64 {
+	if days > 0 {
+		for _, p := range periods {
+			if p.Months == months && p.Days == days {
+				return p.Price
+			}
+		}
+	}
+	return Cost(monthly, periods, months) + DaysCost(monthly, days)
+}
+
+// UnlimitedYear: the panel's "forever" is an expiry in 2099; anything from
+// this year on counts as an unlimited (never expiring, unpaid) user.
+const UnlimitedYear = 2090
+
+// Unlimited reports whether expireAt means "forever".
+func Unlimited(expireAt *time.Time) bool {
+	return expireAt != nil && expireAt.Year() >= UnlimitedYear
 }
 
 // ExtendFrom is where an extension starts: the current expiry if it's still
@@ -52,7 +76,7 @@ func ExtendFrom(now time.Time, expireAt *time.Time) time.Time {
 // ProrateSurcharge is what switching from oldMonthly to newMonthly costs
 // for the time left until expireAt (negative for a downgrade).
 func ProrateSurcharge(oldMonthly, newMonthly int64, now time.Time, expireAt *time.Time) int64 {
-	if expireAt == nil || !expireAt.After(now) {
+	if expireAt == nil || !expireAt.After(now) || Unlimited(expireAt) {
 		return 0
 	}
 	days := expireAt.Sub(now).Hours() / 24
@@ -173,7 +197,7 @@ func Plan(balance int64, items []PlanItem, now time.Time, remainderToDays bool) 
 		}
 		out = append(out, Allocation{
 			Kind: s.Kind, ID: s.ID, Title: s.Title, Months: s.months, Days: s.days,
-			Amount: Cost(s.Monthly, s.Periods, s.months) + DaysCost(s.Monthly, s.days),
+			Amount: TermCost(s.Monthly, s.Periods, s.months, s.days),
 			From:   s.from, To: to(s),
 		})
 	}

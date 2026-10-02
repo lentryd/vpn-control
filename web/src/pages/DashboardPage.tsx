@@ -406,16 +406,30 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                 />
             </SimpleGrid>
             <SimpleGrid cols={{ base: 1, md: 2 }}>
-                <AreaChart
-                    h={180}
-                    data={m.daily.map((d) => ({ ...d, date: dayjs(d.date).format('DD.MM') }))}
-                    dataKey="date"
-                    series={[{ name: 'gb', label: 'ГБ', color: 'cyan.6' }]}
-                    curveType="monotone"
-                    withDots={false}
-                    gridAxis="y"
-                    valueFormatter={(v) => `${fmtNum(v)} ГБ`}
-                />
+                <SectionCard.Root gap="xs">
+                    <SectionCard.Section>
+                        <BaseOverlayHeader
+                            IconComponent={PiChartLineUpDuotone}
+                            iconColor="cyan"
+                            subtitle={`за ${dayjs(m.period + '-01').format('MMMM')} — ${fmtNum(m.used_gb)} ГБ`}
+                            title="Трафик по дням"
+                            titleOrder={6}
+                        />
+                    </SectionCard.Section>
+                    <Box style={{ flex: 1, minHeight: 260 }}>
+                        <AreaChart
+                            h="100%"
+                            data={m.daily.map((d) => ({ ...d, date: dayjs(d.date).format('DD.MM') }))}
+                            dataKey="date"
+                            series={[{ name: 'gb', label: 'ГБ', color: 'cyan.6' }]}
+                            curveType="monotone"
+                            withDots={m.daily.length <= 10}
+                            gridAxis="y"
+                            yAxisProps={{ width: 70 }}
+                            valueFormatter={(v) => `${fmtNum(v)} ГБ`}
+                        />
+                    </Box>
+                </SectionCard.Root>
                 <SectionCard.Root gap="xs">
                     <SectionCard.Section>
                         <BaseOverlayHeader
@@ -437,15 +451,30 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                     )}
                     {m.top_consumers?.map((c) => (
                         <Group gap="xs" justify="space-between" key={c.rw_user_id} wrap="nowrap">
-                            <Text size="sm" truncate>
-                                {c.customer_id ? (
-                                    <Anchor component={Link} size="sm" to={`/customers/${c.customer_id}`}>
-                                        {c.customer_name}
+                            <Group gap={6} miw={0} wrap="nowrap">
+                                <Text size="sm" style={{ flexShrink: 0 }}>
+                                    {c.customer_id ? (
+                                        <Anchor component={Link} size="sm" to={`/customers/${c.customer_id}`}>
+                                            {c.customer_name}
+                                        </Anchor>
+                                    ) : (
+                                        c.username || `#${c.rw_user_id}`
+                                    )}
+                                </Text>
+                                {c.subscription_id && c.sub_title && (
+                                    <Anchor
+                                        c="dimmed"
+                                        component="button"
+                                        onClick={() =>
+                                            openViewSubscriptionModal({ id: c.subscription_id!, title: c.sub_title, customer_name: c.customer_name })
+                                        }
+                                        size="xs"
+                                        truncate="end"
+                                    >
+                                        {c.sub_title}
                                     </Anchor>
-                                ) : (
-                                    c.username || `#${c.rw_user_id}`
                                 )}
-                            </Text>
+                            </Group>
                             <Text c="dimmed" ff="monospace" size="xs" style={{ whiteSpace: 'nowrap' }}>
                                 {fmtNum(c.gb)} ГБ · {fmtNum(c.share_percent, 1)}% · ≈{fmtMoney(c.cost_rub)}
                             </Text>

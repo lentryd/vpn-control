@@ -360,8 +360,14 @@ func init() {
 	tariffperiodDescMonths := tariffperiodFields[1].Descriptor()
 	// tariffperiod.MonthsValidator is a validator for the "months" field. It is called by the builders before save.
 	tariffperiod.MonthsValidator = tariffperiodDescMonths.Validators[0].(func(int) error)
+	// tariffperiodDescDays is the schema descriptor for days field.
+	tariffperiodDescDays := tariffperiodFields[2].Descriptor()
+	// tariffperiod.DefaultDays holds the default value on creation for the days field.
+	tariffperiod.DefaultDays = tariffperiodDescDays.Default.(int)
+	// tariffperiod.DaysValidator is a validator for the "days" field. It is called by the builders before save.
+	tariffperiod.DaysValidator = tariffperiodDescDays.Validators[0].(func(int) error)
 	// tariffperiodDescPrice is the schema descriptor for price field.
-	tariffperiodDescPrice := tariffperiodFields[2].Descriptor()
+	tariffperiodDescPrice := tariffperiodFields[3].Descriptor()
 	// tariffperiod.PriceValidator is a validator for the "price" field. It is called by the builders before save.
 	tariffperiod.PriceValidator = tariffperiodDescPrice.Validators[0].(func(int64) error)
 	trafficsnapshotFields := schema.TrafficSnapshot{}.Fields()

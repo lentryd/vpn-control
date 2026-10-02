@@ -24,12 +24,18 @@ export function fmtBytes(b: number | null | undefined): string {
     return `${fmtNum(v, v < 10 ? 2 : 1)} ${units[i]}`
 }
 
-export const fmtDate = (d: string | null | undefined) => (d ? dayjs(d).format('DD.MM.YYYY') : '—')
-export const fmtDateTime = (d: string | null | undefined) => (d ? dayjs(d).format('DD.MM.YYYY HH:mm') : '—')
+// The panel's "forever" is an expiry in 2099; like the server (billing
+// .UnlimitedYear) anything from 2090 on is an unlimited user.
+export const UNLIMITED_YEAR = 2090
+export const isUnlimited = (d: string | null | undefined) => !!d && dayjs(d).year() >= UNLIMITED_YEAR
+
+export const fmtDate = (d: string | null | undefined) => (!d ? '—' : isUnlimited(d) ? '∞' : dayjs(d).format('DD.MM.YYYY'))
+export const fmtDateTime = (d: string | null | undefined) => (!d ? '—' : isUnlimited(d) ? '∞' : dayjs(d).format('DD.MM.YYYY HH:mm'))
 export const fromNow = (d: string | null | undefined) => (d ? dayjs(d).fromNow() : '—')
 
 export function daysLeft(d: string | null | undefined): number | null {
     if (!d) return null
+    if (isUnlimited(d)) return Infinity
     return Math.floor(dayjs(d).diff(dayjs(), 'hour') / 24)
 }
 

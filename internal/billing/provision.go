@@ -118,6 +118,14 @@ func (s *Service) ProvisionSubscription(ctx context.Context, in ProvisionInput) 
 	return sub, nil
 }
 
+// termLabel is durationLabel, or "бессрочно" for an unlimited expiry.
+func termLabel(months, days int, to time.Time) string {
+	if Unlimited(&to) {
+		return "бессрочно"
+	}
+	return durationLabel(months, days)
+}
+
 func descriptionFor(customerName, label string) string {
 	if label != "" {
 		return customerName + " · " + label
@@ -145,15 +153,18 @@ type ConnectAddonInput struct {
 	TariffID       int
 	Months         int
 	Days           int
-	Amount         int64
-	AllowDebt      bool
+	// Until, when set, is the exact expiry (e.g. aligned with the
+	// subscription); Months/Days then only describe and price the term.
+	Until     *time.Time
+	Amount    int64
+	AllowDebt bool
 }
 
 // ConnectAddon creates (or adopts, if it already exists in the panel) the
 // add-on user prefix+<username>+suffix with the tariff's parameters, links
 // it and charges the first period.
 func (s *Service) ConnectAddon(ctx context.Context, in ConnectAddonInput) (*ent.SubscriptionAddon, error) {
-	if in.Months+in.Days <= 0 {
+	if in.Months+in.Days <= 0 && in.Until == nil {
 		return nil, errors.New("укажите срок")
 	}
 	sub, err := s.db.Subscription.Query().Where(subscription.ID(in.SubscriptionID)).
@@ -186,7 +197,13 @@ func (s *Service) ConnectAddon(ctx context.Context, in ConnectAddonInput) (*ent.
 
 	username := a.Prefix + sub.Edges.RwUser.Username + a.Suffix
 	now := s.now()
+	if in.Until != nil && !in.Until.After(now) {
+		return nil, errors.New("дата окончания уже прошла")
+	}
 	to := now.AddDate(0, in.Months, in.Days)
+	if in.Until != nil {
+		to = *in.Until
+	}
 
 	var u *remnawave.User
 	existing, err := s.rw.GetUserByUsername(ctx, username)
@@ -194,8 +211,12 @@ func (s *Service) ConnectAddon(ctx context.Context, in ConnectAddonInput) (*ent.
 	case err == nil:
 		// Adopt a user created by hand: extend from its expiry and apply
 		// the tariff parameters.
-		from := ExtendFrom(now, &existing.ExpireAt)
-		to = from.AddDate(0, in.Months, in.Days)
+		if in.Until == nil {
+			from := ExtendFrom(now, &existing.ExpireAt)
+			to = from.AddDate(0, in.Months, in.Days)
+		} else if existing.ExpireAt.After(to) {
+			to = existing.ExpireAt
+		}
 		upd := remnawave.UpdateUserRequest{ID: existing.ID, ExpireAt: &to, Status: remnawave.StatusActive}
 		applyTariffToUpdate(t, &upd)
 		u, err = s.rw.UpdateUser(ctx, upd)
@@ -222,7 +243,7 @@ func (s *Service) ConnectAddon(ctx context.Context, in ConnectAddonInput) (*ent.
 		return nil, err
 	}
 	ledgerID, err := s.charge(ctx, sub.CustomerID, in.Amount, nil,
-		fmt.Sprintf("Аддон %s (%s) для %s, %s", a.Name, t.Name, sub.Edges.RwUser.Username, durationLabel(in.Months, in.Days)))
+		fmt.Sprintf("Аддон %s (%s) для %s, %s", a.Name, t.Name, sub.Edges.RwUser.Username, termLabel(in.Months, in.Days, to)))
 	if err != nil {
 		return nil, err
 	}

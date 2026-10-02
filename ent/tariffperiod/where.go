@@ -64,6 +64,11 @@ func Months(v int) predicate.TariffPeriod {
 	return predicate.TariffPeriod(sql.FieldEQ(FieldMonths, v))
 }
 
+// Days applies equality check predicate on the "days" field. It's identical to DaysEQ.
+func Days(v int) predicate.TariffPeriod {
+	return predicate.TariffPeriod(sql.FieldEQ(FieldDays, v))
+}
+
 // Price applies equality check predicate on the "price" field. It's identical to PriceEQ.
 func Price(v int64) predicate.TariffPeriod {
 	return predicate.TariffPeriod(sql.FieldEQ(FieldPrice, v))
@@ -127,6 +132,46 @@ func MonthsLT(v int) predicate.TariffPeriod {
 // MonthsLTE applies the LTE predicate on the "months" field.
 func MonthsLTE(v int) predicate.TariffPeriod {
 	return predicate.TariffPeriod(sql.FieldLTE(FieldMonths, v))
+}
+
+// DaysEQ applies the EQ predicate on the "days" field.
+func DaysEQ(v int) predicate.TariffPeriod {
+	return predicate.TariffPeriod(sql.FieldEQ(FieldDays, v))
+}
+
+// DaysNEQ applies the NEQ predicate on the "days" field.
+func DaysNEQ(v int) predicate.TariffPeriod {
+	return predicate.TariffPeriod(sql.FieldNEQ(FieldDays, v))
+}
+
+// DaysIn applies the In predicate on the "days" field.
+func DaysIn(vs ...int) predicate.TariffPeriod {
+	return predicate.TariffPeriod(sql.FieldIn(FieldDays, vs...))
+}
+
+// DaysNotIn applies the NotIn predicate on the "days" field.
+func DaysNotIn(vs ...int) predicate.TariffPeriod {
+	return predicate.TariffPeriod(sql.FieldNotIn(FieldDays, vs...))
+}
+
+// DaysGT applies the GT predicate on the "days" field.
+func DaysGT(v int) predicate.TariffPeriod {
+	return predicate.TariffPeriod(sql.FieldGT(FieldDays, v))
+}
+
+// DaysGTE applies the GTE predicate on the "days" field.
+func DaysGTE(v int) predicate.TariffPeriod {
+	return predicate.TariffPeriod(sql.FieldGTE(FieldDays, v))
+}
+
+// DaysLT applies the LT predicate on the "days" field.
+func DaysLT(v int) predicate.TariffPeriod {
+	return predicate.TariffPeriod(sql.FieldLT(FieldDays, v))
+}
+
+// DaysLTE applies the LTE predicate on the "days" field.
+func DaysLTE(v int) predicate.TariffPeriod {
+	return predicate.TariffPeriod(sql.FieldLTE(FieldDays, v))
 }
 
 // PriceEQ applies the EQ predicate on the "price" field.

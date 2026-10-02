@@ -34,6 +34,20 @@ func (_c *TariffPeriodCreate) SetMonths(v int) *TariffPeriodCreate {
 	return _c
 }
 
+// SetDays sets the "days" field.
+func (_c *TariffPeriodCreate) SetDays(v int) *TariffPeriodCreate {
+	_c.mutation.SetDays(v)
+	return _c
+}
+
+// SetNillableDays sets the "days" field if the given value is not nil.
+func (_c *TariffPeriodCreate) SetNillableDays(v *int) *TariffPeriodCreate {
+	if v != nil {
+		_c.SetDays(*v)
+	}
+	return _c
+}
+
 // SetPrice sets the "price" field.
 func (_c *TariffPeriodCreate) SetPrice(v int64) *TariffPeriodCreate {
 	_c.mutation.SetPrice(v)
@@ -52,6 +66,7 @@ func (_c *TariffPeriodCreate) Mutation() *TariffPeriodMutation {
 
 // Save creates the TariffPeriod in the database.
 func (_c *TariffPeriodCreate) Save(ctx context.Context) (*TariffPeriod, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -77,6 +92,14 @@ func (_c *TariffPeriodCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_c *TariffPeriodCreate) defaults() {
+	if _, ok := _c.mutation.Days(); !ok {
+		v := tariffperiod.DefaultDays
+		_c.mutation.SetDays(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_c *TariffPeriodCreate) check() error {
 	if _, ok := _c.mutation.TariffID(); !ok {
@@ -88,6 +111,14 @@ func (_c *TariffPeriodCreate) check() error {
 	if v, ok := _c.mutation.Months(); ok {
 		if err := tariffperiod.MonthsValidator(v); err != nil {
 			return &ValidationError{Name: "months", err: fmt.Errorf(`ent: validator failed for field "TariffPeriod.months": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Days(); !ok {
+		return &ValidationError{Name: "days", err: errors.New(`ent: missing required field "TariffPeriod.days"`)}
+	}
+	if v, ok := _c.mutation.Days(); ok {
+		if err := tariffperiod.DaysValidator(v); err != nil {
+			return &ValidationError{Name: "days", err: fmt.Errorf(`ent: validator failed for field "TariffPeriod.days": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Price(); !ok {
@@ -131,6 +162,10 @@ func (_c *TariffPeriodCreate) createSpec() (*TariffPeriod, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Months(); ok {
 		_spec.SetField(tariffperiod.FieldMonths, field.TypeInt, value)
 		_node.Months = value
+	}
+	if value, ok := _c.mutation.Days(); ok {
+		_spec.SetField(tariffperiod.FieldDays, field.TypeInt, value)
+		_node.Days = value
 	}
 	if value, ok := _c.mutation.Price(); ok {
 		_spec.SetField(tariffperiod.FieldPrice, field.TypeInt64, value)
@@ -235,6 +270,24 @@ func (u *TariffPeriodUpsert) AddMonths(v int) *TariffPeriodUpsert {
 	return u
 }
 
+// SetDays sets the "days" field.
+func (u *TariffPeriodUpsert) SetDays(v int) *TariffPeriodUpsert {
+	u.Set(tariffperiod.FieldDays, v)
+	return u
+}
+
+// UpdateDays sets the "days" field to the value that was provided on create.
+func (u *TariffPeriodUpsert) UpdateDays() *TariffPeriodUpsert {
+	u.SetExcluded(tariffperiod.FieldDays)
+	return u
+}
+
+// AddDays adds v to the "days" field.
+func (u *TariffPeriodUpsert) AddDays(v int) *TariffPeriodUpsert {
+	u.Add(tariffperiod.FieldDays, v)
+	return u
+}
+
 // SetPrice sets the "price" field.
 func (u *TariffPeriodUpsert) SetPrice(v int64) *TariffPeriodUpsert {
 	u.Set(tariffperiod.FieldPrice, v)
@@ -328,6 +381,27 @@ func (u *TariffPeriodUpsertOne) UpdateMonths() *TariffPeriodUpsertOne {
 	})
 }
 
+// SetDays sets the "days" field.
+func (u *TariffPeriodUpsertOne) SetDays(v int) *TariffPeriodUpsertOne {
+	return u.Update(func(s *TariffPeriodUpsert) {
+		s.SetDays(v)
+	})
+}
+
+// AddDays adds v to the "days" field.
+func (u *TariffPeriodUpsertOne) AddDays(v int) *TariffPeriodUpsertOne {
+	return u.Update(func(s *TariffPeriodUpsert) {
+		s.AddDays(v)
+	})
+}
+
+// UpdateDays sets the "days" field to the value that was provided on create.
+func (u *TariffPeriodUpsertOne) UpdateDays() *TariffPeriodUpsertOne {
+	return u.Update(func(s *TariffPeriodUpsert) {
+		s.UpdateDays()
+	})
+}
+
 // SetPrice sets the "price" field.
 func (u *TariffPeriodUpsertOne) SetPrice(v int64) *TariffPeriodUpsertOne {
 	return u.Update(func(s *TariffPeriodUpsert) {
@@ -401,6 +475,7 @@ func (_c *TariffPeriodCreateBulk) Save(ctx context.Context) ([]*TariffPeriod, er
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*TariffPeriodMutation)
 				if !ok {
@@ -584,6 +659,27 @@ func (u *TariffPeriodUpsertBulk) AddMonths(v int) *TariffPeriodUpsertBulk {
 func (u *TariffPeriodUpsertBulk) UpdateMonths() *TariffPeriodUpsertBulk {
 	return u.Update(func(s *TariffPeriodUpsert) {
 		s.UpdateMonths()
+	})
+}
+
+// SetDays sets the "days" field.
+func (u *TariffPeriodUpsertBulk) SetDays(v int) *TariffPeriodUpsertBulk {
+	return u.Update(func(s *TariffPeriodUpsert) {
+		s.SetDays(v)
+	})
+}
+
+// AddDays adds v to the "days" field.
+func (u *TariffPeriodUpsertBulk) AddDays(v int) *TariffPeriodUpsertBulk {
+	return u.Update(func(s *TariffPeriodUpsert) {
+		s.AddDays(v)
+	})
+}
+
+// UpdateDays sets the "days" field to the value that was provided on create.
+func (u *TariffPeriodUpsertBulk) UpdateDays() *TariffPeriodUpsertBulk {
+	return u.Update(func(s *TariffPeriodUpsert) {
+		s.UpdateDays()
 	})
 }
 

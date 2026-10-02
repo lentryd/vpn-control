@@ -1,11 +1,12 @@
 // Adapted from remnawave/frontend (AGPL-3.0): features/dashboard/users/users-table/model/node-select-item
 // and widgets/dashboard/nodes/node-status-badge.
-import { Group, Indicator, Select, SelectProps, Text, Tooltip } from '@mantine/core'
+import { Group, Indicator, type SelectProps, Text, Tooltip } from '@mantine/core'
 import ReactCountryFlag from 'react-country-flag'
 import { HiServer } from 'react-icons/hi'
 
 import { useNodes } from '@/api/hooks'
 import type { RwNode } from '@/api/types'
+import { SearchSelect } from '../forms/search-select'
 
 export function CountryFlag({ code, size = '1.1em' }: { code?: string | null; size?: string }) {
     if (!code || code === 'XX') return <HiServer size={14} />
@@ -45,7 +46,7 @@ export function NodeSelect(props: Omit<SelectProps, 'data'>) {
     const nodes = data ?? []
     const selected = nodes.find((n) => n.uuid === props.value)
     return (
-        <Select
+        <SearchSelect
             data={nodes.map((n) => ({ value: n.uuid, label: n.name }))}
             leftSection={selected ? <CountryFlag code={selected.countryCode} /> : <HiServer size={16} />}
             renderOption={({ option, checked }) => {
@@ -63,7 +64,6 @@ export function NodeSelect(props: Omit<SelectProps, 'data'>) {
                     </Group>
                 )
             }}
-            searchable
             {...props}
         />
     )

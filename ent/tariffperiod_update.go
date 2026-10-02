@@ -63,6 +63,27 @@ func (_u *TariffPeriodUpdate) AddMonths(v int) *TariffPeriodUpdate {
 	return _u
 }
 
+// SetDays sets the "days" field.
+func (_u *TariffPeriodUpdate) SetDays(v int) *TariffPeriodUpdate {
+	_u.mutation.ResetDays()
+	_u.mutation.SetDays(v)
+	return _u
+}
+
+// SetNillableDays sets the "days" field if the given value is not nil.
+func (_u *TariffPeriodUpdate) SetNillableDays(v *int) *TariffPeriodUpdate {
+	if v != nil {
+		_u.SetDays(*v)
+	}
+	return _u
+}
+
+// AddDays adds value to the "days" field.
+func (_u *TariffPeriodUpdate) AddDays(v int) *TariffPeriodUpdate {
+	_u.mutation.AddDays(v)
+	return _u
+}
+
 // SetPrice sets the "price" field.
 func (_u *TariffPeriodUpdate) SetPrice(v int64) *TariffPeriodUpdate {
 	_u.mutation.ResetPrice()
@@ -134,6 +155,11 @@ func (_u *TariffPeriodUpdate) check() error {
 			return &ValidationError{Name: "months", err: fmt.Errorf(`ent: validator failed for field "TariffPeriod.months": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Days(); ok {
+		if err := tariffperiod.DaysValidator(v); err != nil {
+			return &ValidationError{Name: "days", err: fmt.Errorf(`ent: validator failed for field "TariffPeriod.days": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Price(); ok {
 		if err := tariffperiod.PriceValidator(v); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`ent: validator failed for field "TariffPeriod.price": %w`, err)}
@@ -162,6 +188,12 @@ func (_u *TariffPeriodUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if value, ok := _u.mutation.AddedMonths(); ok {
 		_spec.AddField(tariffperiod.FieldMonths, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.Days(); ok {
+		_spec.SetField(tariffperiod.FieldDays, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDays(); ok {
+		_spec.AddField(tariffperiod.FieldDays, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.Price(); ok {
 		_spec.SetField(tariffperiod.FieldPrice, field.TypeInt64, value)
@@ -253,6 +285,27 @@ func (_u *TariffPeriodUpdateOne) AddMonths(v int) *TariffPeriodUpdateOne {
 	return _u
 }
 
+// SetDays sets the "days" field.
+func (_u *TariffPeriodUpdateOne) SetDays(v int) *TariffPeriodUpdateOne {
+	_u.mutation.ResetDays()
+	_u.mutation.SetDays(v)
+	return _u
+}
+
+// SetNillableDays sets the "days" field if the given value is not nil.
+func (_u *TariffPeriodUpdateOne) SetNillableDays(v *int) *TariffPeriodUpdateOne {
+	if v != nil {
+		_u.SetDays(*v)
+	}
+	return _u
+}
+
+// AddDays adds value to the "days" field.
+func (_u *TariffPeriodUpdateOne) AddDays(v int) *TariffPeriodUpdateOne {
+	_u.mutation.AddDays(v)
+	return _u
+}
+
 // SetPrice sets the "price" field.
 func (_u *TariffPeriodUpdateOne) SetPrice(v int64) *TariffPeriodUpdateOne {
 	_u.mutation.ResetPrice()
@@ -337,6 +390,11 @@ func (_u *TariffPeriodUpdateOne) check() error {
 			return &ValidationError{Name: "months", err: fmt.Errorf(`ent: validator failed for field "TariffPeriod.months": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Days(); ok {
+		if err := tariffperiod.DaysValidator(v); err != nil {
+			return &ValidationError{Name: "days", err: fmt.Errorf(`ent: validator failed for field "TariffPeriod.days": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Price(); ok {
 		if err := tariffperiod.PriceValidator(v); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`ent: validator failed for field "TariffPeriod.price": %w`, err)}
@@ -382,6 +440,12 @@ func (_u *TariffPeriodUpdateOne) sqlSave(ctx context.Context) (_node *TariffPeri
 	}
 	if value, ok := _u.mutation.AddedMonths(); ok {
 		_spec.AddField(tariffperiod.FieldMonths, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.Days(); ok {
+		_spec.SetField(tariffperiod.FieldDays, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDays(); ok {
+		_spec.AddField(tariffperiod.FieldDays, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.Price(); ok {
 		_spec.SetField(tariffperiod.FieldPrice, field.TypeInt64, value)

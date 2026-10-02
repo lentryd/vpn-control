@@ -42,7 +42,8 @@ func (Tariff) Edges() []ent.Edge {
 	}
 }
 
-// TariffPeriod is a discounted price for paying several months at once.
+// TariffPeriod is a fixed price for a term: a discount for paying several
+// months at once, or a short package in days (e.g. a week-long trial).
 type TariffPeriod struct {
 	ent.Schema
 }
@@ -50,8 +51,9 @@ type TariffPeriod struct {
 func (TariffPeriod) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int("tariff_id"),
-		field.Int("months").Positive(),
-		// Price is the total for Months, in kopecks.
+		field.Int("months").NonNegative(),
+		field.Int("days").NonNegative().Default(0),
+		// Price is the total for Months+Days, in kopecks.
 		field.Int64("price").NonNegative(),
 	}
 }

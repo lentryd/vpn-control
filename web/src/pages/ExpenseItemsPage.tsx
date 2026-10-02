@@ -61,6 +61,7 @@ import { ProviderInput, ProviderLabel } from '@shared/ui/infra/provider'
 import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
 import { Page } from '@shared/ui/page'
 import { DataTableCard } from '@shared/ui/table'
+import { SearchSelect } from '@shared/ui/forms/search-select'
 
 // usePanelBilling maps a node to the panel's Infra Billing record for it.
 function usePanelBilling() {
@@ -71,10 +72,16 @@ function usePanelBilling() {
     }, [data])
 }
 
+// dueDate is the item's own next payment date, else the panel's Infra
+// Billing date for its node; the column sorts by what it shows.
+function dueDate(item: ExpenseItem, billing: ReturnType<typeof usePanelBilling>) {
+    return item.next_due_date ?? billing(item.rw_node_uuid)?.nextBillingAt ?? null
+}
+
 function DueCell({ item }: { item: ExpenseItem }) {
     const billing = usePanelBilling()
     const panel = billing(item.rw_node_uuid)
-    const date = item.next_due_date ?? panel?.nextBillingAt ?? null
+    const date = dueDate(item, billing)
     if (!date) return <Text c="dimmed">–</Text>
     const days = dayjs(date).diff(dayjs(), 'day')
     return (
@@ -118,6 +125,7 @@ export function ExpenseItemsPage() {
         }
     }
 
+    const billing = usePanelBilling()
     const columns = useMemo<MRT_ColumnDef<ExpenseItem>[]>(
         () => [
             {
@@ -269,11 +277,15 @@ export function ExpenseItemsPage() {
                 mantineTableBodyCellProps: { align: 'center' },
                 sortingFn: 'datetime',
                 sortUndefined: 'last',
-                accessorFn: (r) => (r.next_due_date ? new Date(r.next_due_date) : undefined),
+                sortDescFirst: false,
+                accessorFn: (r) => {
+                    const d = dueDate(r, billing)
+                    return d ? new Date(d) : undefined
+                },
                 Cell: ({ row }) => <DueCell item={row.original} />
             }
         ],
-        []
+        [billing]
     )
 
     return (
@@ -568,11 +580,10 @@ function ItemForm({ item, onDone }: { item: Partial<ExpenseItem>; onDone: () => 
                         {...form.getInputProps('pricing')}
                     />
                     <SimpleGrid cols={{ base: 1, xs: 2 }}>
-                        <Select
+                        <SearchSelect
                             label="Валюта"
                             leftSection={<PiCurrencyRub size={16} />}
                             data={['RUB', 'EUR', 'USD', 'GBP', 'CHF', 'CNY', 'TRY', 'KZT']}
-                            searchable
                             {...form.getInputProps('currency')}
                             onChange={(c) => {
                                 form.setFieldValue('currency', c ?? 'RUB')

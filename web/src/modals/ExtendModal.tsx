@@ -1,44 +1,52 @@
-import { Alert, Group, NumberInput, Paper, SimpleGrid, Switch, Text } from '@mantine/core'
-import { PiCalendarDuotone, PiCalendarPlus, PiCalendarPlusDuotone, PiClockDuotone, PiCurrencyRub, PiWalletDuotone } from 'react-icons/pi'
-import { TbCalendar } from 'react-icons/tb'
+import { Alert } from '@mantine/core'
+import { PiCalendarPlus, PiCalendarPlusDuotone } from 'react-icons/pi'
 import { useDebouncedValue } from '@mantine/hooks'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 
 import { api } from '@/api/client'
 import { useApiMutation } from '@/api/hooks'
-import type { ExtensionResult } from '@/api/types'
+import type { ExtensionResult, Period } from '@/api/types'
 import { fmtDate } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
-import { FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
+import { PaymentSection, tariffPresets, type Term, TermSection } from '@/components/term'
+import { FormColumns, FormFooter } from '@shared/ui/forms/form-section'
 
 import { openModal } from './open'
 
 type Kind = 'subscription' | 'addon'
 
+interface ExtendQuote {
+    amount: number
+    from: string
+    to: string
+    monthly: number
+    periods: Period[]
+    balance: number
+}
+
 export function openExtendModal(p: { kind: Kind; id: number; title: string }) {
-    openModal({ icon: PiCalendarPlusDuotone, color: 'teal', title: 'Продление', subtitle: p.title }, (close) => <ExtendForm {...p} onDone={close} />)
+    openModal({ icon: PiCalendarPlusDuotone, color: 'teal', title: 'Продление', subtitle: p.title }, (close) => <ExtendForm {...p} onDone={close} />, '1000px')
 }
 
 function ExtendForm({ kind, id, onDone }: { kind: Kind; id: number; onDone: () => void }) {
-    const [months, setMonths] = useState(1)
-    const [days, setDays] = useState(0)
+    const [term, setTerm] = useState<Term>({ months: 1, days: 0, until: null })
     const [amount, setAmount] = useState<number | null>(null)
     const [touched, setTouched] = useState(false)
     const [allowDebt, setAllowDebt] = useState(false)
-    const [dm, dd] = [useDebouncedValue(months, 250)[0], useDebouncedValue(days, 250)[0]]
+    const [debounced] = useDebouncedValue(term, 250)
 
     const quote = useQuery({
-        queryKey: ['quote', kind, id, dm, dd],
-        queryFn: () =>
-            api.get<{ amount: number; from: string; to: string }>(`items/${kind}/${id}/quote?months=${dm}&days=${dd}`)
+        queryKey: ['quote', kind, id, debounced.months, debounced.days],
+        queryFn: () => api.get<ExtendQuote>(`items/${kind}/${id}/quote?months=${debounced.months}&days=${debounced.days}`),
+        placeholderData: keepPreviousData
     })
     useEffect(() => {
         if (!touched && quote.data) setAmount(quote.data.amount)
     }, [quote.data, touched])
 
     const m = useApiMutation(() =>
-        api.post<ExtensionResult>(`items/${kind}/${id}/extend`, { months, days, amount: amount ?? 0, allow_debt: allowDebt })
+        api.post<ExtensionResult>(`items/${kind}/${id}/extend`, { months: term.months, days: term.days, amount: amount ?? 0, allow_debt: allowDebt })
     )
     const submit = () =>
         m.mutate(undefined, {
@@ -50,80 +58,47 @@ function ExtendForm({ kind, id, onDone }: { kind: Kind; id: number; onDone: () =
         })
 
     return (
-        <FormStack>
-            <FormSection icon={PiCalendarPlusDuotone} color="teal" title="Срок" description="Добавляется к текущей дате окончания (или к сегодня, если уже истекла)">
-                <SimpleGrid cols={{ base: 1, xs: 2 }}>
-                    <NumberInput
-                        label="Месяцев"
-                        leftSection={<PiCalendarDuotone size={16} />}
-                        min={0}
-                        max={36}
-                        value={months}
-                        onChange={(v) => setMonths(Number(v) || 0)}
+        <>
+            <FormColumns
+                left={
+                    <TermSection
+                        from={quote.data?.from}
+                        onChange={(t) => {
+                            setTerm(t)
+                            setTouched(false)
+                        }}
+                        presets={tariffPresets(quote.data?.monthly, quote.data?.periods)}
+                        value={term}
+                    >
+                        {quote.error && (
+                            <Alert color="red" variant="soft">
+                                {quote.error.message}
+                            </Alert>
+                        )}
+                    </TermSection>
+                }
+                right={
+                    <PaymentSection
+                        allowDebt={allowDebt}
+                        amount={amount}
+                        balance={quote.data?.balance}
+                        monthly={quote.data?.monthly}
+                        onAllowDebt={setAllowDebt}
+                        onAmount={(v) => {
+                            setTouched(true)
+                            setAmount(v)
+                        }}
                     />
-                    <NumberInput
-                        label="Дней"
-                        leftSection={<PiClockDuotone size={16} />}
-                        min={0}
-                        max={365}
-                        value={days}
-                        onChange={(v) => setDays(Number(v) || 0)}
-                    />
-                </SimpleGrid>
-                {quote.data && (
-                    <SimpleGrid cols={2} spacing="xs">
-                        <Paper bd="1px solid rgba(255,255,255,0.08)" bg="rgba(255,255,255,0.02)" p="xs" radius="md">
-                            <Group gap="xs" justify="center">
-                                <TbCalendar color="var(--mantine-color-dimmed)" size={18} />
-                                <Text c="dimmed" fw={600} size="sm">
-                                    {fmtDate(quote.data.from)}
-                                </Text>
-                            </Group>
-                        </Paper>
-                        <Paper bd="1px solid rgba(45, 212, 191, 0.2)" bg="rgba(45, 212, 191, 0.08)" p="xs" radius="md">
-                            <Group gap="xs" justify="center">
-                                <TbCalendar color="var(--mantine-color-teal-5)" size={18} />
-                                <Text c="teal.5" fw={600} size="sm">
-                                    {fmtDate(quote.data.to)}
-                                </Text>
-                            </Group>
-                        </Paper>
-                    </SimpleGrid>
-                )}
-                {quote.error && (
-                    <Alert color="red" variant="soft">
-                        {quote.error.message}
-                    </Alert>
-                )}
-            </FormSection>
-            <FormSection icon={PiWalletDuotone} color="orange" title="Оплата" description="Списывается с баланса клиента">
-                <NumberInput
-                    label="Списать с баланса, ₽"
-                    description="По тарифу с учётом скидок за период; можно изменить (0 — бесплатно)"
-                    leftSection={<PiCurrencyRub size={16} />}
-                    min={0}
-                    decimalScale={2}
-                    value={amount ?? ''}
-                    onChange={(v) => {
-                        setTouched(true)
-                        setAmount(Number(v) || 0)
-                    }}
-                />
-                <Switch
-                    label="Разрешить уход в минус"
-                    description="Баланс клиента станет отрицательным (долг)"
-                    checked={allowDebt}
-                    onChange={(e) => setAllowDebt(e.currentTarget.checked)}
-                />
-            </FormSection>
+                }
+            />
             <FormFooter
-                disabled={months + days <= 0}
+                disabled={term.months + term.days <= 0}
                 loading={m.isPending}
                 onCancel={onDone}
                 onSubmit={submit}
                 submitIcon={<PiCalendarPlus size={16} />}
                 submitLabel="Продлить в панели"
             />
-        </FormStack>
+        </>
     )
 }

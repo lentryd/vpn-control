@@ -17729,6 +17729,8 @@ type TariffPeriodMutation struct {
 	id            *int
 	months        *int
 	addmonths     *int
+	days          *int
+	adddays       *int
 	price         *int64
 	addprice      *int64
 	clearedFields map[string]struct{}
@@ -17929,6 +17931,62 @@ func (m *TariffPeriodMutation) ResetMonths() {
 	m.addmonths = nil
 }
 
+// SetDays sets the "days" field.
+func (m *TariffPeriodMutation) SetDays(i int) {
+	m.days = &i
+	m.adddays = nil
+}
+
+// Days returns the value of the "days" field in the mutation.
+func (m *TariffPeriodMutation) Days() (r int, exists bool) {
+	v := m.days
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDays returns the old "days" field's value of the TariffPeriod entity.
+// If the TariffPeriod object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TariffPeriodMutation) OldDays(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDays is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDays requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDays: %w", err)
+	}
+	return oldValue.Days, nil
+}
+
+// AddDays adds i to the "days" field.
+func (m *TariffPeriodMutation) AddDays(i int) {
+	if m.adddays != nil {
+		*m.adddays += i
+	} else {
+		m.adddays = &i
+	}
+}
+
+// AddedDays returns the value that was added to the "days" field in this mutation.
+func (m *TariffPeriodMutation) AddedDays() (r int, exists bool) {
+	v := m.adddays
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDays resets all changes to the "days" field.
+func (m *TariffPeriodMutation) ResetDays() {
+	m.days = nil
+	m.adddays = nil
+}
+
 // SetPrice sets the "price" field.
 func (m *TariffPeriodMutation) SetPrice(i int64) {
 	m.price = &i
@@ -18046,12 +18104,15 @@ func (m *TariffPeriodMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *TariffPeriodMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
 	if m.tariff != nil {
 		fields = append(fields, tariffperiod.FieldTariffID)
 	}
 	if m.months != nil {
 		fields = append(fields, tariffperiod.FieldMonths)
+	}
+	if m.days != nil {
+		fields = append(fields, tariffperiod.FieldDays)
 	}
 	if m.price != nil {
 		fields = append(fields, tariffperiod.FieldPrice)
@@ -18068,6 +18129,8 @@ func (m *TariffPeriodMutation) Field(name string) (ent.Value, bool) {
 		return m.TariffID()
 	case tariffperiod.FieldMonths:
 		return m.Months()
+	case tariffperiod.FieldDays:
+		return m.Days()
 	case tariffperiod.FieldPrice:
 		return m.Price()
 	}
@@ -18083,6 +18146,8 @@ func (m *TariffPeriodMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldTariffID(ctx)
 	case tariffperiod.FieldMonths:
 		return m.OldMonths(ctx)
+	case tariffperiod.FieldDays:
+		return m.OldDays(ctx)
 	case tariffperiod.FieldPrice:
 		return m.OldPrice(ctx)
 	}
@@ -18108,6 +18173,13 @@ func (m *TariffPeriodMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetMonths(v)
 		return nil
+	case tariffperiod.FieldDays:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDays(v)
+		return nil
 	case tariffperiod.FieldPrice:
 		v, ok := value.(int64)
 		if !ok {
@@ -18126,6 +18198,9 @@ func (m *TariffPeriodMutation) AddedFields() []string {
 	if m.addmonths != nil {
 		fields = append(fields, tariffperiod.FieldMonths)
 	}
+	if m.adddays != nil {
+		fields = append(fields, tariffperiod.FieldDays)
+	}
 	if m.addprice != nil {
 		fields = append(fields, tariffperiod.FieldPrice)
 	}
@@ -18139,6 +18214,8 @@ func (m *TariffPeriodMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
 	case tariffperiod.FieldMonths:
 		return m.AddedMonths()
+	case tariffperiod.FieldDays:
+		return m.AddedDays()
 	case tariffperiod.FieldPrice:
 		return m.AddedPrice()
 	}
@@ -18156,6 +18233,13 @@ func (m *TariffPeriodMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddMonths(v)
+		return nil
+	case tariffperiod.FieldDays:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDays(v)
 		return nil
 	case tariffperiod.FieldPrice:
 		v, ok := value.(int64)
@@ -18196,6 +18280,9 @@ func (m *TariffPeriodMutation) ResetField(name string) error {
 		return nil
 	case tariffperiod.FieldMonths:
 		m.ResetMonths()
+		return nil
+	case tariffperiod.FieldDays:
+		m.ResetDays()
 		return nil
 	case tariffperiod.FieldPrice:
 		m.ResetPrice()

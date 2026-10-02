@@ -47,6 +47,7 @@ export function CustomersPage() {
                 header: 'Ближайшее окончание',
                 sortingFn: 'datetime',
                 accessorFn: (r) => (r.nearest_expire_at ? new Date(r.nearest_expire_at) : undefined),
+                sortDescFirst: false,
                 sortUndefined: 'last',
                 enableColumnFilter: false,
                 mantineTableBodyCellProps: { align: 'center' },

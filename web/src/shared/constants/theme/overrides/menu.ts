@@ -1,6 +1,8 @@
 // Adapted from remnawave/frontend (AGPL-3.0)
 import { Combobox, Menu } from '@mantine/core'
 
+const touch = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+
 export default {
     Menu: Menu.extend({
         defaultProps: {
@@ -27,7 +29,11 @@ export default {
     }),
     Combobox: Combobox.extend({
         defaultProps: {
-            transitionProps: { transition: 'fade', duration: 200 }
+            transitionProps: { transition: 'fade', duration: 200 },
+            // On phones the on-screen keyboard resizes the viewport while
+            // the dropdown is open: flipping above/below and hiding when
+            // the input is briefly "detached" made it flicker.
+            ...(touch && { middlewares: { flip: false, shift: true }, hideDetached: false })
         }
     })
 }

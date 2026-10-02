@@ -1,7 +1,8 @@
-import { Badge, BadgeProps, Select, SelectProps } from '@mantine/core'
+import { Badge, BadgeProps, type SelectProps } from '@mantine/core'
 import { PiUsersThreeDuotone } from 'react-icons/pi'
 
 import { useSquads } from '@/api/hooks'
+import { SearchSelect } from '../forms/search-select'
 
 export function useSquadName() {
     const squads = useSquads()
@@ -21,11 +22,10 @@ export function SquadBadge({ uuid, ...props }: { uuid: string } & Omit<BadgeProp
 export function SquadSelect(props: Omit<SelectProps, 'data'>) {
     const squads = useSquads()
     return (
-        <Select
+        <SearchSelect
             data={(squads.data ?? []).map((s) => ({ value: s.uuid, label: `${s.name} · ${s.info.membersCount} польз.` }))}
             leftSection={<PiUsersThreeDuotone size={16} />}
             nothingFoundMessage="Нет сквадов"
-            searchable
             {...props}
         />
     )

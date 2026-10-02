@@ -114,7 +114,7 @@ func (h *Handlers) customerViews(c *fiber.Ctx, where ...func(*ent.CustomerQuery)
 }
 
 func earliest(cur *time.Time, u *RwUserView) *time.Time {
-	if u == nil || u.Deleted || u.ExpireAt == nil {
+	if u == nil || u.Deleted || u.ExpireAt == nil || u.Unlimited {
 		return cur
 	}
 	if cur == nil || u.ExpireAt.Before(*cur) {
@@ -370,15 +370,12 @@ type allocationView struct {
 }
 
 type planItemView struct {
-	Kind     string     `json:"kind"`
-	ID       int        `json:"id"`
-	Title    string     `json:"title"`
-	Monthly  float64    `json:"monthly"`
-	ExpireAt *time.Time `json:"expire_at"`
-	Periods  []struct {
-		Months int     `json:"months"`
-		Price  float64 `json:"price"`
-	} `json:"periods"`
+	Kind     string       `json:"kind"`
+	ID       int          `json:"id"`
+	Title    string       `json:"title"`
+	Monthly  float64      `json:"monthly"`
+	ExpireAt *time.Time   `json:"expire_at"`
+	Periods  []PeriodView `json:"periods"`
 }
 
 func (h *Handlers) PreviewPayment(c *fiber.Ctx) error {
@@ -402,10 +399,7 @@ func (h *Handlers) PreviewPayment(c *fiber.Ctx) error {
 	for _, it := range p.Items {
 		v := planItemView{Kind: it.Kind, ID: it.ID, Title: it.Title, Monthly: money.ToMajor(it.Monthly), ExpireAt: it.ExpireAt}
 		for _, per := range it.Periods {
-			v.Periods = append(v.Periods, struct {
-				Months int     `json:"months"`
-				Price  float64 `json:"price"`
-			}{per.Months, money.ToMajor(per.Price)})
+			v.Periods = append(v.Periods, PeriodView{Months: per.Months, Days: per.Days, Price: money.ToMajor(per.Price)})
 		}
 		items = append(items, v)
 	}

@@ -1,6 +1,6 @@
 // Create/edit layout follows remnawave/frontend (AGPL-3.0):
 // shared/_modals/users/create-user-modal and its forms-components cards.
-import { NumberInput, Select, Switch, Textarea, TextInput } from '@mantine/core'
+import { NumberInput, Switch, Textarea, TextInput } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { HiIdentification } from 'react-icons/hi'
 import {
@@ -23,6 +23,7 @@ import { notifyError, notifyOk } from '@/components/notify'
 import { FormColumns, FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
 
 import { openModal } from './open'
+import { SearchSelect } from '@shared/ui/forms/search-select'
 
 export function openCustomerForm(customer?: Customer, onCreated?: (id: number) => void) {
     openModal(
@@ -109,7 +110,7 @@ function CustomerForm({ customer, onDone, onCreated }: { customer?: Customer; on
                 right={
                     <>
                         <FormSection color="indigo" icon={TbAffiliate} title="Рефералка">
-                            <Select
+                            <SearchSelect
                                 allowDeselect
                                 clearable
                                 data={(customers.data ?? []).filter((c) => c.id !== customer?.id).map((c) => ({ value: String(c.id), label: c.name }))}
@@ -117,7 +118,6 @@ function CustomerForm({ customer, onDone, onCreated }: { customer?: Customer; on
                                 label="Кто привёл"
                                 leftSection={<PiUsersThreeDuotone size={16} />}
                                 placeholder="Никто, пришёл сам"
-                                searchable
                                 {...form.getInputProps('referrer_id')}
                             />
                             <NumberInput

@@ -26,6 +26,7 @@ import { FormColumns, FormFooter, FormSection } from '@shared/ui/forms/form-sect
 import { ProviderInput } from '@shared/ui/infra/provider'
 
 import { openModal } from './open'
+import { SearchSelect } from '@shared/ui/forms/search-select'
 
 const currencies = ['RUB', 'EUR', 'USD', 'GBP', 'CHF', 'CNY', 'TRY', 'KZT', 'BYN', 'UAH', 'AMD', 'GEL']
 
@@ -144,13 +145,12 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
                             }}
                         />
                         {v.kind === 'refund' && (
-                            <Select
+                            <SearchSelect
                                 label="Возврат по трате"
                                 description="Необязательно: свяжите возврат с исходным платежом"
                                 leftSection={<PiArrowUDownLeft size={16} />}
                                 clearable
                                 allowDeselect
-                                searchable
                                 data={(all.data ?? [])
                                     .filter((e) => e.kind === 'charge')
                                     .map((e) => ({
@@ -168,11 +168,10 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
                         <FormSection icon={PiCoinsDuotone} color="teal" title="Сумма" description="Рубли считаются по курсу ЦБ на дату и фиксируются">
                             <SimpleGrid cols={{ base: 1, xs: 2 }}>
                                 <NumberInput label="Сумма" leftSection={<PiCoinsDuotone size={16} />} min={0} decimalScale={2} {...form.getInputProps('orig_amount')} />
-                                <Select
+                                <SearchSelect
                                     label="Валюта"
                                     leftSection={<PiCurrencyCircleDollar size={16} />}
                                     data={currencies}
-                                    searchable
                                     {...form.getInputProps('orig_currency')}
                                 />
                             </SimpleGrid>

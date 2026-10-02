@@ -18,6 +18,7 @@ type RwUserView struct {
 	ShortUUID            string     `json:"short_uuid"`
 	Status               string     `json:"status"`
 	ExpireAt             *time.Time `json:"expire_at"`
+	Unlimited            bool       `json:"unlimited"`
 	UsedTrafficBytes     int64      `json:"used_traffic_bytes"`
 	TrafficLimitBytes    int64      `json:"traffic_limit_bytes"`
 	TrafficLimitStrategy string     `json:"traffic_limit_strategy"`
@@ -38,7 +39,7 @@ func rwUserView(u *ent.RwUser) *RwUserView {
 	}
 	return &RwUserView{
 		ID: u.ID, Username: u.Username, ShortUUID: u.ShortUUID, Status: u.Status,
-		ExpireAt: u.ExpireAt, UsedTrafficBytes: u.UsedTrafficBytes, TrafficLimitBytes: u.TrafficLimitBytes,
+		ExpireAt: u.ExpireAt, Unlimited: billing.Unlimited(u.ExpireAt), UsedTrafficBytes: u.UsedTrafficBytes, TrafficLimitBytes: u.TrafficLimitBytes,
 		TrafficLimitStrategy: u.TrafficLimitStrategy, HwidDeviceLimit: u.HwidDeviceLimit, OnlineAt: u.OnlineAt,
 		Description: u.Description, Tag: u.Tag, TelegramID: u.TelegramID, SubscriptionURL: u.SubscriptionURL,
 		SquadUUIDs: u.SquadUuids, Deleted: u.Deleted, SyncedAt: u.SyncedAt,
@@ -148,14 +149,17 @@ func live(u *RwUserView) bool {
 	return u == nil || (!u.Deleted && u.Status != "DISABLED")
 }
 
-// monthlyLive is the live part of a subscription's monthly price.
+// paying is a live user that is billed: unlimited ones are free.
+func paying(u *RwUserView) bool { return live(u) && (u == nil || !u.Unlimited) }
+
+// monthlyLive is the live, billed part of a subscription's monthly price.
 func monthlyLive(s SubscriptionView) float64 {
 	var m float64
-	if live(s.RwUser) {
+	if paying(s.RwUser) {
 		m += s.Price
 	}
 	for _, a := range s.Addons {
-		if a.RwUser != nil && live(a.RwUser) {
+		if a.RwUser != nil && paying(a.RwUser) {
 			m += a.Price
 		}
 	}
