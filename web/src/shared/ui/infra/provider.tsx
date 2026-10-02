@@ -6,6 +6,8 @@ import { useMemo } from 'react'
 import { useInfra } from '@/api/hooks'
 import type { InfraProvider } from '@/api/types'
 
+import { touchComboboxProps, useTouch } from '../forms/search-select'
+
 export const faviconResolver = (faviconLink: null | string | undefined) => {
     if (!faviconLink) return null
     try {
@@ -83,9 +85,11 @@ export function ProviderInput({ value, extra = [], onChange, ...props }: Provide
         return [...panel, ...extra.filter((n) => n && !lower.has(n.toLowerCase()))]
     }, [providers, extra])
     const current = lookup(null, value)
+    const touch = useTouch()
 
     return (
         <Autocomplete
+            comboboxProps={touch ? touchComboboxProps : undefined}
             data={[...new Set(names)]}
             description={data?.error ? 'Провайдеры из панели недоступны: нужен доступ токена к Infra Billing' : undefined}
             leftSection={value ? <ProviderAvatar faviconLink={current?.faviconLink} name={value} size={16} /> : undefined}

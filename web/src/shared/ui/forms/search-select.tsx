@@ -21,7 +21,15 @@ import { TbSelector } from 'react-icons/tb'
 
 import { BaseOverlayHeader } from '../overlays/base-overlay-header'
 
-export const useTouch = () => useMediaQuery('(pointer: coarse)') ?? false
+// Any of: a finger as the primary pointer, no hover, or a phone-wide screen.
+// Some Android browsers report a fine pointer, so pointer alone misses them.
+// Read synchronously so the first render already picks the right field.
+const TOUCH_QUERY = '(pointer: coarse), (hover: none), (max-width: 48em)'
+export const useTouch = () => useMediaQuery(TOUCH_QUERY, undefined, { getInitialValueInEffect: false }) ?? false
+
+// On touch a floating dropdown must stay under its field: flipping and
+// shifting chase the viewport as the keyboard opens and the list jumps.
+export const touchComboboxProps = { position: 'bottom', middlewares: { flip: false, shift: false } } as const
 
 export type SearchSelectProps = Omit<SelectProps, 'searchable'>
 
