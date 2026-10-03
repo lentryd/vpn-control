@@ -63,9 +63,26 @@ tasks:
       - go mod tidy
       - go fmt ./...
       - go vet ./...
+      - golangci-lint run
 
-  docker:up:
-    desc: Build and start the container next to the panel
+  docker:
+    desc: Build a local test image (ko.local/vpn-control) with ko
+    deps: [web:build]
+    env:
+      KO_DOCKER_REPO: ko.local/vpn-control
+      KO_DEFAULTBASEIMAGE: alpine
     cmds:
-      - docker compose up -d --build
+      - ko build . --bare --tags=dev
+
+  snapshot:
+    desc: Build a local release snapshot with goreleaser (no publish)
+    deps: [web:build]
+    cmds:
+      - goreleaser release --snapshot --clean --skip=validate,publish,sign,sbom
+
+  release:
+    desc: Cut a release with goreleaser (CI does it on a v* tag)
+    deps: [web:build]
+    cmds:
+      - goreleaser release --clean --skip=validate
 

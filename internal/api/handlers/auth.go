@@ -28,12 +28,9 @@ func (h *Handlers) Login(c *fiber.Ctx) error {
 		return apperr.New("auth.credentials_required", "enter username and password")
 	}
 
-	ok := false
-	if h.Config.AdminPassword != "" &&
+	ok := h.Config.AdminPassword != "" &&
 		subtle.ConstantTimeCompare([]byte(req.Username), []byte(h.Config.AdminUsername)) == 1 &&
-		subtle.ConstantTimeCompare([]byte(req.Password), []byte(h.Config.AdminPassword)) == 1 {
-		ok = true
-	}
+		subtle.ConstantTimeCompare([]byte(req.Password), []byte(h.Config.AdminPassword)) == 1
 	if !ok {
 		err := h.RW.Login(c.UserContext(), req.Username, req.Password)
 		if err != nil {

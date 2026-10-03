@@ -13,6 +13,8 @@ Customers, subscriptions, payments with auto-renewal, tariffs, add-ons, referral
 [![Mantine](https://img.shields.io/badge/Mantine-9-339AF0?logo=mantine&logoColor=white)](web/package.json)
 [![SQLite](https://img.shields.io/badge/SQLite-no%20CGO-003B57?logo=sqlite&logoColor=white)](internal/store)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/lentryd/vpn-control)](https://github.com/lentryd/vpn-control/releases)
+[![Test](https://github.com/lentryd/vpn-control/actions/workflows/test.yaml/badge.svg)](https://github.com/lentryd/vpn-control/actions/workflows/test.yaml)
 
 **English** · [Русский](README.ru.md)
 
@@ -62,32 +64,55 @@ Remnawave manages VPN users well, but it doesn't track money. Who paid, for how 
 
 ## Quick start
 
-You need a Remnawave panel and Docker. VPN Control runs as a separate container in the panel's docker network.
+You need a Remnawave panel and Docker. VPN Control runs as a separate container in the panel's docker network. A ready image is published at `ghcr.io/lentryd/vpn-control` for `linux/amd64` and `linux/arm64`, so you don't need to clone or build anything.
 
 1. In the panel, create an API token (**API tokens**) with the scopes `users:*`, `internal-squads:read`, `nodes:read`, `bandwidth-stats:read` and `infra-billing:read`, or with `*`.
-2. Clone the repository and fill in `.env`:
+2. On the server, make a folder and download the example [`compose.yml`](compose.yml) and [`.env.example`](.env.example) into it:
 
    ```bash
-   git clone https://github.com/lentryd/vpn-control.git && cd vpn-control
-   cp .env.example .env
-   # set REMNAWAVE_TOKEN, APP_DOMAIN and JWT_SECRET (openssl rand -hex 32)
+   mkdir vpn-control && cd vpn-control
+   curl -fsSL -o compose.yml https://raw.githubusercontent.com/lentryd/vpn-control/main/compose.yml
+   curl -fsSL -o .env https://raw.githubusercontent.com/lentryd/vpn-control/main/.env.example
    ```
 
-3. Start it:
+3. Fill in `.env`: `REMNAWAVE_TOKEN`, `APP_DOMAIN` and `JWT_SECRET` (`openssl rand -hex 32`). Check `REMNAWAVE_NETWORK`, `TRAEFIK_CERTRESOLVER` and `TRAEFIK_ENTRYPOINTS` against your panel's setup.
+4. Start it:
 
    ```bash
-   docker compose up -d --build
+   docker compose up -d
    ```
 
-4. Open `https://$APP_DOMAIN/` and sign in with your panel admin username and password.
+5. Open `https://$APP_DOMAIN/` and sign in with your panel admin username and password.
+
+`compose.yml` is only an example. Change it to fit your server, or copy the service into the panel's own compose file.
+
+### Updating
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+The data lives in the `vpn-control-data` volume and survives updates. Migrations run on start, and a snapshot is taken on schedule (see [Backups](#backups)). To pin a version, use a release tag instead of `latest`, for example `image: ghcr.io/lentryd/vpn-control:1.0.0`. Releases are listed on the [Releases](https://github.com/lentryd/vpn-control/releases) page.
 
 ### Deployment notes
 
 - The container joins the panel's docker network (`REMNAWAVE_NETWORK`, default `remnawave-network`) and talks to the backend directly at `http://remnawave:3000`. It sets the `X-Forwarded-*` headers the panel requires.
-- Traefik labels serve the app at `https://$APP_DOMAIN/`. The app needs its own domain, for example a subdomain of the panel's. Set `TRAEFIK_CERTRESOLVER` and `TRAEFIK_ENTRYPOINTS` to match your Traefik.
-- **Traefik on another host through frp:** add `COMPOSE_FILE=compose.yml:compose.frp.yml` to `.env`. `HOST_PORT` is then tunnelled to `1${HOST_PORT}` on the Traefik side.
-- **Without Traefik:** the app listens on `HOST_PORT`, so put any reverse proxy in front of it. Keep HTTPS, or set `SECURE_COOKIE=false` for a plain-HTTP local run.
+- Traefik labels serve the app at `https://$APP_DOMAIN/`. The app needs its own domain, for example a subdomain of the panel's.
+- **Without Traefik:** the app listens on `HOST_PORT`, so put any reverse proxy in front of it and drop the `labels`. Keep HTTPS, or set `SECURE_COOKIE=false` for a plain-HTTP local run.
+- **Traefik on another host through frp:** tunnel `HOST_PORT` to the Traefik side and point the service label at the tunnelled port. For [frp](https://github.com/fatedier/frp) with docker labels, for example:
+
+  ```yaml
+  labels:
+      # ...the router labels above, then:
+      - 'traefik.http.services.vpn-control.loadbalancer.server.port=1${HOST_PORT:-8080}'
+      - 'frp.enable=true'
+      - 'frp.name=vpn-control'
+      - 'frp.local_port=${HOST_PORT:-8080}'
+      - 'frp.remote_port=1${HOST_PORT:-8080}'
+  ```
+
 - **Login.** Admins sign in with their panel credentials. The app checks them with `POST /api/auth/login` and issues its own session. If the panel only allows OAuth or passkeys, set `ADMIN_PASSWORD` for a local login.
+- **Add-ons file (optional).** Put `addons.yml` next to `compose.yml`, or point `ADDONS_FILE` at another one, for example subpage's. Without it, add-ons are managed in the UI.
 
 ### Webhooks (optional)
 
@@ -182,6 +207,8 @@ task init      # .env, frontend dependencies
 task dev       # API on :8080 and the Bun dev server on :5173 (proxies /api)
 task test      # go test, frontend type check and locale key check
 task build     # bin/vpn-control with the embedded UI
+task lint      # go mod tidy, go fmt, go vet and golangci-lint
+task docker    # local image ko.local/vpn-control:dev (needs ko and Docker)
 ```
 
 For a local run, set `SECURE_COOKIE=false` and an `ADMIN_PASSWORD` in `.env`. The app still needs a reachable panel for `REMNAWAVE_URL`. `go run . --no-sync` skips the background sync.
@@ -190,6 +217,19 @@ For a local run, set `SECURE_COOKIE=false` and an `ADMIN_PASSWORD` in `.env`. Th
 - After editing `ent/schema`, run `task ent:generate`. Migrations run automatically on start.
 - UI strings live in `web/public/locales/{en,ru}/vpn-control.json`. Keys are type-checked against the English file, and `bun run i18n:check` checks that every locale has the same keys. To add a language, add a folder there and list the language in `web/src/app/i18n/i18n.ts`.
 - API errors carry a `code` (with `params`) that the UI translates (`errors.*` in the locales), plus an English `message` as a fallback.
+
+### Releases
+
+CI ([`.github/workflows`](.github/workflows)) runs the tests, the linters and the frontend type check on every push and pull request. Pushing a `v*` tag runs [GoReleaser](https://goreleaser.com) ([`.goreleaser.yaml`](.goreleaser.yaml)), which:
+
+- builds the binaries for `linux/amd64` and `linux/arm64` with the embedded UI and attaches them to a GitHub release with checksums, a Sigstore signature and SBOMs;
+- builds the image with [ko](https://ko.build) and pushes it to `ghcr.io/lentryd/vpn-control` as `<version>` and `latest`.
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+`task snapshot` builds the same artifacts locally without publishing them.
 
 ## License
 

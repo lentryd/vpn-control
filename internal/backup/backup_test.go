@@ -49,7 +49,7 @@ func open(t *testing.T) (*ent.Client, *sql.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { client.Close() })
+	t.Cleanup(func() { _ = client.Close() })
 	return client, db
 }
 

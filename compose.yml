@@ -1,10 +1,10 @@
-# Runs next to the Remnawave panel in its docker network, served by the
-# panel's Traefik at https://$APP_DOMAIN/.
-# Behind frp add compose.frp.yml: COMPOSE_FILE=compose.yml:compose.frp.yml.
+# Example deployment next to the Remnawave panel: the container joins the
+# panel's docker network and is served by its Traefik at https://$APP_DOMAIN/.
+# Copy this file and .env.example (as .env) into a folder on the server,
+# fill in .env and run `docker compose up -d`.
 services:
     vpn-control:
-        build: .
-        image: vpn-control:latest
+        image: ghcr.io/lentryd/vpn-control:latest
         container_name: vpn-control
         hostname: vpn-control
         restart: unless-stopped
@@ -22,6 +22,11 @@ services:
             # Optional add-ons file (e.g. subpage's); add-ons can also be
             # managed in the UI. A missing file means none.
             - ${ADDONS_FILE:-./addons.yml}:/etc/vpn-control/addons.yml:ro
+        healthcheck:
+            test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/api/healthz']
+            interval: 30s
+            timeout: 5s
+            retries: 3
         networks:
             - remnawave-network
         labels:
@@ -38,5 +43,4 @@ volumes:
 networks:
     remnawave-network:
         name: ${REMNAWAVE_NETWORK:-remnawave-network}
-        driver: bridge
         external: true

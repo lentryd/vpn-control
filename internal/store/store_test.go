@@ -15,7 +15,7 @@ func TestTimeRoundTripUnnamedZone(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	at := time.Date(2026, 10, 4, 0, 34, 37, 0, time.FixedZone("", 3*3600))
 	c, err := db.Customer.Create().SetName("Test").SetCreatedAt(at).Save(ctx)

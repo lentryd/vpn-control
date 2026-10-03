@@ -13,6 +13,8 @@
 [![Mantine](https://img.shields.io/badge/Mantine-9-339AF0?logo=mantine&logoColor=white)](web/package.json)
 [![SQLite](https://img.shields.io/badge/SQLite-без%20CGO-003B57?logo=sqlite&logoColor=white)](internal/store)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/lentryd/vpn-control)](https://github.com/lentryd/vpn-control/releases)
+[![Test](https://github.com/lentryd/vpn-control/actions/workflows/test.yaml/badge.svg)](https://github.com/lentryd/vpn-control/actions/workflows/test.yaml)
 
 [English](README.md) · **Русский**
 
@@ -62,32 +64,55 @@ Remnawave хорошо управляет пользователями VPN, но
 
 ## Быстрый старт
 
-Нужны панель Remnawave и Docker. VPN Control работает отдельным контейнером в docker-сети панели.
+Нужны панель Remnawave и Docker. VPN Control работает отдельным контейнером в docker-сети панели. Готовый образ публикуется в `ghcr.io/lentryd/vpn-control` для `linux/amd64` и `linux/arm64`, поэтому клонировать и собирать ничего не нужно.
 
 1. Создайте в панели API-токен (**API tokens**) со scope `users:*`, `internal-squads:read`, `nodes:read`, `bandwidth-stats:read`, `infra-billing:read` или просто `*`.
-2. Склонируйте репозиторий и заполните `.env`:
+2. На сервере создайте папку и скачайте в неё пример [`compose.yml`](compose.yml) и [`.env.example`](.env.example):
 
    ```bash
-   git clone https://github.com/lentryd/vpn-control.git && cd vpn-control
-   cp .env.example .env
-   # укажите REMNAWAVE_TOKEN, APP_DOMAIN и JWT_SECRET (openssl rand -hex 32)
+   mkdir vpn-control && cd vpn-control
+   curl -fsSL -o compose.yml https://raw.githubusercontent.com/lentryd/vpn-control/main/compose.yml
+   curl -fsSL -o .env https://raw.githubusercontent.com/lentryd/vpn-control/main/.env.example
    ```
 
-3. Запустите:
+3. Заполните `.env`: `REMNAWAVE_TOKEN`, `APP_DOMAIN` и `JWT_SECRET` (`openssl rand -hex 32`). Сверьте `REMNAWAVE_NETWORK`, `TRAEFIK_CERTRESOLVER` и `TRAEFIK_ENTRYPOINTS` с настройками своей панели.
+4. Запустите:
 
    ```bash
-   docker compose up -d --build
+   docker compose up -d
    ```
 
-4. Откройте `https://$APP_DOMAIN/` и войдите логином и паролем администратора панели.
+5. Откройте `https://$APP_DOMAIN/` и войдите логином и паролем администратора панели.
+
+`compose.yml` — только пример. Подстройте его под свой сервер или перенесите сервис в compose-файл самой панели.
+
+### Обновление
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Данные хранятся в volume `vpn-control-data` и переживают обновления. Миграции применяются при старте, снапшоты делаются по расписанию (см. [Резервные копии](#резервные-копии)). Чтобы зафиксировать версию, укажите вместо `latest` тег релиза, например `image: ghcr.io/lentryd/vpn-control:1.0.0`. Список версий — на странице [Releases](https://github.com/lentryd/vpn-control/releases).
 
 ### Детали развёртывания
 
 - Контейнер подключается к docker-сети панели (`REMNAWAVE_NETWORK`, по умолчанию `remnawave-network`) и обращается к бэкенду напрямую: `http://remnawave:3000`. Заголовки `X-Forwarded-*`, которые требует панель, сервис выставляет сам.
-- Лейблы Traefik отдают приложение по адресу `https://$APP_DOMAIN/`. Ему нужен собственный домен, например поддомен панели. Укажите `TRAEFIK_CERTRESOLVER` и `TRAEFIK_ENTRYPOINTS` под свой Traefik.
-- **Traefik на другом хосте через frp:** добавьте в `.env` строку `COMPOSE_FILE=compose.yml:compose.frp.yml`. Тогда `HOST_PORT` пробрасывается на `1${HOST_PORT}` на стороне Traefik.
-- **Без Traefik:** приложение слушает `HOST_PORT`, перед ним можно поставить любой обратный прокси. Работайте по HTTPS или задайте `SECURE_COOKIE=false` для локального запуска по HTTP.
+- Лейблы Traefik отдают приложение по адресу `https://$APP_DOMAIN/`. Ему нужен собственный домен, например поддомен панели.
+- **Без Traefik:** приложение слушает `HOST_PORT`, перед ним можно поставить любой обратный прокси, а `labels` убрать. Работайте по HTTPS или задайте `SECURE_COOKIE=false` для локального запуска по HTTP.
+- **Traefik на другом хосте через frp:** пробросьте `HOST_PORT` на сторону Traefik и укажите в лейбле сервиса проброшенный порт. Например, для [frp](https://github.com/fatedier/frp) с docker-лейблами:
+
+  ```yaml
+  labels:
+      # ...лейблы роутера выше, затем:
+      - 'traefik.http.services.vpn-control.loadbalancer.server.port=1${HOST_PORT:-8080}'
+      - 'frp.enable=true'
+      - 'frp.name=vpn-control'
+      - 'frp.local_port=${HOST_PORT:-8080}'
+      - 'frp.remote_port=1${HOST_PORT:-8080}'
+  ```
+
 - **Вход.** Администраторы входят с учётными данными панели: сервис проверяет их через `POST /api/auth/login` и выдаёт свою сессию. Если в панели вход только через OAuth или passkey, задайте `ADMIN_PASSWORD` для локального входа.
+- **Файл аддонов (по желанию).** Положите `addons.yml` рядом с `compose.yml` или укажите в `ADDONS_FILE` путь к другому, например к файлу subpage. Без него аддоны ведутся в интерфейсе.
 
 ### Вебхуки (по желанию)
 
@@ -182,6 +207,8 @@ task init      # .env, зависимости фронта
 task dev       # API на :8080 и dev-сервер Bun на :5173 (проксирует /api)
 task test      # go test, проверка типов фронта и ключей локалей
 task build     # bin/vpn-control со встроенным интерфейсом
+task lint      # go mod tidy, go fmt, go vet и golangci-lint
+task docker    # локальный образ ko.local/vpn-control:dev (нужны ko и Docker)
 ```
 
 Для локального запуска задайте в `.env` `SECURE_COOKIE=false` и `ADMIN_PASSWORD`. Панель по `REMNAWAVE_URL` всё равно должна быть доступна. `go run . --no-sync` отключает фоновую синхронизацию.
@@ -190,6 +217,19 @@ task build     # bin/vpn-control со встроенным интерфейсо�
 - После правки `ent/schema` запустите `task ent:generate`. Миграции применяются автоматически при старте.
 - Строки интерфейса лежат в `web/public/locales/{en,ru}/vpn-control.json`. Ключи проверяются типами по английскому файлу, а `bun run i18n:check` проверяет, что у всех языков одинаковый набор ключей. Чтобы добавить язык, создайте там папку и добавьте язык в `web/src/app/i18n/i18n.ts`.
 - Ошибки API содержат `code` (и `params`) — интерфейс переводит их по ключам `errors.*`, а английский `message` служит запасным вариантом.
+
+### Релизы
+
+CI ([`.github/workflows`](.github/workflows)) на каждый push и pull request гоняет тесты, линтеры и проверку типов фронта. Тег `v*` запускает [GoReleaser](https://goreleaser.com) ([`.goreleaser.yaml`](.goreleaser.yaml)), который:
+
+- собирает бинарники для `linux/amd64` и `linux/arm64` со встроенным интерфейсом и прикладывает их к GitHub-релизу вместе с контрольными суммами, подписью Sigstore и SBOM;
+- собирает образ через [ko](https://ko.build) и публикует его в `ghcr.io/lentryd/vpn-control` с тегами `<версия>` и `latest`.
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+`task snapshot` собирает то же самое локально без публикации.
 
 ## Лицензия
 

@@ -17,7 +17,7 @@ func TestCreateAdvancesDueDate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 	svc := New(db, nil, fx.New(db, func(context.Context) string { return "RUB" }), time.UTC)
 
 	due := time.Date(2026, 10, 5, 0, 0, 0, 0, time.UTC)

@@ -95,7 +95,7 @@ func setup(t *testing.T) *fixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 	panel := &fakePanel{users: map[int]*remnawave.User{}}
 	srv := httptest.NewServer(panel)
 	t.Cleanup(srv.Close)

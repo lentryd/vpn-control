@@ -222,7 +222,7 @@ func readManifest(path string) (*Manifest, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer zr.Close()
+	defer func() { _ = zr.Close() }()
 	for _, f := range zr.File {
 		if f.Name != manifestName {
 			continue
@@ -231,7 +231,7 @@ func readManifest(path string) (*Manifest, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer rc.Close()
+		defer func() { _ = rc.Close() }()
 		var m Manifest
 		return &m, json.NewDecoder(rc).Decode(&m)
 	}

@@ -129,7 +129,7 @@ func Export(ctx context.Context, db *sql.DB, w io.Writer, categories []string, a
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	m := &Manifest{
 		Format: Format, Version: Version, AppVersion: appVersion,
@@ -170,7 +170,7 @@ func tableColumns(ctx context.Context, q queryer, table string) ([]column, error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var cols []column
 	for rows.Next() {
 		var c column
@@ -208,7 +208,7 @@ func dumpTable(ctx context.Context, q queryer, table string, w io.Writer) (int, 
 	if err != nil {
 		return 0, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	if _, err := io.WriteString(w, "["); err != nil {
 		return 0, err
@@ -297,7 +297,7 @@ func Open(data []byte) (*Archive, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 	if err := json.NewDecoder(rc).Decode(&a.Manifest); err != nil {
 		return nil, apperr.Wrap(err, "backup.bad_manifest", "invalid manifest.json: {{error}}")
 	}
@@ -331,19 +331,19 @@ func Import(ctx context.Context, db *sql.DB, a *Archive, categories []string) (*
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	// PRAGMA foreign_keys is a no-op inside a transaction, so it's set on
 	// the connection around it.
 	if _, err := conn.ExecContext(ctx, "PRAGMA foreign_keys = OFF"); err != nil {
 		return nil, err
 	}
-	defer conn.ExecContext(context.Background(), "PRAGMA foreign_keys = ON")
+	defer func() { _, _ = conn.ExecContext(context.Background(), "PRAGMA foreign_keys = ON") }()
 
 	tx, err := conn.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	rep := &Report{Tables: map[string]int{}, Skipped: []string{}}
 	for _, t := range tables {
@@ -396,7 +396,7 @@ func loadTable(ctx context.Context, tx *sql.Tx, table string, f *zip.File) (int,
 	if err != nil {
 		return 0, err
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 	dec := json.NewDecoder(rc)
 	dec.UseNumber()
 	if tok, err := dec.Token(); err != nil || tok != json.Delim('[') {
@@ -408,7 +408,7 @@ func loadTable(ctx context.Context, tx *sql.Tx, table string, f *zip.File) (int,
 	stmts := map[string]*sql.Stmt{}
 	defer func() {
 		for _, s := range stmts {
-			s.Close()
+			_ = s.Close()
 		}
 	}()
 	n := 0
@@ -475,7 +475,7 @@ func checkForeignKeys(ctx context.Context, tx *sql.Tx) error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	counts := map[string]int{}
 	for rows.Next() {
 		var table, parent string
