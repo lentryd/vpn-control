@@ -40,7 +40,11 @@ func OpenDB(ctx context.Context, path string) (*ent.Client, *sql.DB, error) {
 		}
 	}
 
-	dsn := "file:" + path + "?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)"
+	// _time_format=sqlite writes times as "2006-01-02 15:04:05.999999999-07:00".
+	// The driver's default is time.String(), which it can't parse back for
+	// a zone without a name (an offset that isn't the local one, e.g. a panel
+	// date in +03:00). Rows written the old way are still read.
+	dsn := "file:" + path + "?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_time_format=sqlite"
 	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, nil, fmt.Errorf("open database: %w", err)

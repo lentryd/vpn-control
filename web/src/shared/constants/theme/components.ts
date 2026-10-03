@@ -101,8 +101,9 @@ export const components = {
     // Plain objects instead of X.extend() for components the app shell doesn't
     // render, so they (and react-number-format, @mantine/dates) load with the
     // pages that use them.
+    // Separators follow the UI language (LocaleProvider).
     NumberInput: {
-        defaultProps: { ...field, thousandSeparator: ' ', decimalSeparator: ',' },
+        defaultProps: field,
         classNames: fieldClassNames
     },
     Select: Select.extend({

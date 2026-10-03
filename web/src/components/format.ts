@@ -12,7 +12,7 @@ let money2: Intl.NumberFormat
 
 function build() {
     const opts = { style: 'currency', currency: base, currencyDisplay: 'narrowSymbol' } as const
-    money0 = new Intl.NumberFormat(locale, { ...opts, maximumFractionDigits: 2, minimumFractionDigits: 0 })
+    money0 = new Intl.NumberFormat(locale, { ...opts, maximumFractionDigits: 0 })
     money2 = new Intl.NumberFormat(locale, { ...opts, maximumFractionDigits: 2, minimumFractionDigits: 2 })
 }
 build()
@@ -35,8 +35,22 @@ export const currencySymbol = (cur = base) =>
         .formatToParts(0)
         .find((p) => p.type === 'currency')?.value ?? cur
 
-export const fmtMoney = (v: number | null | undefined, digits: 0 | 2 = 0) =>
-    v === null || v === undefined ? '—' : (digits ? money2 : money0).format(v)
+// fmtMoney with digits 0 drops the cents of whole amounts only: 120 → $120,
+// 119.8 → $119.80 (never a lone tenth digit).
+export function fmtMoney(v: number | null | undefined, digits: 0 | 2 = 0) {
+    if (v === null || v === undefined) return '—'
+    const cents = Math.round(v * 100)
+    return (digits || cents % 100 !== 0 ? money2 : money0).format(cents / 100)
+}
+
+// numberSeparators are a locale's group and decimal signs, for inputs.
+export function numberSeparators(loc: string) {
+    const parts = new Intl.NumberFormat(loc).formatToParts(12345.6)
+    return {
+        thousandSeparator: parts.find((p) => p.type === 'group')?.value ?? ',',
+        decimalSeparator: parts.find((p) => p.type === 'decimal')?.value ?? '.'
+    }
+}
 
 export const fmtNum = (v: number, digits = 2) => new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(v)
 
