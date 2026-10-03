@@ -26,7 +26,7 @@ import { Link } from 'react-router'
 import { api } from '@/api/client'
 import { useApiMutation, useCustomers, useRwUsers, useSubscriptions, useTariffs } from '@/api/hooks'
 import type { AddonItem, RwUser, Subscription } from '@/api/types'
-import { StatusBadge } from '@/components/badges'
+import { StatusBadge, trafficHint, trafficResetColor, trafficResetText } from '@/components/badges'
 import { fmtBytes, fmtDate, fmtDateTime, fmtMoney, fromNow, currencySymbol } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { addonTitle, AddonMenuItems, SubscriptionMenuItems, useItemActions } from '@/components/ItemActions'
@@ -152,6 +152,18 @@ function IdentityCard({ title, rw, icon }: { title: string; rw: RwUser | null; i
                             size="sm"
                             value={limit ? pct : 100}
                         />
+                        {limit > 0 && (
+                            <Tooltip label={trafficHint(rw)}>
+                                <Group gap="xs" justify="space-between" mt={6}>
+                                    <Text c="dimmed" size="xs">
+                                        {t('traffic.left', { left: fmtBytes(Math.max(0, limit - used)) })}
+                                    </Text>
+                                    <Text c={trafficResetColor(rw)} size="xs">
+                                        {trafficResetText(rw)}
+                                    </Text>
+                                </Group>
+                            </Tooltip>
+                        )}
                     </SectionCard.Section>
                 )}
 

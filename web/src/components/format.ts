@@ -81,5 +81,15 @@ export const GB = 1024 ** 3
 // Traffic reset strategies of the panel.
 export const STRATEGIES = ['NO_RESET', 'DAY', 'WEEK', 'MONTH', 'MONTH_ROLLING'] as const
 
+// trafficPct is the share of the traffic limit used, null without a limit.
+export const trafficPct = (u: { used_traffic_bytes: number; traffic_limit_bytes: number } | null | undefined) =>
+    u?.traffic_limit_bytes ? (u.used_traffic_bytes * 100) / u.traffic_limit_bytes : null
+
+// TRAFFIC_LOW_PCT is where a limited user counts as running out of traffic.
+export const TRAFFIC_LOW_PCT = 80
+
+export const isTrafficLow = (u: { used_traffic_bytes: number; traffic_limit_bytes: number; status: string } | null | undefined) =>
+    !!u && (u.status === 'LIMITED' || (trafficPct(u) ?? 0) >= TRAFFIC_LOW_PCT)
+
 export const strategyLabel = (s: string) =>
     (STRATEGIES as readonly string[]).includes(s) ? i18n.t(`format.strategy.${s as (typeof STRATEGIES)[number]}`) : s

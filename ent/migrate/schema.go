@@ -287,6 +287,8 @@ var (
 		{Name: "used_traffic_bytes", Type: field.TypeInt64, Default: 0},
 		{Name: "traffic_limit_bytes", Type: field.TypeInt64, Default: 0},
 		{Name: "traffic_limit_strategy", Type: field.TypeString, Nullable: true},
+		{Name: "last_traffic_reset_at", Type: field.TypeTime, Nullable: true},
+		{Name: "panel_created_at", Type: field.TypeTime, Nullable: true},
 		{Name: "hwid_device_limit", Type: field.TypeInt, Nullable: true},
 		{Name: "online_at", Type: field.TypeTime, Nullable: true},
 		{Name: "description", Type: field.TypeString, Nullable: true},

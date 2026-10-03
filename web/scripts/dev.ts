@@ -4,11 +4,13 @@
 // (ReferenceError: import_a_module is not defined), so reload the page instead.
 import index from '../index.html'
 
-const API = process.env.API_URL ?? 'http://localhost:8080'
+// PORT is the Go backend's port (taskfile loads it from .env), so the dev
+// server has its own DEV_PORT and derives the API address from PORT.
+const API = process.env.API_URL ?? `http://localhost:${process.env.PORT ?? 8080}`
 const publicDir = new URL('../public/', import.meta.url)
 
 const server = Bun.serve({
-    port: Number(process.env.PORT ?? 5173),
+    port: Number(process.env.DEV_PORT ?? 5173),
     development: { hmr: false },
     routes: {
         '/': index,

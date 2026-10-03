@@ -29,6 +29,35 @@ type ExpiringItem struct {
 	Balance      float64    `json:"balance"`
 }
 
+// TrafficItem is a panel user running out of its traffic limit.
+type TrafficItem struct {
+	Kind             string     `json:"kind"`
+	ID               int        `json:"id"`
+	SubID            int        `json:"subscription_id"`
+	Title            string     `json:"title"`
+	CustomerID       int        `json:"customer_id"`
+	CustomerName     string     `json:"customer_name"`
+	Status           string     `json:"status"`
+	UsedBytes        int64      `json:"used_traffic_bytes"`
+	LimitBytes       int64      `json:"traffic_limit_bytes"`
+	Strategy         string     `json:"traffic_limit_strategy"`
+	UsedPct          float64    `json:"used_pct"`
+	NextResetAt      *time.Time `json:"next_traffic_reset_at"`
+	LastTrafficReset *time.Time `json:"last_traffic_reset_at"`
+}
+
+// trafficLowPct is where a limited user counts as running out of traffic
+// (web: TRAFFIC_LOW_PCT).
+const trafficLowPct = 80
+
+// trafficStats splits live panel users by how much of their limit is left.
+type trafficStats struct {
+	OK        int `json:"ok"`
+	Low       int `json:"low"`
+	Limited   int `json:"limited"`
+	Unlimited int `json:"unlimited"`
+}
+
 type monthPoint struct {
 	Month    string  `json:"month"`
 	Income   float64 `json:"income"`
@@ -54,6 +83,32 @@ func (h *Handlers) Dashboard(c *fiber.Ctx) error {
 	activeSubs, activeAddons := 0, 0
 	customers := map[int]bool{}
 	var expiring []ExpiringItem
+	trafficLow := []TrafficItem{}
+	var traffic trafficStats
+	addTraffic := func(kind string, id int, title string, s SubscriptionView, u *RwUserView) {
+		if u == nil || u.Deleted || (u.Status != "ACTIVE" && u.Status != "LIMITED") {
+			return
+		}
+		if u.TrafficLimitBytes <= 0 {
+			traffic.Unlimited++
+			return
+		}
+		pct := float64(u.UsedTrafficBytes) * 100 / float64(u.TrafficLimitBytes)
+		switch {
+		case u.Status == "LIMITED":
+			traffic.Limited++
+		case pct >= trafficLowPct:
+			traffic.Low++
+		default:
+			traffic.OK++
+			return
+		}
+		trafficLow = append(trafficLow, TrafficItem{
+			Kind: kind, ID: id, SubID: s.ID, Title: title, CustomerID: s.CustomerID, CustomerName: s.CustomerName,
+			Status: u.Status, UsedBytes: u.UsedTrafficBytes, LimitBytes: u.TrafficLimitBytes, Strategy: u.TrafficLimitStrategy,
+			UsedPct: pct, NextResetAt: u.NextTrafficResetAt, LastTrafficReset: u.LastTrafficResetAt,
+		})
+	}
 	add := func(kind string, id int, title string, s SubscriptionView, u *RwUserView, price float64) {
 		if u == nil || u.Deleted || u.ExpireAt == nil || u.Status == "DISABLED" {
 			return
@@ -79,16 +134,19 @@ func (h *Handlers) Dashboard(c *fiber.Ctx) error {
 			customers[s.CustomerID] = true
 		}
 		add("subscription", s.ID, s.Title, s, s.RwUser, s.Price)
+		addTraffic("subscription", s.ID, s.Title, s, s.RwUser)
 		for _, a := range s.Addons {
 			if a.RwUser != nil && live(a.RwUser) {
 				activeAddons++
 			}
+			addTraffic("addon", a.ID, a.AddonName+" · "+s.Title, s, a.RwUser)
 			if !a.Included { // included add-ons expire with their subscription
 				add("addon", a.ID, a.AddonName+" · "+s.Title, s, a.RwUser, a.Price)
 			}
 		}
 	}
 	sort.Slice(expiring, func(i, j int) bool { return expiring[i].ExpireAt.Before(*expiring[j].ExpireAt) })
+	sort.Slice(trafficLow, func(i, j int) bool { return trafficLow[i].UsedPct > trafficLow[j].UsedPct })
 
 	planned, plannedTotal, err := h.Expenses.Planned(ctx)
 	if err != nil {
@@ -268,6 +326,8 @@ func (h *Handlers) Dashboard(c *fiber.Ctx) error {
 		"referral_month":   money.ToMajor(refMonth),
 		"debt_total":       money.ToMajor(debt),
 		"expiring":         expiring,
+		"traffic_low":      trafficLow,
+		"traffic_stats":    traffic,
 		"due_soon":         dueSoon,
 		"metered":          metered,
 		"months":           points,

@@ -24,6 +24,9 @@ func (RwUser) Fields() []ent.Field {
 		field.Int64("used_traffic_bytes").Default(0),
 		field.Int64("traffic_limit_bytes").Default(0),
 		field.String("traffic_limit_strategy").Optional(),
+		field.Time("last_traffic_reset_at").Optional().Nillable(),
+		// panel_created_at anchors MONTH_ROLLING traffic resets.
+		field.Time("panel_created_at").Optional().Nillable(),
 		field.Int("hwid_device_limit").Optional().Nillable(),
 		field.Time("online_at").Optional().Nillable(),
 		field.String("description").Optional(),

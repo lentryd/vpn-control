@@ -28,6 +28,10 @@ const (
 	FieldTrafficLimitBytes = "traffic_limit_bytes"
 	// FieldTrafficLimitStrategy holds the string denoting the traffic_limit_strategy field in the database.
 	FieldTrafficLimitStrategy = "traffic_limit_strategy"
+	// FieldLastTrafficResetAt holds the string denoting the last_traffic_reset_at field in the database.
+	FieldLastTrafficResetAt = "last_traffic_reset_at"
+	// FieldPanelCreatedAt holds the string denoting the panel_created_at field in the database.
+	FieldPanelCreatedAt = "panel_created_at"
 	// FieldHwidDeviceLimit holds the string denoting the hwid_device_limit field in the database.
 	FieldHwidDeviceLimit = "hwid_device_limit"
 	// FieldOnlineAt holds the string denoting the online_at field in the database.
@@ -78,6 +82,8 @@ var Columns = []string{
 	FieldUsedTrafficBytes,
 	FieldTrafficLimitBytes,
 	FieldTrafficLimitStrategy,
+	FieldLastTrafficResetAt,
+	FieldPanelCreatedAt,
 	FieldHwidDeviceLimit,
 	FieldOnlineAt,
 	FieldDescription,
@@ -151,6 +157,16 @@ func ByTrafficLimitBytes(opts ...sql.OrderTermOption) OrderOption {
 // ByTrafficLimitStrategy orders the results by the traffic_limit_strategy field.
 func ByTrafficLimitStrategy(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTrafficLimitStrategy, opts...).ToFunc()
+}
+
+// ByLastTrafficResetAt orders the results by the last_traffic_reset_at field.
+func ByLastTrafficResetAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastTrafficResetAt, opts...).ToFunc()
+}
+
+// ByPanelCreatedAt orders the results by the panel_created_at field.
+func ByPanelCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPanelCreatedAt, opts...).ToFunc()
 }
 
 // ByHwidDeviceLimit orders the results by the hwid_device_limit field.

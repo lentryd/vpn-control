@@ -10,6 +10,9 @@ export interface RwUser {
     used_traffic_bytes: number
     traffic_limit_bytes: number
     traffic_limit_strategy: string
+    last_traffic_reset_at: string | null
+    // When the panel resets traffic next (predicted from the strategy); null if never.
+    next_traffic_reset_at: string | null
     hwid_device_limit: number | null
     online_at: string | null
     description: string
@@ -357,6 +360,23 @@ export interface ExpiringItem {
     balance: number
 }
 
+// TrafficItem is a panel user running out of its traffic limit.
+export interface TrafficItem {
+    kind: 'subscription' | 'addon'
+    id: number
+    subscription_id: number
+    title: string
+    customer_id: number
+    customer_name: string
+    status: RwStatus
+    used_traffic_bytes: number
+    traffic_limit_bytes: number
+    traffic_limit_strategy: string
+    used_pct: number
+    next_traffic_reset_at: string | null
+    last_traffic_reset_at: string | null
+}
+
 export interface Dashboard {
     window_days: number
     mrr: number
@@ -374,6 +394,8 @@ export interface Dashboard {
     referral_month: number
     debt_total: number
     expiring: ExpiringItem[]
+    traffic_low: TrafficItem[]
+    traffic_stats: { ok: number; low: number; limited: number; unlimited: number }
     due_soon:
         | {
               id: number

@@ -210,6 +210,7 @@ func Upsert(ctx context.Context, db *ent.Client, u *remnawave.User) error {
 		SetUsedTrafficBytes(u.UserTraffic.UsedTrafficBytes).
 		SetTrafficLimitBytes(u.TrafficLimitBytes).
 		SetTrafficLimitStrategy(u.TrafficLimitStrategy).
+		SetNillableLastTrafficResetAt(u.LastTrafficResetAt).
 		SetNillableHwidDeviceLimit(u.HwidDeviceLimit).
 		SetNillableOnlineAt(u.UserTraffic.OnlineAt).
 		SetDescription(deref(u.Description)).
@@ -235,6 +236,12 @@ func Upsert(ctx context.Context, db *ent.Client, u *remnawave.User) error {
 	}
 	if u.TelegramID == nil {
 		upd.ClearTelegramID()
+	}
+	if u.LastTrafficResetAt == nil {
+		upd.ClearLastTrafficResetAt()
+	}
+	if !u.CreatedAt.IsZero() {
+		upd.SetPanelCreatedAt(u.CreatedAt)
 	}
 	return upd.Exec(ctx)
 }

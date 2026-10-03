@@ -7,6 +7,7 @@ import { Link } from 'react-router'
 import { useRwUsers } from '@/api/hooks'
 import type { RwUserRow } from '@/api/types'
 import { ExpireCell, OnlineCell, StatusBadge, TrafficCell, UsernameCell } from '@/components/badges'
+import { trafficPct } from '@/components/format'
 import { PageHeader } from '@/components/ui'
 import { openCustomerForm } from '@/modals/CustomerModals'
 import { openSubscriptionForm } from '@/modals/SubscriptionModals'
@@ -37,7 +38,7 @@ export function RwUsersPage() {
                 mantineTableBodyCellProps: { align: 'center' },
                 Cell: ({ row }) => <ExpireCell date={row.original.expire_at} />
             },
-            { id: 'traffic', header: t('sub.traffic'), accessorFn: (r) => r.used_traffic_bytes, enableColumnFilter: false, size: 260, Cell: ({ row }) => <TrafficCell user={row.original} /> },
+            { id: 'traffic', header: t('sub.traffic'), accessorFn: (r) => trafficPct(r) ?? -1, sortDescFirst: true, enableColumnFilter: false, size: 260, Cell: ({ row }) => <TrafficCell user={row.original} /> },
             {
                 id: 'online',
                 header: t('subscriptions.col_online'),

@@ -34,6 +34,10 @@ type RwUser struct {
 	TrafficLimitBytes int64 `json:"traffic_limit_bytes,omitempty"`
 	// TrafficLimitStrategy holds the value of the "traffic_limit_strategy" field.
 	TrafficLimitStrategy string `json:"traffic_limit_strategy,omitempty"`
+	// LastTrafficResetAt holds the value of the "last_traffic_reset_at" field.
+	LastTrafficResetAt *time.Time `json:"last_traffic_reset_at,omitempty"`
+	// PanelCreatedAt holds the value of the "panel_created_at" field.
+	PanelCreatedAt *time.Time `json:"panel_created_at,omitempty"`
 	// HwidDeviceLimit holds the value of the "hwid_device_limit" field.
 	HwidDeviceLimit *int `json:"hwid_device_limit,omitempty"`
 	// OnlineAt holds the value of the "online_at" field.
@@ -104,7 +108,7 @@ func (*RwUser) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case rwuser.FieldUsername, rwuser.FieldShortUUID, rwuser.FieldStatus, rwuser.FieldTrafficLimitStrategy, rwuser.FieldDescription, rwuser.FieldTag, rwuser.FieldSubscriptionURL:
 			values[i] = new(sql.NullString)
-		case rwuser.FieldExpireAt, rwuser.FieldOnlineAt, rwuser.FieldSyncedAt:
+		case rwuser.FieldExpireAt, rwuser.FieldLastTrafficResetAt, rwuser.FieldPanelCreatedAt, rwuser.FieldOnlineAt, rwuser.FieldSyncedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -169,6 +173,20 @@ func (_m *RwUser) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field traffic_limit_strategy", values[i])
 			} else if value.Valid {
 				_m.TrafficLimitStrategy = value.String
+			}
+		case rwuser.FieldLastTrafficResetAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field last_traffic_reset_at", values[i])
+			} else if value.Valid {
+				_m.LastTrafficResetAt = new(time.Time)
+				*_m.LastTrafficResetAt = value.Time
+			}
+		case rwuser.FieldPanelCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field panel_created_at", values[i])
+			} else if value.Valid {
+				_m.PanelCreatedAt = new(time.Time)
+				*_m.PanelCreatedAt = value.Time
 			}
 		case rwuser.FieldHwidDeviceLimit:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -297,6 +315,16 @@ func (_m *RwUser) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("traffic_limit_strategy=")
 	builder.WriteString(_m.TrafficLimitStrategy)
+	builder.WriteString(", ")
+	if v := _m.LastTrafficResetAt; v != nil {
+		builder.WriteString("last_traffic_reset_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.PanelCreatedAt; v != nil {
+		builder.WriteString("panel_created_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	if v := _m.HwidDeviceLimit; v != nil {
 		builder.WriteString("hwid_device_limit=")

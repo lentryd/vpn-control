@@ -167,6 +167,46 @@ func (_u *RwUserUpdate) ClearTrafficLimitStrategy() *RwUserUpdate {
 	return _u
 }
 
+// SetLastTrafficResetAt sets the "last_traffic_reset_at" field.
+func (_u *RwUserUpdate) SetLastTrafficResetAt(v time.Time) *RwUserUpdate {
+	_u.mutation.SetLastTrafficResetAt(v)
+	return _u
+}
+
+// SetNillableLastTrafficResetAt sets the "last_traffic_reset_at" field if the given value is not nil.
+func (_u *RwUserUpdate) SetNillableLastTrafficResetAt(v *time.Time) *RwUserUpdate {
+	if v != nil {
+		_u.SetLastTrafficResetAt(*v)
+	}
+	return _u
+}
+
+// ClearLastTrafficResetAt clears the value of the "last_traffic_reset_at" field.
+func (_u *RwUserUpdate) ClearLastTrafficResetAt() *RwUserUpdate {
+	_u.mutation.ClearLastTrafficResetAt()
+	return _u
+}
+
+// SetPanelCreatedAt sets the "panel_created_at" field.
+func (_u *RwUserUpdate) SetPanelCreatedAt(v time.Time) *RwUserUpdate {
+	_u.mutation.SetPanelCreatedAt(v)
+	return _u
+}
+
+// SetNillablePanelCreatedAt sets the "panel_created_at" field if the given value is not nil.
+func (_u *RwUserUpdate) SetNillablePanelCreatedAt(v *time.Time) *RwUserUpdate {
+	if v != nil {
+		_u.SetPanelCreatedAt(*v)
+	}
+	return _u
+}
+
+// ClearPanelCreatedAt clears the value of the "panel_created_at" field.
+func (_u *RwUserUpdate) ClearPanelCreatedAt() *RwUserUpdate {
+	_u.mutation.ClearPanelCreatedAt()
+	return _u
+}
+
 // SetHwidDeviceLimit sets the "hwid_device_limit" field.
 func (_u *RwUserUpdate) SetHwidDeviceLimit(v int) *RwUserUpdate {
 	_u.mutation.ResetHwidDeviceLimit()
@@ -477,6 +517,18 @@ func (_u *RwUserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.TrafficLimitStrategyCleared() {
 		_spec.ClearField(rwuser.FieldTrafficLimitStrategy, field.TypeString)
 	}
+	if value, ok := _u.mutation.LastTrafficResetAt(); ok {
+		_spec.SetField(rwuser.FieldLastTrafficResetAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastTrafficResetAtCleared() {
+		_spec.ClearField(rwuser.FieldLastTrafficResetAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.PanelCreatedAt(); ok {
+		_spec.SetField(rwuser.FieldPanelCreatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.PanelCreatedAtCleared() {
+		_spec.ClearField(rwuser.FieldPanelCreatedAt, field.TypeTime)
+	}
 	if value, ok := _u.mutation.HwidDeviceLimit(); ok {
 		_spec.SetField(rwuser.FieldHwidDeviceLimit, field.TypeInt, value)
 	}
@@ -747,6 +799,46 @@ func (_u *RwUserUpdateOne) SetNillableTrafficLimitStrategy(v *string) *RwUserUpd
 // ClearTrafficLimitStrategy clears the value of the "traffic_limit_strategy" field.
 func (_u *RwUserUpdateOne) ClearTrafficLimitStrategy() *RwUserUpdateOne {
 	_u.mutation.ClearTrafficLimitStrategy()
+	return _u
+}
+
+// SetLastTrafficResetAt sets the "last_traffic_reset_at" field.
+func (_u *RwUserUpdateOne) SetLastTrafficResetAt(v time.Time) *RwUserUpdateOne {
+	_u.mutation.SetLastTrafficResetAt(v)
+	return _u
+}
+
+// SetNillableLastTrafficResetAt sets the "last_traffic_reset_at" field if the given value is not nil.
+func (_u *RwUserUpdateOne) SetNillableLastTrafficResetAt(v *time.Time) *RwUserUpdateOne {
+	if v != nil {
+		_u.SetLastTrafficResetAt(*v)
+	}
+	return _u
+}
+
+// ClearLastTrafficResetAt clears the value of the "last_traffic_reset_at" field.
+func (_u *RwUserUpdateOne) ClearLastTrafficResetAt() *RwUserUpdateOne {
+	_u.mutation.ClearLastTrafficResetAt()
+	return _u
+}
+
+// SetPanelCreatedAt sets the "panel_created_at" field.
+func (_u *RwUserUpdateOne) SetPanelCreatedAt(v time.Time) *RwUserUpdateOne {
+	_u.mutation.SetPanelCreatedAt(v)
+	return _u
+}
+
+// SetNillablePanelCreatedAt sets the "panel_created_at" field if the given value is not nil.
+func (_u *RwUserUpdateOne) SetNillablePanelCreatedAt(v *time.Time) *RwUserUpdateOne {
+	if v != nil {
+		_u.SetPanelCreatedAt(*v)
+	}
+	return _u
+}
+
+// ClearPanelCreatedAt clears the value of the "panel_created_at" field.
+func (_u *RwUserUpdateOne) ClearPanelCreatedAt() *RwUserUpdateOne {
+	_u.mutation.ClearPanelCreatedAt()
 	return _u
 }
 
@@ -1089,6 +1181,18 @@ func (_u *RwUserUpdateOne) sqlSave(ctx context.Context) (_node *RwUser, err erro
 	}
 	if _u.mutation.TrafficLimitStrategyCleared() {
 		_spec.ClearField(rwuser.FieldTrafficLimitStrategy, field.TypeString)
+	}
+	if value, ok := _u.mutation.LastTrafficResetAt(); ok {
+		_spec.SetField(rwuser.FieldLastTrafficResetAt, field.TypeTime, value)
+	}
+	if _u.mutation.LastTrafficResetAtCleared() {
+		_spec.ClearField(rwuser.FieldLastTrafficResetAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.PanelCreatedAt(); ok {
+		_spec.SetField(rwuser.FieldPanelCreatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.PanelCreatedAtCleared() {
+		_spec.ClearField(rwuser.FieldPanelCreatedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.HwidDeviceLimit(); ok {
 		_spec.SetField(rwuser.FieldHwidDeviceLimit, field.TypeInt, value)

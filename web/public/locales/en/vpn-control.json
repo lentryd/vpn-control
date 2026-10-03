@@ -184,6 +184,14 @@
         "expires_in": "expires in {{in}}",
         "forever_hint": "{{date}} — \"forever\" in the panel"
     },
+    "traffic": {
+        "resets_in": "resets in {{in}}",
+        "reset_on": "resets {{date}}",
+        "no_reset": "never resets",
+        "left": "{{left}} left",
+        "next_reset": "Next reset: {{date}}",
+        "last_reset": "Last reset: {{date}}"
+    },
     "users": {
         "not_in_panel": "not in the panel",
         "never_connected": "never connected"
@@ -219,6 +227,19 @@
         "col_balance": "Balance",
         "expiring_hint": "Subscriptions and add-ons due for renewal",
         "nothing_expiring": "Nothing is expiring — everything is paid.",
+        "traffic_low": "Running out of traffic",
+        "traffic_low_hint": "80% of the limit or more used — and when it resets",
+        "nothing_traffic_low": "Everyone is within their traffic limits.",
+        "col_traffic": "Traffic",
+        "col_reset": "Reset",
+        "traffic_stats": "Users' traffic",
+        "traffic_stats_hint": "Active panel users by what's left of their limit",
+        "ts_users": "users",
+        "ts_ok": "Within limit",
+        "ts_low": "80% or more used",
+        "ts_limited": "Limit reached",
+        "ts_unlimited": "Unlimited",
+        "ts_next_reset": "Next reset among those running out",
         "extend": "Extend",
         "expiring": "Expiring and overdue"
     },
@@ -672,7 +693,9 @@
         "description": "All subscriptions and add-ons: who has what and until when",
         "table_title": "Subscriptions and add-ons",
         "scope_active": "Active customers",
-        "scope_expiring": "Expiring"
+        "scope_expiring": "Expiring",
+        "traffic_low": "Running out of traffic",
+        "scope_traffic": "Low traffic"
     },
     "payment": {
         "title": "Payment",
@@ -922,7 +945,9 @@
         "auto_on": "Extended from payments automatically",
         "auto_off": "Auto-renewal off",
         "custom": "custom",
-        "last_online": "Last online"
+        "last_online": "Last online",
+        "per_month": "per month",
+        "in_tariff": "included"
     },
     "login": {
         "title": "Sign in",

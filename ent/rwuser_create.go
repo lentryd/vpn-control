@@ -114,6 +114,34 @@ func (_c *RwUserCreate) SetNillableTrafficLimitStrategy(v *string) *RwUserCreate
 	return _c
 }
 
+// SetLastTrafficResetAt sets the "last_traffic_reset_at" field.
+func (_c *RwUserCreate) SetLastTrafficResetAt(v time.Time) *RwUserCreate {
+	_c.mutation.SetLastTrafficResetAt(v)
+	return _c
+}
+
+// SetNillableLastTrafficResetAt sets the "last_traffic_reset_at" field if the given value is not nil.
+func (_c *RwUserCreate) SetNillableLastTrafficResetAt(v *time.Time) *RwUserCreate {
+	if v != nil {
+		_c.SetLastTrafficResetAt(*v)
+	}
+	return _c
+}
+
+// SetPanelCreatedAt sets the "panel_created_at" field.
+func (_c *RwUserCreate) SetPanelCreatedAt(v time.Time) *RwUserCreate {
+	_c.mutation.SetPanelCreatedAt(v)
+	return _c
+}
+
+// SetNillablePanelCreatedAt sets the "panel_created_at" field if the given value is not nil.
+func (_c *RwUserCreate) SetNillablePanelCreatedAt(v *time.Time) *RwUserCreate {
+	if v != nil {
+		_c.SetPanelCreatedAt(*v)
+	}
+	return _c
+}
+
 // SetHwidDeviceLimit sets the "hwid_device_limit" field.
 func (_c *RwUserCreate) SetHwidDeviceLimit(v int) *RwUserCreate {
 	_c.mutation.SetHwidDeviceLimit(v)
@@ -407,6 +435,14 @@ func (_c *RwUserCreate) createSpec() (*RwUser, *sqlgraph.CreateSpec) {
 		_spec.SetField(rwuser.FieldTrafficLimitStrategy, field.TypeString, value)
 		_node.TrafficLimitStrategy = value
 	}
+	if value, ok := _c.mutation.LastTrafficResetAt(); ok {
+		_spec.SetField(rwuser.FieldLastTrafficResetAt, field.TypeTime, value)
+		_node.LastTrafficResetAt = &value
+	}
+	if value, ok := _c.mutation.PanelCreatedAt(); ok {
+		_spec.SetField(rwuser.FieldPanelCreatedAt, field.TypeTime, value)
+		_node.PanelCreatedAt = &value
+	}
 	if value, ok := _c.mutation.HwidDeviceLimit(); ok {
 		_spec.SetField(rwuser.FieldHwidDeviceLimit, field.TypeInt, value)
 		_node.HwidDeviceLimit = &value
@@ -644,6 +680,42 @@ func (u *RwUserUpsert) UpdateTrafficLimitStrategy() *RwUserUpsert {
 // ClearTrafficLimitStrategy clears the value of the "traffic_limit_strategy" field.
 func (u *RwUserUpsert) ClearTrafficLimitStrategy() *RwUserUpsert {
 	u.SetNull(rwuser.FieldTrafficLimitStrategy)
+	return u
+}
+
+// SetLastTrafficResetAt sets the "last_traffic_reset_at" field.
+func (u *RwUserUpsert) SetLastTrafficResetAt(v time.Time) *RwUserUpsert {
+	u.Set(rwuser.FieldLastTrafficResetAt, v)
+	return u
+}
+
+// UpdateLastTrafficResetAt sets the "last_traffic_reset_at" field to the value that was provided on create.
+func (u *RwUserUpsert) UpdateLastTrafficResetAt() *RwUserUpsert {
+	u.SetExcluded(rwuser.FieldLastTrafficResetAt)
+	return u
+}
+
+// ClearLastTrafficResetAt clears the value of the "last_traffic_reset_at" field.
+func (u *RwUserUpsert) ClearLastTrafficResetAt() *RwUserUpsert {
+	u.SetNull(rwuser.FieldLastTrafficResetAt)
+	return u
+}
+
+// SetPanelCreatedAt sets the "panel_created_at" field.
+func (u *RwUserUpsert) SetPanelCreatedAt(v time.Time) *RwUserUpsert {
+	u.Set(rwuser.FieldPanelCreatedAt, v)
+	return u
+}
+
+// UpdatePanelCreatedAt sets the "panel_created_at" field to the value that was provided on create.
+func (u *RwUserUpsert) UpdatePanelCreatedAt() *RwUserUpsert {
+	u.SetExcluded(rwuser.FieldPanelCreatedAt)
+	return u
+}
+
+// ClearPanelCreatedAt clears the value of the "panel_created_at" field.
+func (u *RwUserUpsert) ClearPanelCreatedAt() *RwUserUpsert {
+	u.SetNull(rwuser.FieldPanelCreatedAt)
 	return u
 }
 
@@ -994,6 +1066,48 @@ func (u *RwUserUpsertOne) UpdateTrafficLimitStrategy() *RwUserUpsertOne {
 func (u *RwUserUpsertOne) ClearTrafficLimitStrategy() *RwUserUpsertOne {
 	return u.Update(func(s *RwUserUpsert) {
 		s.ClearTrafficLimitStrategy()
+	})
+}
+
+// SetLastTrafficResetAt sets the "last_traffic_reset_at" field.
+func (u *RwUserUpsertOne) SetLastTrafficResetAt(v time.Time) *RwUserUpsertOne {
+	return u.Update(func(s *RwUserUpsert) {
+		s.SetLastTrafficResetAt(v)
+	})
+}
+
+// UpdateLastTrafficResetAt sets the "last_traffic_reset_at" field to the value that was provided on create.
+func (u *RwUserUpsertOne) UpdateLastTrafficResetAt() *RwUserUpsertOne {
+	return u.Update(func(s *RwUserUpsert) {
+		s.UpdateLastTrafficResetAt()
+	})
+}
+
+// ClearLastTrafficResetAt clears the value of the "last_traffic_reset_at" field.
+func (u *RwUserUpsertOne) ClearLastTrafficResetAt() *RwUserUpsertOne {
+	return u.Update(func(s *RwUserUpsert) {
+		s.ClearLastTrafficResetAt()
+	})
+}
+
+// SetPanelCreatedAt sets the "panel_created_at" field.
+func (u *RwUserUpsertOne) SetPanelCreatedAt(v time.Time) *RwUserUpsertOne {
+	return u.Update(func(s *RwUserUpsert) {
+		s.SetPanelCreatedAt(v)
+	})
+}
+
+// UpdatePanelCreatedAt sets the "panel_created_at" field to the value that was provided on create.
+func (u *RwUserUpsertOne) UpdatePanelCreatedAt() *RwUserUpsertOne {
+	return u.Update(func(s *RwUserUpsert) {
+		s.UpdatePanelCreatedAt()
+	})
+}
+
+// ClearPanelCreatedAt clears the value of the "panel_created_at" field.
+func (u *RwUserUpsertOne) ClearPanelCreatedAt() *RwUserUpsertOne {
+	return u.Update(func(s *RwUserUpsert) {
+		s.ClearPanelCreatedAt()
 	})
 }
 
@@ -1537,6 +1651,48 @@ func (u *RwUserUpsertBulk) UpdateTrafficLimitStrategy() *RwUserUpsertBulk {
 func (u *RwUserUpsertBulk) ClearTrafficLimitStrategy() *RwUserUpsertBulk {
 	return u.Update(func(s *RwUserUpsert) {
 		s.ClearTrafficLimitStrategy()
+	})
+}
+
+// SetLastTrafficResetAt sets the "last_traffic_reset_at" field.
+func (u *RwUserUpsertBulk) SetLastTrafficResetAt(v time.Time) *RwUserUpsertBulk {
+	return u.Update(func(s *RwUserUpsert) {
+		s.SetLastTrafficResetAt(v)
+	})
+}
+
+// UpdateLastTrafficResetAt sets the "last_traffic_reset_at" field to the value that was provided on create.
+func (u *RwUserUpsertBulk) UpdateLastTrafficResetAt() *RwUserUpsertBulk {
+	return u.Update(func(s *RwUserUpsert) {
+		s.UpdateLastTrafficResetAt()
+	})
+}
+
+// ClearLastTrafficResetAt clears the value of the "last_traffic_reset_at" field.
+func (u *RwUserUpsertBulk) ClearLastTrafficResetAt() *RwUserUpsertBulk {
+	return u.Update(func(s *RwUserUpsert) {
+		s.ClearLastTrafficResetAt()
+	})
+}
+
+// SetPanelCreatedAt sets the "panel_created_at" field.
+func (u *RwUserUpsertBulk) SetPanelCreatedAt(v time.Time) *RwUserUpsertBulk {
+	return u.Update(func(s *RwUserUpsert) {
+		s.SetPanelCreatedAt(v)
+	})
+}
+
+// UpdatePanelCreatedAt sets the "panel_created_at" field to the value that was provided on create.
+func (u *RwUserUpsertBulk) UpdatePanelCreatedAt() *RwUserUpsertBulk {
+	return u.Update(func(s *RwUserUpsert) {
+		s.UpdatePanelCreatedAt()
+	})
+}
+
+// ClearPanelCreatedAt clears the value of the "panel_created_at" field.
+func (u *RwUserUpsertBulk) ClearPanelCreatedAt() *RwUserUpsertBulk {
+	return u.Update(func(s *RwUserUpsert) {
+		s.ClearPanelCreatedAt()
 	})
 }
 

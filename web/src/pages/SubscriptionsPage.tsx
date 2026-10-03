@@ -2,14 +2,22 @@ import type { MRT_ColumnDef } from '@kastov/mantine-react-table-open'
 import { Anchor, Badge, Button, SegmentedControl, SimpleGrid, Stack } from '@mantine/core'
 import { motion } from 'motion/react'
 import { useMemo, useState } from 'react'
-import { PiClockCountdownDuotone, PiClockUserDuotone, PiLinkBreakDuotone, PiLinkDuotone, PiPulseDuotone, PiUsersDuotone } from 'react-icons/pi'
+import {
+    PiChartPieSliceDuotone,
+    PiClockCountdownDuotone,
+    PiClockUserDuotone,
+    PiLinkBreakDuotone,
+    PiLinkDuotone,
+    PiPulseDuotone,
+    PiUsersDuotone
+} from 'react-icons/pi'
 import { TbHexagon } from 'react-icons/tb'
 import { Link } from 'react-router'
 
 import { useSubscriptions } from '@/api/hooks'
 import type { AddonItem, RwUser, Subscription } from '@/api/types'
 import { ExpireCell, OnlineCell, StatusBadge, TrafficCell, UsernameCell, statusLabel } from '@/components/badges'
-import { daysLeft } from '@/components/format'
+import { daysLeft, isTrafficLow, trafficPct } from '@/components/format'
 import { AddonActions, SubscriptionActions } from '@/components/ItemActions'
 import { Money } from '@/components/ui'
 import { openSubscriptionForm } from '@/modals/SubscriptionModals'
@@ -77,6 +85,9 @@ export function SubscriptionsPage() {
                 return d !== null && d <= 7 && d >= -30 && !r.sub.customer_archived
             })
         }
+        if (scope === 'traffic') {
+            return out.filter((r) => r.rw && !r.rw.deleted && r.rw.status !== 'DISABLED' && isTrafficLow(r.rw) && !r.sub.customer_archived)
+        }
         if (scope === 'unlinked') return out.filter((r) => !r.rw)
         return out
     }, [data, scope])
@@ -140,7 +151,9 @@ export function SubscriptionsPage() {
             {
                 id: 'traffic',
                 header: t('sub.traffic'),
-                accessorFn: (r) => r.rw?.used_traffic_bytes ?? 0,
+                // Sorted by the share of the limit used; unlimited users go last.
+                accessorFn: (r) => trafficPct(r.rw) ?? -1,
+                sortDescFirst: true,
                 enableColumnFilter: false,
                 size: 260,
                 mantineTableBodyCellProps: { align: 'center' },
@@ -186,6 +199,13 @@ export function SubscriptionsPage() {
             }),
             iconVariant: 'soft'
         },
+        {
+            IconComponent: PiChartPieSliceDuotone,
+            iconColor: 'yellow',
+            title: t('subscriptions.traffic_low'),
+            value: stats.count((u) => !!u && (u.status === 'ACTIVE' || u.status === 'LIMITED') && isTrafficLow(u)),
+            iconVariant: 'soft'
+        },
         { IconComponent: PiClockUserDuotone, iconColor: 'red', title: t('subscriptions.expired'), value: stats.count((u) => u?.status === 'EXPIRED'), iconVariant: 'soft' },
         { IconComponent: PiLinkBreakDuotone, iconColor: 'gray', title: t('subscriptions.unlinked'), value: stats.count((u) => !u), iconVariant: 'soft' }
     ]
@@ -198,7 +218,7 @@ export function SubscriptionsPage() {
                 description={t('subscriptions.description')}
             />
             <Stack>
-                <SimpleGrid cols={{ base: 1, xs: 2, xl: 5 }} spacing="xs">
+                <SimpleGrid cols={{ base: 1, xs: 2, md: 3, xl: 6 }} spacing="xs">
                     {cards.map((card, index) => (
                         <motion.div
                             animate={{ opacity: 1, y: 0 }}
@@ -224,6 +244,7 @@ export function SubscriptionsPage() {
                                 data={[
                                     { value: 'active', label: t('subscriptions.scope_active') },
                                     { value: 'expiring', label: t('subscriptions.scope_expiring') },
+                                    { value: 'traffic', label: t('subscriptions.scope_traffic') },
                                     { value: 'unlinked', label: t('subscriptions.unlinked') },
                                     { value: 'all', label: t('common.all') }
                                 ]}

@@ -14,6 +14,7 @@ import {
     SimpleGrid,
     Stack,
     Text,
+    Tooltip,
     useMatches
 } from '@mantine/core'
 import dayjs from 'dayjs'
@@ -22,6 +23,7 @@ import { useMemo } from 'react'
 import {
     PiCalendarDotsDuotone,
     PiCalendarPlus,
+    PiChartPieSliceDuotone,
     PiChartBarDuotone,
     PiChartLineUpDuotone,
     PiClockCountdownDuotone,
@@ -37,9 +39,9 @@ import { TbCalendar } from 'react-icons/tb'
 import { Link } from 'react-router'
 
 import { useDashboard } from '@/api/hooks'
-import type { ExpiringItem, MeteredSummary } from '@/api/types'
+import type { Dashboard, ExpiringItem, MeteredSummary, TrafficItem } from '@/api/types'
 import { SquadBadge } from '@shared/ui/infra/squad'
-import { expirationText, expiryColor, StatusPill } from '@/components/badges'
+import { expirationText, expiryColor, StatusPill, trafficColor, trafficHint, trafficResetColor, TrafficMini, trafficResetText } from '@/components/badges'
 import { fmtDate, fmtMoney, fmtNum, dateLayout } from '@/components/format'
 import { Money, PageHeader, StatCard } from '@/components/ui'
 import { openExtendModal } from '@/modals/ExtendModal'
@@ -135,7 +137,12 @@ export function DashboardPage() {
             </SimpleGrid>
 
             <SimpleGrid cols={{ base: 1, lg: 3 }} mb="md" spacing="md">
-                <ExpiringTable data={data.expiring} style={{ gridColumn: tableSpan }} />
+                <Stack style={{ gridColumn: tableSpan }}>
+                    <ExpiringTable data={data.expiring} />
+                    <Box style={{ flex: 1 }}>
+                        <TrafficLowTable data={data.traffic_low ?? []} />
+                    </Box>
+                </Stack>
                 <Stack>
                     <Block icon={<PiTreeStructureDuotone size={24} />} title={t('dashboard.referrals')} description={t('dashboard.referrals_hint')}>
                         <Group justify="space-between">
@@ -159,7 +166,8 @@ export function DashboardPage() {
                             </Group>
                         )}
                     </Block>
-                    <Block icon={<PiCalendarDotsDuotone size={24} />} title={t('dashboard.due_soon')}>
+                    {data.traffic_stats && <TrafficStatsBlock items={data.traffic_low ?? []} stats={data.traffic_stats} />}
+                    <Block icon={<PiCalendarDotsDuotone size={24} />} style={{ flex: 1 }} title={t('dashboard.due_soon')}>
                         {data.due_soon?.length ? (
                             <Stack gap="sm">
                                 {data.due_soon.map((d, i) => {
@@ -347,6 +355,168 @@ function ExpiringTable({ data, style }: { data: ExpiringItem[]; style?: React.CS
                 title={t('dashboard.expiring')}
             />
         </Box>
+    )
+}
+
+// TrafficStatsBlock splits live panel users by what's left of their traffic.
+function TrafficStatsBlock({ stats, items }: { stats: Dashboard['traffic_stats']; items: TrafficItem[] }) {
+    const { t } = useTranslation()
+    const parts = [
+        { key: 'ok', value: stats.ok, color: 'teal', label: t('dashboard.ts_ok') },
+        { key: 'low', value: stats.low, color: 'yellow', label: t('dashboard.ts_low') },
+        { key: 'limited', value: stats.limited, color: 'red', label: t('dashboard.ts_limited') },
+        { key: 'unlimited', value: stats.unlimited, color: 'blue', label: t('dashboard.ts_unlimited') }
+    ]
+    const total = parts.reduce((s, p) => s + p.value, 0)
+    const next = items
+        .map((i) => i.next_traffic_reset_at)
+        .filter((d): d is string => !!d)
+        .sort()[0]
+    return (
+        <Block description={t('dashboard.traffic_stats_hint')} icon={<PiChartPieSliceDuotone size={24} />} title={t('dashboard.traffic_stats')}>
+            <Group gap="lg" wrap="nowrap">
+                <RingProgress
+                    label={
+                        <Stack align="center" gap={0}>
+                            <Text fw={700} size="lg">
+                                {total}
+                            </Text>
+                            <Text c="dimmed" size="xs">
+                                {t('dashboard.ts_users')}
+                            </Text>
+                        </Stack>
+                    }
+                    roundCaps
+                    sections={total ? parts.filter((p) => p.value).map((p) => ({ value: (p.value * 100) / total, color: p.color, tooltip: `${p.label}: ${p.value}` })) : []}
+                    size={120}
+                    thickness={10}
+                />
+                <Stack gap={6} style={{ flex: 1 }}>
+                    {parts.map((p) => (
+                        <Group gap="xs" justify="space-between" key={p.key} wrap="nowrap">
+                            <Group gap={8} wrap="nowrap">
+                                <Box bg={`${p.color}.5`} h={8} miw={8} style={{ borderRadius: '50%' }} w={8} />
+                                <Text c="dimmed" size="sm">
+                                    {p.label}
+                                </Text>
+                            </Group>
+                            <Text ff="monospace" fw={600} size="sm">
+                                {p.value}
+                            </Text>
+                        </Group>
+                    ))}
+                </Stack>
+            </Group>
+            {next && (
+                <Group justify="space-between" mt="md">
+                    <Text c="dimmed" size="sm">
+                        {t('dashboard.ts_next_reset')}
+                    </Text>
+                    <Tooltip label={fmtDate(next)}>
+                        <Text c="yellow.4" fw={500} size="sm">
+                            {dayjs(next).fromNow()}
+                        </Text>
+                    </Tooltip>
+                </Group>
+            )}
+        </Block>
+    )
+}
+
+function TrafficLowTable({ data }: { data: TrafficItem[] }) {
+    const { t } = useTranslation()
+    const columns = useMemo<MRT_ColumnDef<TrafficItem>[]>(
+        () => [
+            {
+                accessorKey: 'title',
+                header: t('dashboard.col_subscription'),
+                size: 220,
+                Cell: ({ row }) => (
+                    <Group gap="md" pl={10} wrap="nowrap">
+                        <Indicator color={trafficColor(row.original.used_pct)} inline size={10} zIndex={0} />
+                        <Box miw={0}>
+                            <Group gap={6} wrap="nowrap">
+                                {row.original.kind === 'addon' && (
+                                    <Badge color="grape" size="xs" variant="soft">
+                                        {t('dashboard.addon_badge')}
+                                    </Badge>
+                                )}
+                                <Text fw={500} size="sm" truncate="end">
+                                    {row.original.title}
+                                </Text>
+                            </Group>
+                            <Anchor component={Link} fw={600} size="xs" to={`/customers/${row.original.customer_id}`}>
+                                {row.original.customer_name}
+                            </Anchor>
+                        </Box>
+                    </Group>
+                )
+            },
+            {
+                accessorKey: 'used_pct',
+                header: t('dashboard.col_traffic'),
+                size: 190,
+                sortDescFirst: true,
+                Cell: ({ row }) => <TrafficMini user={row.original} w={170} withReset={false} />
+            },
+            {
+                id: 'reset',
+                header: t('dashboard.col_reset'),
+                size: 150,
+                accessorFn: (r) => (r.next_traffic_reset_at ? new Date(r.next_traffic_reset_at) : undefined),
+                sortingFn: 'datetime',
+                sortUndefined: 'last',
+                mantineTableBodyCellProps: { align: 'center' },
+                Cell: ({ row }) => (
+                    <Tooltip label={trafficHint(row.original)}>
+                        <Stack align="center" gap={0}>
+                            <Text ff="monospace" fw={500} size="sm">
+                                {row.original.next_traffic_reset_at ? fmtDate(row.original.next_traffic_reset_at) : '∞'}
+                            </Text>
+                            <Text c={trafficResetColor(row.original)} size="xs">
+                                {trafficResetText(row.original)}
+                            </Text>
+                        </Stack>
+                    </Tooltip>
+                )
+            },
+            {
+                accessorKey: 'status',
+                header: t('dashboard.col_status'),
+                size: 150,
+                mantineTableBodyCellProps: { align: 'center' },
+                Cell: ({ row }) => <StatusPill size="md" status={row.original.status} />
+            }
+        ],
+        [t]
+    )
+    return (
+        <DataTableCard
+            compact
+            fill
+            actions={
+                <Badge color={data.length ? 'yellow' : 'teal'} size="lg" variant="soft">
+                    {data.length}
+                </Badge>
+            }
+            columns={columns}
+            data={data}
+            description={t('dashboard.traffic_low_hint')}
+            icon={<PiChartPieSliceDuotone size={24} />}
+            initialState={{ sorting: [{ id: 'used_pct', desc: true }] }}
+            onRowClick={(e) =>
+                e.kind === 'addon'
+                    ? openViewAddonModal(e.id, e.subscription_id)
+                    : openViewSubscriptionModal({ id: e.id, title: e.title, customer_name: e.customer_name })
+            }
+            renderEmptyRowsFallback={() => (
+                <Text c="dimmed" p="md" size="sm">
+                    {t('dashboard.nothing_traffic_low')}
+                </Text>
+            )}
+            storageKey="dashboard-traffic-low"
+            title={t('dashboard.traffic_low')}
+        />
     )
 }
 

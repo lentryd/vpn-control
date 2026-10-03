@@ -12416,6 +12416,8 @@ type RwUserMutation struct {
 	traffic_limit_bytes       *int64
 	addtraffic_limit_bytes    *int64
 	traffic_limit_strategy    *string
+	last_traffic_reset_at     *time.Time
+	panel_created_at          *time.Time
 	hwid_device_limit         *int
 	addhwid_device_limit      *int
 	online_at                 *time.Time
@@ -12884,6 +12886,104 @@ func (m *RwUserMutation) TrafficLimitStrategyCleared() bool {
 func (m *RwUserMutation) ResetTrafficLimitStrategy() {
 	m.traffic_limit_strategy = nil
 	delete(m.clearedFields, rwuser.FieldTrafficLimitStrategy)
+}
+
+// SetLastTrafficResetAt sets the "last_traffic_reset_at" field.
+func (m *RwUserMutation) SetLastTrafficResetAt(t time.Time) {
+	m.last_traffic_reset_at = &t
+}
+
+// LastTrafficResetAt returns the value of the "last_traffic_reset_at" field in the mutation.
+func (m *RwUserMutation) LastTrafficResetAt() (r time.Time, exists bool) {
+	v := m.last_traffic_reset_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastTrafficResetAt returns the old "last_traffic_reset_at" field's value of the RwUser entity.
+// If the RwUser object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RwUserMutation) OldLastTrafficResetAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastTrafficResetAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastTrafficResetAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastTrafficResetAt: %w", err)
+	}
+	return oldValue.LastTrafficResetAt, nil
+}
+
+// ClearLastTrafficResetAt clears the value of the "last_traffic_reset_at" field.
+func (m *RwUserMutation) ClearLastTrafficResetAt() {
+	m.last_traffic_reset_at = nil
+	m.clearedFields[rwuser.FieldLastTrafficResetAt] = struct{}{}
+}
+
+// LastTrafficResetAtCleared returns if the "last_traffic_reset_at" field was cleared in this mutation.
+func (m *RwUserMutation) LastTrafficResetAtCleared() bool {
+	_, ok := m.clearedFields[rwuser.FieldLastTrafficResetAt]
+	return ok
+}
+
+// ResetLastTrafficResetAt resets all changes to the "last_traffic_reset_at" field.
+func (m *RwUserMutation) ResetLastTrafficResetAt() {
+	m.last_traffic_reset_at = nil
+	delete(m.clearedFields, rwuser.FieldLastTrafficResetAt)
+}
+
+// SetPanelCreatedAt sets the "panel_created_at" field.
+func (m *RwUserMutation) SetPanelCreatedAt(t time.Time) {
+	m.panel_created_at = &t
+}
+
+// PanelCreatedAt returns the value of the "panel_created_at" field in the mutation.
+func (m *RwUserMutation) PanelCreatedAt() (r time.Time, exists bool) {
+	v := m.panel_created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPanelCreatedAt returns the old "panel_created_at" field's value of the RwUser entity.
+// If the RwUser object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RwUserMutation) OldPanelCreatedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPanelCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPanelCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPanelCreatedAt: %w", err)
+	}
+	return oldValue.PanelCreatedAt, nil
+}
+
+// ClearPanelCreatedAt clears the value of the "panel_created_at" field.
+func (m *RwUserMutation) ClearPanelCreatedAt() {
+	m.panel_created_at = nil
+	m.clearedFields[rwuser.FieldPanelCreatedAt] = struct{}{}
+}
+
+// PanelCreatedAtCleared returns if the "panel_created_at" field was cleared in this mutation.
+func (m *RwUserMutation) PanelCreatedAtCleared() bool {
+	_, ok := m.clearedFields[rwuser.FieldPanelCreatedAt]
+	return ok
+}
+
+// ResetPanelCreatedAt resets all changes to the "panel_created_at" field.
+func (m *RwUserMutation) ResetPanelCreatedAt() {
+	m.panel_created_at = nil
+	delete(m.clearedFields, rwuser.FieldPanelCreatedAt)
 }
 
 // SetHwidDeviceLimit sets the "hwid_device_limit" field.
@@ -13471,7 +13571,7 @@ func (m *RwUserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *RwUserMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 18)
 	if m.username != nil {
 		fields = append(fields, rwuser.FieldUsername)
 	}
@@ -13492,6 +13592,12 @@ func (m *RwUserMutation) Fields() []string {
 	}
 	if m.traffic_limit_strategy != nil {
 		fields = append(fields, rwuser.FieldTrafficLimitStrategy)
+	}
+	if m.last_traffic_reset_at != nil {
+		fields = append(fields, rwuser.FieldLastTrafficResetAt)
+	}
+	if m.panel_created_at != nil {
+		fields = append(fields, rwuser.FieldPanelCreatedAt)
 	}
 	if m.hwid_device_limit != nil {
 		fields = append(fields, rwuser.FieldHwidDeviceLimit)
@@ -13542,6 +13648,10 @@ func (m *RwUserMutation) Field(name string) (ent.Value, bool) {
 		return m.TrafficLimitBytes()
 	case rwuser.FieldTrafficLimitStrategy:
 		return m.TrafficLimitStrategy()
+	case rwuser.FieldLastTrafficResetAt:
+		return m.LastTrafficResetAt()
+	case rwuser.FieldPanelCreatedAt:
+		return m.PanelCreatedAt()
 	case rwuser.FieldHwidDeviceLimit:
 		return m.HwidDeviceLimit()
 	case rwuser.FieldOnlineAt:
@@ -13583,6 +13693,10 @@ func (m *RwUserMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldTrafficLimitBytes(ctx)
 	case rwuser.FieldTrafficLimitStrategy:
 		return m.OldTrafficLimitStrategy(ctx)
+	case rwuser.FieldLastTrafficResetAt:
+		return m.OldLastTrafficResetAt(ctx)
+	case rwuser.FieldPanelCreatedAt:
+		return m.OldPanelCreatedAt(ctx)
 	case rwuser.FieldHwidDeviceLimit:
 		return m.OldHwidDeviceLimit(ctx)
 	case rwuser.FieldOnlineAt:
@@ -13658,6 +13772,20 @@ func (m *RwUserMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTrafficLimitStrategy(v)
+		return nil
+	case rwuser.FieldLastTrafficResetAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastTrafficResetAt(v)
+		return nil
+	case rwuser.FieldPanelCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPanelCreatedAt(v)
 		return nil
 	case rwuser.FieldHwidDeviceLimit:
 		v, ok := value.(int)
@@ -13815,6 +13943,12 @@ func (m *RwUserMutation) ClearedFields() []string {
 	if m.FieldCleared(rwuser.FieldTrafficLimitStrategy) {
 		fields = append(fields, rwuser.FieldTrafficLimitStrategy)
 	}
+	if m.FieldCleared(rwuser.FieldLastTrafficResetAt) {
+		fields = append(fields, rwuser.FieldLastTrafficResetAt)
+	}
+	if m.FieldCleared(rwuser.FieldPanelCreatedAt) {
+		fields = append(fields, rwuser.FieldPanelCreatedAt)
+	}
 	if m.FieldCleared(rwuser.FieldHwidDeviceLimit) {
 		fields = append(fields, rwuser.FieldHwidDeviceLimit)
 	}
@@ -13861,6 +13995,12 @@ func (m *RwUserMutation) ClearField(name string) error {
 		return nil
 	case rwuser.FieldTrafficLimitStrategy:
 		m.ClearTrafficLimitStrategy()
+		return nil
+	case rwuser.FieldLastTrafficResetAt:
+		m.ClearLastTrafficResetAt()
+		return nil
+	case rwuser.FieldPanelCreatedAt:
+		m.ClearPanelCreatedAt()
 		return nil
 	case rwuser.FieldHwidDeviceLimit:
 		m.ClearHwidDeviceLimit()
@@ -13911,6 +14051,12 @@ func (m *RwUserMutation) ResetField(name string) error {
 		return nil
 	case rwuser.FieldTrafficLimitStrategy:
 		m.ResetTrafficLimitStrategy()
+		return nil
+	case rwuser.FieldLastTrafficResetAt:
+		m.ResetLastTrafficResetAt()
+		return nil
+	case rwuser.FieldPanelCreatedAt:
+		m.ResetPanelCreatedAt()
 		return nil
 	case rwuser.FieldHwidDeviceLimit:
 		m.ResetHwidDeviceLimit()

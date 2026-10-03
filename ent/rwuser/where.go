@@ -90,6 +90,16 @@ func TrafficLimitStrategy(v string) predicate.RwUser {
 	return predicate.RwUser(sql.FieldEQ(FieldTrafficLimitStrategy, v))
 }
 
+// LastTrafficResetAt applies equality check predicate on the "last_traffic_reset_at" field. It's identical to LastTrafficResetAtEQ.
+func LastTrafficResetAt(v time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldEQ(FieldLastTrafficResetAt, v))
+}
+
+// PanelCreatedAt applies equality check predicate on the "panel_created_at" field. It's identical to PanelCreatedAtEQ.
+func PanelCreatedAt(v time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldEQ(FieldPanelCreatedAt, v))
+}
+
 // HwidDeviceLimit applies equality check predicate on the "hwid_device_limit" field. It's identical to HwidDeviceLimitEQ.
 func HwidDeviceLimit(v int) predicate.RwUser {
 	return predicate.RwUser(sql.FieldEQ(FieldHwidDeviceLimit, v))
@@ -548,6 +558,106 @@ func TrafficLimitStrategyEqualFold(v string) predicate.RwUser {
 // TrafficLimitStrategyContainsFold applies the ContainsFold predicate on the "traffic_limit_strategy" field.
 func TrafficLimitStrategyContainsFold(v string) predicate.RwUser {
 	return predicate.RwUser(sql.FieldContainsFold(FieldTrafficLimitStrategy, v))
+}
+
+// LastTrafficResetAtEQ applies the EQ predicate on the "last_traffic_reset_at" field.
+func LastTrafficResetAtEQ(v time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldEQ(FieldLastTrafficResetAt, v))
+}
+
+// LastTrafficResetAtNEQ applies the NEQ predicate on the "last_traffic_reset_at" field.
+func LastTrafficResetAtNEQ(v time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldNEQ(FieldLastTrafficResetAt, v))
+}
+
+// LastTrafficResetAtIn applies the In predicate on the "last_traffic_reset_at" field.
+func LastTrafficResetAtIn(vs ...time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldIn(FieldLastTrafficResetAt, vs...))
+}
+
+// LastTrafficResetAtNotIn applies the NotIn predicate on the "last_traffic_reset_at" field.
+func LastTrafficResetAtNotIn(vs ...time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldNotIn(FieldLastTrafficResetAt, vs...))
+}
+
+// LastTrafficResetAtGT applies the GT predicate on the "last_traffic_reset_at" field.
+func LastTrafficResetAtGT(v time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldGT(FieldLastTrafficResetAt, v))
+}
+
+// LastTrafficResetAtGTE applies the GTE predicate on the "last_traffic_reset_at" field.
+func LastTrafficResetAtGTE(v time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldGTE(FieldLastTrafficResetAt, v))
+}
+
+// LastTrafficResetAtLT applies the LT predicate on the "last_traffic_reset_at" field.
+func LastTrafficResetAtLT(v time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldLT(FieldLastTrafficResetAt, v))
+}
+
+// LastTrafficResetAtLTE applies the LTE predicate on the "last_traffic_reset_at" field.
+func LastTrafficResetAtLTE(v time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldLTE(FieldLastTrafficResetAt, v))
+}
+
+// LastTrafficResetAtIsNil applies the IsNil predicate on the "last_traffic_reset_at" field.
+func LastTrafficResetAtIsNil() predicate.RwUser {
+	return predicate.RwUser(sql.FieldIsNull(FieldLastTrafficResetAt))
+}
+
+// LastTrafficResetAtNotNil applies the NotNil predicate on the "last_traffic_reset_at" field.
+func LastTrafficResetAtNotNil() predicate.RwUser {
+	return predicate.RwUser(sql.FieldNotNull(FieldLastTrafficResetAt))
+}
+
+// PanelCreatedAtEQ applies the EQ predicate on the "panel_created_at" field.
+func PanelCreatedAtEQ(v time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldEQ(FieldPanelCreatedAt, v))
+}
+
+// PanelCreatedAtNEQ applies the NEQ predicate on the "panel_created_at" field.
+func PanelCreatedAtNEQ(v time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldNEQ(FieldPanelCreatedAt, v))
+}
+
+// PanelCreatedAtIn applies the In predicate on the "panel_created_at" field.
+func PanelCreatedAtIn(vs ...time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldIn(FieldPanelCreatedAt, vs...))
+}
+
+// PanelCreatedAtNotIn applies the NotIn predicate on the "panel_created_at" field.
+func PanelCreatedAtNotIn(vs ...time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldNotIn(FieldPanelCreatedAt, vs...))
+}
+
+// PanelCreatedAtGT applies the GT predicate on the "panel_created_at" field.
+func PanelCreatedAtGT(v time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldGT(FieldPanelCreatedAt, v))
+}
+
+// PanelCreatedAtGTE applies the GTE predicate on the "panel_created_at" field.
+func PanelCreatedAtGTE(v time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldGTE(FieldPanelCreatedAt, v))
+}
+
+// PanelCreatedAtLT applies the LT predicate on the "panel_created_at" field.
+func PanelCreatedAtLT(v time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldLT(FieldPanelCreatedAt, v))
+}
+
+// PanelCreatedAtLTE applies the LTE predicate on the "panel_created_at" field.
+func PanelCreatedAtLTE(v time.Time) predicate.RwUser {
+	return predicate.RwUser(sql.FieldLTE(FieldPanelCreatedAt, v))
+}
+
+// PanelCreatedAtIsNil applies the IsNil predicate on the "panel_created_at" field.
+func PanelCreatedAtIsNil() predicate.RwUser {
+	return predicate.RwUser(sql.FieldIsNull(FieldPanelCreatedAt))
+}
+
+// PanelCreatedAtNotNil applies the NotNil predicate on the "panel_created_at" field.
+func PanelCreatedAtNotNil() predicate.RwUser {
+	return predicate.RwUser(sql.FieldNotNull(FieldPanelCreatedAt))
 }
 
 // HwidDeviceLimitEQ applies the EQ predicate on the "hwid_device_limit" field.

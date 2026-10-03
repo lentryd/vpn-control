@@ -35,6 +35,7 @@ type User struct {
 	Status               string      `json:"status"`
 	TrafficLimitBytes    int64       `json:"trafficLimitBytes"`
 	TrafficLimitStrategy string      `json:"trafficLimitStrategy"`
+	LastTrafficResetAt   *time.Time  `json:"lastTrafficResetAt"`
 	ExpireAt             time.Time   `json:"expireAt"`
 	TelegramID           *int64      `json:"telegramId"`
 	Email                *string     `json:"email"`

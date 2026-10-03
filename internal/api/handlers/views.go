@@ -10,6 +10,7 @@ import (
 	"vpn-control/ent/subscriptionaddon"
 	"vpn-control/internal/billing"
 	"vpn-control/internal/money"
+	"vpn-control/internal/remnawave"
 )
 
 type RwUserView struct {
@@ -22,6 +23,8 @@ type RwUserView struct {
 	UsedTrafficBytes     int64      `json:"used_traffic_bytes"`
 	TrafficLimitBytes    int64      `json:"traffic_limit_bytes"`
 	TrafficLimitStrategy string     `json:"traffic_limit_strategy"`
+	LastTrafficResetAt   *time.Time `json:"last_traffic_reset_at"`
+	NextTrafficResetAt   *time.Time `json:"next_traffic_reset_at"`
 	HwidDeviceLimit      *int       `json:"hwid_device_limit"`
 	OnlineAt             *time.Time `json:"online_at"`
 	Description          string     `json:"description"`
@@ -40,9 +43,11 @@ func rwUserView(u *ent.RwUser) *RwUserView {
 	return &RwUserView{
 		ID: u.ID, Username: u.Username, ShortUUID: u.ShortUUID, Status: u.Status,
 		ExpireAt: u.ExpireAt, Unlimited: billing.Unlimited(u.ExpireAt), UsedTrafficBytes: u.UsedTrafficBytes, TrafficLimitBytes: u.TrafficLimitBytes,
-		TrafficLimitStrategy: u.TrafficLimitStrategy, HwidDeviceLimit: u.HwidDeviceLimit, OnlineAt: u.OnlineAt,
+		TrafficLimitStrategy: u.TrafficLimitStrategy, LastTrafficResetAt: u.LastTrafficResetAt,
+		HwidDeviceLimit: u.HwidDeviceLimit, OnlineAt: u.OnlineAt,
 		Description: u.Description, Tag: u.Tag, TelegramID: u.TelegramID, SubscriptionURL: u.SubscriptionURL,
 		SquadUUIDs: u.SquadUuids, Deleted: u.Deleted, SyncedAt: u.SyncedAt,
+		NextTrafficResetAt: remnawave.NextTrafficReset(u.TrafficLimitStrategy, u.PanelCreatedAt, time.Now()),
 	}
 }
 
