@@ -1,0 +1,15 @@
+.saveBar {
+    position: sticky;
+    bottom: 20px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 10px 10px 10px 18px;
+    border-radius: var(--mantine-radius-lg);
+    background: var(--app-surface-raised);
+    border: 1px solid var(--app-border-strong);
+    box-shadow: var(--app-shadow-pop);
+}

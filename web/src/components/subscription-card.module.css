@@ -1,0 +1,92 @@
+.card {
+    overflow: hidden;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+}
+
+.titleButton {
+    min-width: 0;
+    border-radius: var(--mantine-radius-md);
+    padding: 2px 6px 2px 2px;
+    margin: -2px -6px -2px -2px;
+    transition: background-color 120ms var(--app-ease);
+
+    &:hover {
+        background: var(--app-fill);
+    }
+}
+
+.facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    border-top: 1px solid var(--app-border);
+    background: var(--app-surface-2);
+}
+
+.fact {
+    padding: 14px 18px;
+    min-width: 0;
+    border-right: 1px solid var(--app-border);
+
+    &:last-child {
+        border-right: 0;
+    }
+
+    @media (max-width: $mantine-breakpoint-sm) {
+        border-right: 0;
+        border-bottom: 1px solid var(--app-border);
+
+        &:last-child {
+            border-bottom: 0;
+        }
+    }
+}
+
+.wide {
+    grid-column: span 2;
+
+    @media (max-width: $mantine-breakpoint-sm) {
+        grid-column: auto;
+    }
+}
+
+.factLabel {
+    font-size: var(--mantine-font-size-xs);
+    color: var(--app-text-muted);
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.addonsLabel {
+    padding: 12px 18px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--app-text-faint);
+    border-top: 1px solid var(--app-border);
+}
+
+.addon {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.2fr) minmax(130px, 0.8fr) minmax(170px, 1.2fr) auto;
+    align-items: center;
+    gap: 12px 20px;
+    padding: 10px 18px;
+
+    & + & {
+        border-top: 1px solid var(--app-border);
+    }
+
+    @media (max-width: $mantine-breakpoint-md) {
+        grid-template-columns: 1fr 1fr;
+    }
+}

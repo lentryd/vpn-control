@@ -1,28 +1,19 @@
 import type { MRT_ColumnDef } from '@kastov/mantine-react-table-open'
-import { Anchor, Badge, Button, SegmentedControl, SimpleGrid, Stack } from '@mantine/core'
-import { motion } from 'motion/react'
+import { Anchor, Badge, Button, Group, SegmentedControl, Stack } from '@mantine/core'
 import { useMemo, useState } from 'react'
-import {
-    PiChartPieSliceDuotone,
-    PiClockCountdownDuotone,
-    PiClockUserDuotone,
-    PiLinkBreakDuotone,
-    PiLinkDuotone,
-    PiPulseDuotone,
-    PiUsersDuotone
-} from 'react-icons/pi'
+import { PiLinkDuotone } from 'react-icons/pi'
 import { TbHexagon } from 'react-icons/tb'
 import { Link } from 'react-router'
 
 import { useSubscriptions } from '@/api/hooks'
 import type { AddonItem, RwUser, Subscription } from '@/api/types'
-import { ExpireCell, OnlineCell, StatusBadge, TrafficCell, UsernameCell, statusLabel } from '@/components/badges'
+import { Dot, ExpireCell, OnlineCell, StatusBadge, TrafficCell, UsernameCell, statusLabel } from '@/components/badges'
 import { daysLeft, isTrafficLow, trafficPct } from '@/components/format'
 import { AddonActions, SubscriptionActions } from '@/components/ItemActions'
 import { Money } from '@/components/ui'
 import { openSubscriptionForm } from '@/modals/SubscriptionModals'
 import { openViewAddonModal, openViewSubscriptionModal } from '@/modals/ViewItemModal'
-import { IMetricCardProps, MetricCardShared } from '@shared/ui/metrics/metric-card'
+import { StatStrip, type StatStripItem } from '@shared/ui/stat-strip'
 import { Page } from '@shared/ui/page'
 import { PageHeaderShared } from '@shared/ui/page-header'
 import { DataTableCard } from '@shared/ui/table'
@@ -186,50 +177,49 @@ export function SubscriptionsPage() {
         return { all, count }
     }, [data])
 
-    const cards: IMetricCardProps[] = [
-        { IconComponent: PiUsersDuotone, iconColor: 'blue', title: t('subscriptions.total'), value: stats.all.length, iconVariant: 'soft' },
-        { IconComponent: PiPulseDuotone, iconColor: 'teal', title: t('subscriptions.active'), value: stats.count((u) => u?.status === 'ACTIVE'), iconVariant: 'soft' },
-        {
-            IconComponent: PiClockCountdownDuotone,
-            iconColor: 'orange',
-            title: t('subscriptions.expiring_7'),
-            value: stats.count((u) => {
+    const tile = (key: string, label: string, value: number, color: string, scopeKey?: string): StatStripItem => ({
+        key,
+        label: (
+            <Group component="span" gap={6} wrap="nowrap">
+                <Dot color={color} />
+                {label}
+            </Group>
+        ),
+        value: data ? value : '—',
+        onClick: scopeKey ? () => setScope(scopeKey) : undefined,
+        active: !!scopeKey && scope === scopeKey
+    })
+    const tiles: StatStripItem[] = [
+        tile('total', t('subscriptions.total'), stats.all.length, 'blue', 'active'),
+        tile('active', t('subscriptions.active'), stats.count((u) => u?.status === 'ACTIVE'), 'teal'),
+        tile(
+            'expiring',
+            t('subscriptions.expiring_7'),
+            stats.count((u) => {
                 const d = daysLeft(u?.expire_at)
                 return u?.status === 'ACTIVE' && d !== null && d >= 0 && d <= 7
             }),
-            iconVariant: 'soft'
-        },
-        {
-            IconComponent: PiChartPieSliceDuotone,
-            iconColor: 'yellow',
-            title: t('subscriptions.traffic_low'),
-            value: stats.count((u) => !!u && (u.status === 'ACTIVE' || u.status === 'LIMITED') && isTrafficLow(u)),
-            iconVariant: 'soft'
-        },
-        { IconComponent: PiClockUserDuotone, iconColor: 'red', title: t('subscriptions.expired'), value: stats.count((u) => u?.status === 'EXPIRED'), iconVariant: 'soft' },
-        { IconComponent: PiLinkBreakDuotone, iconColor: 'gray', title: t('subscriptions.unlinked'), value: stats.count((u) => !u), iconVariant: 'soft' }
+            'orange',
+            'expiring'
+        ),
+        tile('traffic', t('dashboard.traffic_low'), stats.count((u) => !!u && (u.status === 'ACTIVE' || u.status === 'LIMITED') && isTrafficLow(u)), 'yellow', 'traffic'),
+        tile('expired', t('subscriptions.expired'), stats.count((u) => u?.status === 'EXPIRED'), 'red'),
+        tile('unlinked', t('subscriptions.unlinked'), stats.count((u) => !u), 'gray', 'unlinked')
     ]
 
     return (
         <Page title={t('menu.subscriptions')}>
             <PageHeaderShared
-                icon={<TbHexagon size={24} />}
+                actions={
+                    <Button leftSection={<PiLinkDuotone size={16} />} onClick={() => openSubscriptionForm({})} variant="filled">
+                        {t('sub.link')}
+                    </Button>
+                }
                 title={t('menu.subscriptions')}
                 description={t('subscriptions.description')}
             />
-            <Stack>
-                <SimpleGrid cols={{ base: 1, xs: 2, md: 3, xl: 6 }} spacing="xs">
-                    {cards.map((card, index) => (
-                        <motion.div
-                            animate={{ opacity: 1, y: 0 }}
-                            initial={{ opacity: 0, y: 0 }}
-                            key={card.title}
-                            transition={{ duration: 0.2, delay: index * 0.07, ease: 'easeIn' }}
-                        >
-                            <MetricCardShared isLoading={!data} {...card} />
-                        </motion.div>
-                    ))}
-                </SimpleGrid>
+            <Stack gap="lg">
+                <StatStrip items={tiles} />
 
                 <DataTableCard
                     storageKey="subscriptions"
@@ -249,9 +239,6 @@ export function SubscriptionsPage() {
                                     { value: 'all', label: t('common.all') }
                                 ]}
                             />
-                            <Button leftSection={<PiLinkDuotone size={16} />} onClick={() => openSubscriptionForm({})} variant="soft">
-                                {t('sub.link')}
-                            </Button>
                         </>
                     }
                     columns={columns}

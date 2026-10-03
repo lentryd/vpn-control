@@ -1,11 +1,11 @@
 // Term and payment cards shared by the extend, provision and add-on
 // modals, styled after the panel's access-settings card (date + presets).
-import { Button, Group, NumberInput, Paper, SimpleGrid, Stack, Switch, Text } from '@mantine/core'
+import { Box, Button, Group, NumberInput, Paper, SimpleGrid, Stack, Switch, Text } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import dayjs, { type Dayjs } from 'dayjs'
 import type { ReactNode } from 'react'
 import { PiCalendarDuotone, PiCalendarPlusDuotone, PiClockDuotone, PiWalletDuotone } from 'react-icons/pi'
-import { TbArrowRight, TbCalendar } from 'react-icons/tb'
+import { TbArrowRight } from 'react-icons/tb'
 
 import type { Period } from '@/api/types'
 import { durationLabel, fmtDate, fmtMoney, currencySymbol } from '@/components/format'
@@ -94,7 +94,7 @@ export function TermSection({
                                 radius="md"
                                 rightSection={
                                     p.hint && (
-                                        <Text c={active ? 'teal.3' : 'dimmed'} ff="monospace" size="xs">
+                                        <Text c={active ? 'teal.3' : 'dimmed'} className="num" size="xs">
                                             {p.hint}
                                         </Text>
                                     )
@@ -139,24 +139,24 @@ export function TermSection({
                 value={empty ? null : to.format('YYYY-MM-DD')}
                 valueFormat={dateLayout()}
             />
-            <Group gap="xs" grow wrap="nowrap">
-                <Paper bd="1px solid rgba(255,255,255,0.08)" bg="rgba(255,255,255,0.02)" p="xs" radius="md">
-                    <Group gap="xs" justify="center" wrap="nowrap">
-                        <TbCalendar color="var(--mantine-color-dimmed)" size={18} />
-                        <Text c="dimmed" fw={600} size="sm">
-                            {fmtDate(base.toISOString())}
-                        </Text>
-                    </Group>
-                </Paper>
-                <TbArrowRight color="var(--mantine-color-dimmed)" size={18} style={{ flex: '0 0 auto' }} />
-                <Paper bd="1px solid rgba(45, 212, 191, 0.2)" bg="rgba(45, 212, 191, 0.08)" p="xs" radius="md">
-                    <Group gap="xs" justify="center" wrap="nowrap">
-                        <TbCalendar color="var(--mantine-color-teal-5)" size={18} />
-                        <Text c="teal.5" fw={600} size="sm">
-                            {empty ? '—' : fmtDate(to.toISOString())}
-                        </Text>
-                    </Group>
-                </Paper>
+            <Group className="term-range" gap="sm" justify="space-between" wrap="nowrap">
+                <Box>
+                    <Text c="dimmed" size="xs">
+                        {t('term.from')}
+                    </Text>
+                    <Text className="num" fw={500} size="sm">
+                        {fmtDate(base.toISOString())}
+                    </Text>
+                </Box>
+                <TbArrowRight color="var(--app-text-faint)" size={18} style={{ flex: '0 0 auto' }} />
+                <Box ta="right">
+                    <Text c="dimmed" size="xs">
+                        {t('term.to')}
+                    </Text>
+                    <Text c={empty ? 'dimmed' : 'teal'} className="num" fw={600} size="sm">
+                        {empty ? '—' : fmtDate(to.toISOString())}
+                    </Text>
+                </Box>
             </Group>
             {children}
         </FormSection>
@@ -169,7 +169,7 @@ function SummaryRow({ label, children }: { label: string; children: ReactNode })
             <Text c="dimmed" size="sm">
                 {label}
             </Text>
-            <Text component="div" ff="monospace" fw={600} size="sm">
+            <Text component="div" className="num" fw={600} size="sm">
                 {children}
             </Text>
         </Group>
@@ -208,13 +208,13 @@ export function PaymentSection({
                 value={amount ?? ''}
             />
             {(balance !== undefined || monthly !== undefined) && (
-                <Paper bd="1px solid rgba(255,255,255,0.08)" bg="rgba(255,255,255,0.02)" p="sm" radius="md">
+                <Paper bd="1px solid var(--app-border)" bg="var(--app-surface-2)" p="sm" radius="md">
                     <Stack gap={6}>
                         {monthly !== undefined && <SummaryRow label={t('tariffs.monthly_price')}>{fmtMoney(monthly)}</SummaryRow>}
                         {balance !== undefined && <SummaryRow label={t('term.balance_now')}>{fmtMoney(balance, 2)}</SummaryRow>}
                         {after !== undefined && (
                             <SummaryRow label={t('term.after_charge')}>
-                                <Text c={after < 0 ? 'red.5' : 'teal.5'} ff="monospace" fw={600} size="sm">
+                                <Text c={after < 0 ? 'red.5' : 'teal.5'} className="num" fw={600} size="sm">
                                     {fmtMoney(after, 2)}
                                 </Text>
                             </SummaryRow>

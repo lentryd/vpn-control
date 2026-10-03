@@ -210,12 +210,12 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
                                     {rate.error.message}
                                 </Alert>
                             )}
-                            <Paper bd="1px solid rgba(251, 146, 60, 0.25)" bg="rgba(251, 146, 60, 0.08)" p="sm" radius="md">
+                            <Paper bd="1px solid color-mix(in srgb, var(--mantine-color-orange-6) 24%, transparent)" bg="var(--mantine-color-orange-light)" p="sm" radius="md">
                                 <Group justify="space-between">
                                     <Text c="dimmed" size="sm">
                                         {t('expense_modal.total', { currency: baseCurrency() })}
                                     </Text>
-                                    <Text c={v.kind === 'refund' ? 'teal' : 'orange'} ff="monospace" fw={700}>
+                                    <Text c={v.kind === 'refund' ? 'teal' : 'orange'} className="num" fw={700}>
                                         {v.kind === 'refund' ? '−' : ''}
                                         {fmtMoney(rub, 2)}
                                     </Text>

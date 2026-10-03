@@ -1,8 +1,11 @@
-// Adapted from remnawave/frontend (AGPL-3.0)
-import { Card, CardProps } from '@mantine/core'
+import { Card, type CardProps } from '@mantine/core'
 
-type TableContainerSharedProps = CardProps
+import classes from './table.module.css'
 
-export function TableContainerShared({ children, ...props }: TableContainerSharedProps) {
-    return <Card {...props}>{children}</Card>
+export function TableContainerShared({ children, className, ...props }: CardProps) {
+    return (
+        <Card className={`${classes.container} ${className ?? ''}`} padding={0} {...props}>
+            {children}
+        </Card>
+    )
 }

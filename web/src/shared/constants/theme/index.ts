@@ -1,3 +1,3 @@
-// Adapted from remnawave/frontend (AGPL-3.0)
-export * from './colors-resolver'
+export * from './css-variables'
 export * from './theme'
+export * from './variant-resolver'

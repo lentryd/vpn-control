@@ -3,12 +3,10 @@ import {
     ActionIcon,
     Alert,
     Badge,
-    Box,
     Button,
     Drawer,
     Group,
-    Indicator,
-    Menu,
+    Skeleton,
     NumberInput,
     SegmentedControl,
     Select,
@@ -42,7 +40,7 @@ import {
     PiTrash,
     PiUsersDuotone
 } from 'react-icons/pi'
-import { TbCloudDataConnection, TbDots, TbServer2 } from 'react-icons/tb'
+import { TbCloudDataConnection, TbServer2 } from 'react-icons/tb'
 
 import { api } from '@/api/client'
 import { useApiMutation, useExpenseItems, useInfra, useInvalidateAll, useMetered, useNodes, useSettings } from '@/api/hooks'
@@ -52,7 +50,7 @@ import { baseCurrency, currencySymbol, dateLayout, fmtCurrency, fmtDate, fmtMone
 import { notifyError, notifyOk, codedText } from '@/components/notify'
 import { PageHeader } from '@/components/ui'
 import { confirmDanger, openModal } from '@/modals/open'
-import { MeteredCard } from '@/pages/DashboardPage'
+import { MeteredCard } from '@/components/MeteredCard'
 import { FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
 import { NodeLabel, NodeSelect } from '@shared/ui/infra/node'
 import { SquadBadge, SquadSelect } from '@shared/ui/infra/squad'
@@ -60,6 +58,9 @@ import { ProviderInput, ProviderLabel } from '@shared/ui/infra/provider'
 import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
 import { Page } from '@shared/ui/page'
 import { DataTableCard } from '@shared/ui/table'
+import { EntityAdd, EntityCard, EntityFigure, EntityGrid, EntityParam } from '@shared/ui/entity-card'
+import { FooterFigure } from '@shared/ui/entity-card/footer-figure'
+import { StatStrip } from '@shared/ui/stat-strip'
 import { SearchSelect } from '@shared/ui/forms/search-select'
 import { CurrencyIcon, CURRENCIES } from '@shared/currencies'
 import i18n from '@/app/i18n/i18n'
@@ -80,7 +81,7 @@ function dueDate(item: ExpenseItem, billing: ReturnType<typeof usePanelBilling>)
     return item.next_due_date ?? billing(item.rw_node_uuid)?.nextBillingAt ?? null
 }
 
-function DueCell({ item }: { item: ExpenseItem }) {
+function DueCell({ item, align = 'center' }: { item: ExpenseItem; align?: 'center' | 'flex-end' }) {
     const { t } = useTranslation()
     const billing = usePanelBilling()
     const panel = billing(item.rw_node_uuid)
@@ -88,8 +89,8 @@ function DueCell({ item }: { item: ExpenseItem }) {
     if (!date) return <Text c="dimmed">–</Text>
     const days = dayjs(date).diff(dayjs(), 'day')
     return (
-        <Stack align="center" gap={0}>
-            <Text ff="monospace" fw={500} size="sm">
+        <Stack align={align} gap={0}>
+            <Text className="num" fw={600} size="sm">
                 {fmtDate(date)}
             </Text>
             <Group gap={4}>
@@ -130,212 +131,53 @@ export function ExpenseItemsPage() {
     }
 
     const billing = usePanelBilling()
-    const columns = useMemo<MRT_ColumnDef<ExpenseItem>[]>(
-        () => [
-            {
-                accessorKey: 'name',
-                header: t('expense_items.col_item'),
-                size: 220,
-                Cell: ({ row }) => (
-                    <Group gap="md" pl={10} wrap="nowrap">
-                        <Indicator color={row.original.active ? 'teal' : 'gray'} inline size={10} zIndex={0} />
-                        <Box miw={0}>
-                            <Text fw={500} size="sm" truncate="end">
-                                {row.original.name}
-                            </Text>
-                            <Text c="dimmed" fw={600} size="xs">
-                                {row.original.active ? (row.original.period === 'year' ? t('expense_items.yearly') : t('expense_items.monthly')) : t('expense_items.inactive')}
-                            </Text>
-                        </Box>
-                    </Group>
-                )
-            },
-            {
-                accessorKey: 'provider',
-                header: t('expense_items.provider'),
-                filterVariant: 'multi-select',
-                size: 200,
-                Cell: ({ row }) => <ProviderLabel name={row.original.provider} uuid={row.original.provider_uuid} />
-            },
-            {
-                id: 'node',
-                header: t('expense_items.col_node'),
-                size: 220,
-                accessorFn: (r) => r.rw_node_uuid,
-                enableColumnFilter: false,
-                Cell: ({ row }) =>
-                    row.original.rw_node_uuid ? (
-                        <Stack gap={2}>
-                            <NodeLabel uuid={row.original.rw_node_uuid} />
-                            {row.original.rw_squad_uuid && <SquadBadge size="sm" uuid={row.original.rw_squad_uuid} />}
-                        </Stack>
-                    ) : (
-                        <Text c="dimmed">–</Text>
-                    )
-            },
-            {
-                accessorKey: 'pricing',
-                header: t('expense_items.pricing'),
-                filterVariant: 'select',
-                mantineFilterSelectProps: {
-                    data: [
-                        { value: 'fixed', label: t('expense_items.fixed_short') },
-                        { value: 'metered', label: t('expense_items.metered_short') }
-                    ]
-                },
-                mantineTableBodyCellProps: { align: 'center' },
-                Cell: ({ row }) =>
-                    row.original.pricing === 'metered' ? (
-                        <Badge color="cyan" leftSection={<TbCloudDataConnection size={14} />} variant="soft">
-                            {t('expense_items.metered_badge')}
-                        </Badge>
-                    ) : (
-                        <Badge color="gray" leftSection={<PiCalendarDuotone size={14} />} variant="soft">
-                            {row.original.period === 'year' ? t('expense_items.per_year') : t('expense_items.per_month')}
-                        </Badge>
-                    )
-            },
-            {
-                id: 'price',
-                header: t('dashboard.col_price'),
-                enableColumnFilter: false,
-                accessorFn: (r) => (r.pricing === 'metered' ? r.min_charge : r.amount),
-                Cell: ({ row }) => {
-                    const it = row.original
-                    return it.pricing === 'metered' ? (
-                        <Stack gap={0}>
-                            <Text ff="monospace" fw={500} size="sm">
-                                {it.tiers?.length ? t('expense_items.tiers_count', { count: it.tiers.length }) : t('expense_items.per_gb', { price: fmtCurrency(it.price_per_gb, it.currency) })}
-                            </Text>
-                            <Text c="dimmed" size="xs">
-                                {it.min_mode === 'free'
-                                    ? t('expense_items.fee_free', { fee: fmtCurrency(it.min_charge, it.currency), gb: fmtNum(it.free_gb) })
-                                    : t('expense_items.min_short', { min: fmtCurrency(it.min_charge, it.currency) })}
-                            </Text>
-                        </Stack>
-                    ) : (
-                        <Text ff="monospace" fw={500} size="sm">
-                            {fmtCurrency(it.amount, it.currency)}
-                        </Text>
-                    )
-                }
-            },
-            {
-                id: 'fee',
-                header: t('expense_items.col_rate'),
-                size: 200,
-                enableColumnFilter: false,
-                enableSorting: false,
-                accessorFn: (r) => r.fee_percent,
-                Cell: ({ row }) => {
-                    const it = row.original
-                    return (
-                        <Group gap={4}>
-                            {it.currency !== baseCurrency() && it.rate && (
-                                <Badge color="gray" variant="soft">
-                                    {fmtNum(it.rate, 2)} {currencySymbol()}
-                                </Badge>
-                            )}
-                            {it.fee_percent > 0 && (
-                                <Badge color="orange" variant="soft">
-                                    +{it.fee_percent}%
-                                </Badge>
-                            )}
-                            {it.share_percent !== 100 && (
-                                <Badge color="indigo" variant="soft">
-                                    {t('expense_items.share_badge', { pct: it.share_percent })}
-                                </Badge>
-                            )}
-                            {it.currency === baseCurrency() && !it.fee_percent && it.share_percent === 100 && <Text c="dimmed">–</Text>}
-                        </Group>
-                    )
-                }
-            },
-            {
-                accessorKey: 'monthly_rub',
-                header: t('expense_items.col_monthly'),
-                enableColumnFilter: false,
-                mantineTableBodyCellProps: { align: 'center' },
-                Cell: ({ row }) =>
-                    row.original.plan_error ? (
-                        <Tooltip label={codedText(row.original.plan_error, row.original.plan_error_code, row.original.plan_error_params)} multiline maw={320}>
-                            <Badge color="red" variant="soft">
-                                {t('common.error')}
-                            </Badge>
-                        </Tooltip>
-                    ) : (
-                        <Stack align="center" gap={0}>
-                            <Text ff="monospace" fw={600} size="sm">
-                                {fmtMoney(row.original.monthly_rub, 2)}
-                            </Text>
-                            {row.original.pricing === 'metered' && (
-                                <Text c="dimmed" size="xs">
-                                    {t('expense_items.forecast_badge')}
-                                </Text>
-                            )}
-                        </Stack>
-                    )
-            },
-            {
-                id: 'due',
-                header: t('expense_items.col_next'),
-                enableColumnFilter: false,
-                mantineTableBodyCellProps: { align: 'center' },
-                sortingFn: 'datetime',
-                sortUndefined: 'last',
-                sortDescFirst: false,
-                accessorFn: (r) => {
-                    const d = dueDate(r, billing)
-                    return d ? new Date(d) : undefined
-                },
-                Cell: ({ row }) => <DueCell item={row.original} />
-            }
-        ],
-        [billing, t]
-    )
+    const items = useMemo(() => {
+        const due = (it: ExpenseItem) => {
+            const d = dueDate(it, billing)
+            return d ? dayjs(d).valueOf() : Infinity
+        }
+        return [...(data?.items ?? [])].sort((x, y) => Number(y.active) - Number(x.active) || due(x) - due(y))
+    }, [data, billing])
+    const active = items.filter((x) => x.active)
+    const next = active.find((x) => dueDate(x, billing))
+    const create = () => setEdit({ pricing: 'fixed', active: true, currency: baseCurrency(), share_percent: 100, period: 'month' })
 
     return (
         <Page title={t('menu.expense_items')}>
             <PageHeader
                 icon={<PiBuildingsDuotone size={24} />}
                 title={t('menu.expense_items')}
-                description={t('expense_items.description', { total: fmtMoney(data?.monthly_total, 2) })}
+                description={t('expense_items.table_hint')}
                 actions={
                     <>
-                        <Button color="gray" leftSection={<PiArrowsClockwise size={16} />} loading={syncing} onClick={syncTraffic}>
+                        <Button leftSection={<PiArrowsClockwise size={16} />} loading={syncing} onClick={syncTraffic}>
                             {t('expense_items.sync_traffic')}
                         </Button>
-                        <Button
-                            color="teal"
-                            variant="soft"
-                            leftSection={<PiPlus size={16} />}
-                            onClick={() => setEdit({ pricing: 'fixed', active: true, currency: baseCurrency(), share_percent: 100, period: 'month' })}
-                        >
+                        <Button variant="filled" leftSection={<PiPlus size={16} />} onClick={create}>
                             {t('expense_items.item')}
                         </Button>
                     </>
                 }
             />
-            <DataTableCard
-                storageKey="expense-items"
-                icon={<PiBuildingsDuotone size={24} />}
-                title={t('expense_items.table_title')}
-                description={t('expense_items.table_hint')}
-                columns={columns}
-                data={data?.items ?? []}
-                state={{ isLoading: !data }}
-                initialState={{ sorting: [{ id: 'due', desc: false }] }}
-                enableRowActions
-                renderRowActions={({ row }) => (
-                    <ItemMenu item={row.original} onEdit={() => setEdit(row.original)} onMetered={() => setMetered(row.original)} />
-                )}
-                mantineTableBodyRowProps={({ row }) => ({
-                    onClick: (e) => {
-                        if (!(e.target as HTMLElement).closest('button, a, [role="menuitem"]')) setEdit(row.original)
-                    },
-                    style: { cursor: 'pointer', opacity: row.original.active ? 1 : 0.55 }
-                })}
+            <StatStrip
+                items={[
+                    { label: t('expense_items.stat_monthly'), value: fmtMoney(data?.monthly_total, 2), hint: t('expense_items.stat_rate') },
+                    { label: t('expense_items.stat_items'), value: active.length, hint: t('expense_items.stat_total', { count: items.length }) },
+                    {
+                        label: t('expense_items.next_payment'),
+                        value: next ? fmtDate(dueDate(next, billing)) : '—',
+                        hint: next?.name
+                    }
+                ]}
+                mb="lg"
             />
+            <EntityGrid min={300}>
+                {!data && [0, 1, 2].map((i) => <Skeleton h={250} key={i} radius="lg" />)}
+                {items.map((it) => (
+                    <ExpenseItemCard item={it} key={it.id} onEdit={() => setEdit(it)} onMetered={() => setMetered(it)} />
+                ))}
+                {data && items.length === 0 && <EntityAdd label={t('expense_items.new_item')} onClick={create} />}
+            </EntityGrid>
             <Drawer
                 opened={!!edit}
                 onClose={() => setEdit(null)}
@@ -364,51 +206,112 @@ export function ExpenseItemsPage() {
     )
 }
 
-function ItemMenu({ item, onEdit, onMetered }: { item: ExpenseItem; onEdit: () => void; onMetered: () => void }) {
+// ExpenseItemCard is one recurring payment: its price, where it goes, what
+// it costs a month in the base currency and when it is due next.
+function ExpenseItemCard({ item: it, onEdit, onMetered }: { item: ExpenseItem; onEdit: () => void; onMetered: () => void }) {
     const { t } = useTranslation()
     const invalidate = useInvalidateAll()
+    const metered = it.pricing === 'metered'
+    const remove = () =>
+        confirmDanger(t('expense_items.delete', { name: it.name }), t('expense_items.delete_hint'), async () => {
+            try {
+                await api.del(`expense-items/${it.id}`)
+                await invalidate()
+            } catch (e) {
+                notifyError(e)
+            }
+        })
+    const extras = [
+        it.currency !== baseCurrency() && it.rate && (
+            <Tooltip key="rate" label={t('expense_items.col_rate')}>
+                <Badge color="gray">
+                    1 {it.currency} = {fmtNum(it.rate, 2)} {currencySymbol()}
+                </Badge>
+            </Tooltip>
+        ),
+        it.fee_percent > 0 && (
+            <Badge color="orange" key="fee">
+                +{it.fee_percent}%
+            </Badge>
+        ),
+        it.share_percent !== 100 && (
+            <Badge color="indigo" key="share">
+                {t('expense_items.share_badge', { pct: it.share_percent })}
+            </Badge>
+        )
+    ].filter(Boolean)
+
     return (
-        <Menu position="bottom-end" withinPortal>
-            <Menu.Target>
-                <ActionIcon color="gray" variant="subtle">
-                    <TbDots size={18} />
-                </ActionIcon>
-            </Menu.Target>
-            <Menu.Dropdown>
-                <Menu.Label>{t('expense_items.manage')}</Menu.Label>
-                {item.pricing === 'metered' && (
-                    <>
-                        <Menu.Item leftSection={<PiChartBar size={16} />} onClick={onMetered}>
-                            {t('expense_items.traffic_forecast')}
-                        </Menu.Item>
-                        <Menu.Item leftSection={<PiLock size={16} />} onClick={() => openClosePeriod(item)}>
-                            {t('expense_items.close_period')}
-                        </Menu.Item>
-                    </>
-                )}
-                <Menu.Item leftSection={<PiPencilSimple size={16} />} onClick={onEdit}>
-                    {t('common.edit')}
-                </Menu.Item>
-                <Menu.Divider />
-                <Menu.Label>{t('common.danger_zone')}</Menu.Label>
-                <Menu.Item
-                    color="red"
-                    leftSection={<PiTrash size={16} />}
-                    onClick={() =>
-                        confirmDanger(t('expense_items.delete', { name: item.name }), t('expense_items.delete_hint'), async () => {
-                            try {
-                                await api.del(`expense-items/${item.id}`)
-                                await invalidate()
-                            } catch (e) {
-                                notifyError(e)
-                            }
-                        })
-                    }
-                >
-                    {t('common.delete')}
-                </Menu.Item>
-            </Menu.Dropdown>
-        </Menu>
+        <EntityCard
+            badges={metered && <Badge color="brand" leftSection={<TbCloudDataConnection size={12} />}>{t('expense_items.metered_badge')}</Badge>}
+            dimmed={!it.active}
+            dot={it.active ? 'teal' : 'gray'}
+            footer={
+                <>
+                    <FooterFigure label={metered ? `${t('expense_items.monthly_net')} · ${t('expense_items.forecast_badge')}` : t('expense_items.monthly_net')}>
+                        {it.plan_error ? (
+                            <Tooltip label={codedText(it.plan_error, it.plan_error_code, it.plan_error_params)} maw={320} multiline>
+                                <Text c="red" component="span" inherit>
+                                    {t('common.error')}
+                                </Text>
+                            </Tooltip>
+                        ) : (
+                            fmtMoney(it.monthly_rub, 2)
+                        )}
+                    </FooterFigure>
+                    {it.active && <DueCell align="flex-end" item={it} />}
+                </>
+            }
+            menu={[
+                ...(metered
+                    ? [
+                          { label: t('expense_items.traffic_forecast'), icon: PiChartBar, onClick: onMetered },
+                          { label: t('expense_items.close_period'), icon: PiLock, onClick: () => openClosePeriod(it) }
+                      ]
+                    : []),
+                { label: t('common.edit'), icon: PiPencilSimple, onClick: onEdit },
+                { label: t('common.delete'), icon: PiTrash, color: 'red', onClick: remove }
+            ]}
+            onClick={onEdit}
+            params={
+                <>
+                    <EntityParam icon={PiBuildingsDuotone} label={t('expense_items.provider')}>
+                        {it.provider ? <ProviderLabel name={it.provider} size="xs" uuid={it.provider_uuid} /> : <Text c="dimmed" component="span" inherit>—</Text>}
+                    </EntityParam>
+                    {it.rw_node_uuid && (
+                        <EntityParam icon={TbServer2} label={t('expense_items.col_node')}>
+                            <Group gap={6} wrap="nowrap">
+                                <NodeLabel size="xs" uuid={it.rw_node_uuid} />
+                                {it.rw_squad_uuid && <SquadBadge size="xs" uuid={it.rw_squad_uuid} />}
+                            </Group>
+                        </EntityParam>
+                    )}
+                </>
+            }
+            subtitle={!it.active ? t('expense_items.inactive') : it.period === 'year' ? t('expense_items.yearly') : t('expense_items.monthly')}
+            title={it.name}
+        >
+            {metered ? (
+                <>
+                    <EntityFigure
+                        unit={it.tiers?.length ? undefined : t('expense_items.per_gb_unit')}
+                        value={it.tiers?.length ? t('expense_items.tiers_count', { count: it.tiers.length }) : fmtCurrency(it.price_per_gb, it.currency)}
+                    />
+                    <Text c="dimmed" mt={6} size="xs">
+                        {it.min_mode === 'free'
+                            ? t('expense_items.fee_free', { fee: fmtCurrency(it.min_charge, it.currency), gb: fmtNum(it.free_gb) })
+                            : t('expense_items.min_short', { min: fmtCurrency(it.min_charge, it.currency) })}
+                    </Text>
+                </>
+            ) : (
+                <EntityFigure unit={it.period === 'year' ? t('expense_items.per_year') : t('expense_items.per_month')} value={fmtCurrency(it.amount, it.currency)} />
+            )}
+            {extras.length > 0 && (
+                <Group gap={6} mt="sm">
+                    {extras}
+                </Group>
+            )}
+        </EntityCard>
     )
 }
 
@@ -461,7 +364,7 @@ function MeteredView({ item }: { item: ExpenseItem }) {
         () => [
             { accessorKey: 'username', header: t('expense_items.col_user'), Cell: ({ row }) => row.original.username || `#${row.original.rw_user_id}` },
             { accessorKey: 'customer_name', header: t('expense_items.col_customer'), Cell: ({ row }) => row.original.customer_name || '–' },
-            { accessorKey: 'gb', header: t('format.units.gb'), Cell: ({ cell }) => <Text ff="monospace" size="sm">{fmtNum(cell.getValue<number>())}</Text> },
+            { accessorKey: 'gb', header: t('format.units.gb'), Cell: ({ cell }) => <Text className="num" size="sm">{fmtNum(cell.getValue<number>())}</Text> },
             { accessorKey: 'share_percent', header: t('expense_items.col_share'), Cell: ({ cell }) => `${fmtNum(cell.getValue<number>(), 1)}%` },
             { accessorKey: 'cost_rub', header: `≈ ${currencySymbol()}`, Cell: ({ cell }) => fmtMoney(cell.getValue<number>()) }
         ],

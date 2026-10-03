@@ -1,11 +1,12 @@
 // Adapted from remnawave/frontend (AGPL-3.0): features/dashboard/users/users-table/model/node-select-item
 // and widgets/dashboard/nodes/node-status-badge.
-import { Group, Indicator, type SelectProps, Text, Tooltip } from '@mantine/core'
+import { Group, type SelectProps, Text, Tooltip } from '@mantine/core'
 import ReactCountryFlag from 'react-country-flag'
 import { HiServer } from 'react-icons/hi'
 
 import { useNodes } from '@/api/hooks'
 import type { RwNode } from '@/api/types'
+import { Dot } from '@/components/badges'
 import { SearchSelect } from '../forms/search-select'
 import { useTranslation } from 'react-i18next'
 
@@ -32,7 +33,7 @@ export function NodeLabel({ uuid, fallback, size = 'sm' }: { uuid?: string | nul
             label={n ? `${n.address} · ${n.isDisabled ? t('infra.node_disabled') : n.isConnected ? t('infra.node_online') : t('infra.node_offline')} · ${t('infra.users_online', { count: n.usersOnline })}` : ''}
         >
             <Group gap="xs" wrap="nowrap">
-                <Indicator color={nodeColor(n)} inline processing={n?.isConnected} size={8} zIndex={0} />
+                <Dot color={nodeColor(n)} pulse={n?.isConnected} />
                 <CountryFlag code={n?.countryCode} />
                 <Text fw={500} size={size} truncate="end">
                     {n?.name ?? fallback ?? uuid}
@@ -55,7 +56,7 @@ export function NodeSelect(props: Omit<SelectProps, 'data'>) {
                 const n = nodes.find((x) => x.uuid === option.value)
                 return (
                     <Group gap="sm" wrap="nowrap" fw={checked ? 600 : undefined}>
-                        <Indicator color={nodeColor(n)} inline size={8} zIndex={0} />
+                        <Dot color={nodeColor(n)} />
                         <CountryFlag code={n?.countryCode} />
                         <Text size="sm">{option.label}</Text>
                         {n && (

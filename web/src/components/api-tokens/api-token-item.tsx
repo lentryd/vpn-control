@@ -1,80 +1,106 @@
-// Adapted from remnawave/frontend (AGPL-3.0): widgets/remnawave-settings/api-tokens-card/api-token-item
-import { ActionIcon, Box, Group, Menu, Text } from '@mantine/core'
+import { Badge, Group, Text } from '@mantine/core'
 import { modals } from '@mantine/modals'
 import dayjs from 'dayjs'
 import { useTranslation } from 'react-i18next'
-import { TbCookie, TbDots, TbEye, TbTrash } from 'react-icons/tb'
+import { TbActivity, TbCalendarPlus, TbEye, TbKey, TbShieldCheck, TbTrash } from 'react-icons/tb'
 
 import { api } from '@/api/client'
 import { useApiMutation } from '@/api/hooks'
 import type { ApiToken } from '@/api/types'
+import { daysLeft, fmtDate, fmtDateTime, fromNow } from '@/components/format'
+import { confirmDanger } from '@/modals/open'
 import { notifyError } from '@/components/notify'
+import { EntityCard, EntityParam } from '@shared/ui/entity-card'
+import { FooterFigure } from '@shared/ui/entity-card/footer-figure'
 import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
 
-import classes from './api-token-card.module.css'
 import { isMobileViewport } from './hooks'
 import { ViewApiTokenContent } from './modals/view-api-token-modal'
-import { formatTokenTime } from './time'
 
+// ApiTokenItem is one token: what it may call, when it lapses and when it
+// was last used. A click shows its scopes.
 export function ApiTokenItem({ token }: { token: ApiToken }) {
     const { t } = useTranslation()
     const remove = useApiMutation(() => api.del(`api-tokens/${token.id}`))
 
     const isFull = token.scopes.includes('*')
-    const hasScopes = isFull || token.scopes.length > 0
     const isExpired = !!token.expire_at && dayjs(token.expire_at).isBefore(dayjs())
-    const dotColor = isFull ? 'var(--mantine-color-teal-5)' : hasScopes ? 'var(--mantine-color-cyan-5)' : 'var(--mantine-color-dark-3)'
+    const left = daysLeft(token.expire_at)
+    const expiryColor = isExpired ? 'red' : left !== null && left <= 7 ? 'orange' : undefined
+
+    const view = () => {
+        const isMobile = isMobileViewport()
+        modals.open({
+            title: <BaseOverlayHeader iconColor="teal" IconComponent={TbKey} iconVariant="soft" title={token.name} />,
+            fullScreen: isMobile,
+            centered: true,
+            size: 'min(800px, 90vw)',
+            children: <ViewApiTokenContent isMobile={isMobile} token={token} />
+        })
+    }
+    const del = () =>
+        confirmDanger(t('tokens.delete', { name: token.name }), t('tokens.delete_hint'), () =>
+            remove.mutate(undefined, { onError: (e) => notifyError(e) })
+        )
 
     return (
-        <Box className={classes.tokenRow}>
-            <Group gap="sm" style={{ minWidth: 0 }} wrap="nowrap">
-                <Box style={{ background: dotColor, borderRadius: '50%', flexShrink: 0, height: 8, width: 8 }} />
-                <Text fw={500} size="sm" truncate="end">
-                    {token.name}
+        <EntityCard
+            badges={isExpired && <Badge color="red">{t('tokens.expired')}</Badge>}
+            dimmed={isExpired}
+            dot={isExpired ? 'red' : isFull ? 'teal' : 'brand'}
+            footer={
+                <>
+                    <FooterFigure label={t('tokens.col_expires')}>
+                        <Text c={expiryColor} component="span" inherit>
+                            {token.expire_at ? fmtDate(token.expire_at) : t('tokens.never_expires')}
+                        </Text>
+                    </FooterFigure>
+                    {token.expire_at && !isExpired && (
+                        <Text c={expiryColor ?? 'dimmed'} size="xs">
+                            {fromNow(token.expire_at)}
+                        </Text>
+                    )}
+                </>
+            }
+            menu={[
+                { label: t('tokens.view'), icon: TbEye, onClick: view },
+                { label: t('common.delete'), icon: TbTrash, color: 'red', onClick: del, disabled: remove.isPending }
+            ]}
+            onClick={view}
+            params={
+                <>
+                    <EntityParam icon={TbCalendarPlus} label={t('tokens.col_created')}>
+                        {fmtDateTime(token.created_at)}
+                    </EntityParam>
+                    <EntityParam icon={TbActivity} label={t('tokens.last_used')}>
+                        {token.last_used_at ? (
+                            fromNow(token.last_used_at)
+                        ) : (
+                            <Text c="dimmed" component="span" inherit>
+                                {t('tokens.never_used')}
+                            </Text>
+                        )}
+                    </EntityParam>
+                </>
+            }
+            subtitle={
+                <Text c="dimmed" ff="monospace" inherit>
+                    {token.prefix}…
                 </Text>
+            }
+            title={token.name}
+        >
+            <Group gap={6} mt="md">
+                {isFull ? (
+                    <Badge color="teal" leftSection={<TbShieldCheck size={12} />} size="lg">
+                        {t('tokens.full_access')}
+                    </Badge>
+                ) : (
+                    <Badge color="brand" size="lg">
+                        {t('tokens.endpoints', { count: token.scopes.length })}
+                    </Badge>
+                )}
             </Group>
-
-            <Text c="dimmed" ff="monospace" size="xs" truncate="end">
-                {isFull ? t('tokens.full_access') : token.scopes.length}
-            </Text>
-
-            <Text c={isExpired ? 'red.5' : 'dimmed'} fw={isExpired ? 600 : 400} size="xs" truncate="end" visibleFrom="sm">
-                {isExpired ? t('tokens.expired') : token.expire_at ? formatTokenTime(token.expire_at) : t('tokens.never_expires')}
-            </Text>
-
-            <Menu position="bottom-end" shadow="lg" trigger="click-hover" width={190}>
-                <Menu.Target>
-                    <ActionIcon color="gray" onClick={(event) => event.stopPropagation()} size="md" variant="subtle">
-                        <TbDots size={18} />
-                    </ActionIcon>
-                </Menu.Target>
-                <Menu.Dropdown onClick={(event) => event.stopPropagation()}>
-                    <Menu.Item
-                        leftSection={<TbEye size={15} />}
-                        onClick={() => {
-                            const isMobile = isMobileViewport()
-                            modals.open({
-                                title: <BaseOverlayHeader iconColor="teal" IconComponent={TbCookie} iconVariant="soft" title={token.name} />,
-                                fullScreen: isMobile,
-                                centered: true,
-                                size: 'min(800px, 90vw)',
-                                children: <ViewApiTokenContent isMobile={isMobile} token={token} />
-                            })
-                        }}
-                    >
-                        {t('tokens.view')}
-                    </Menu.Item>
-                    <Menu.Divider />
-                    <Menu.Item
-                        color="red"
-                        disabled={remove.isPending}
-                        leftSection={<TbTrash size={15} />}
-                        onClick={() => remove.mutate(undefined, { onError: (e) => notifyError(e) })}
-                    >
-                        {t('common.delete')}
-                    </Menu.Item>
-                </Menu.Dropdown>
-            </Menu>
-        </Box>
+        </EntityCard>
     )
 }

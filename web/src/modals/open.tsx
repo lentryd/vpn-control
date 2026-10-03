@@ -1,3 +1,4 @@
+import { FocusTrap } from '@mantine/core'
 import { modals } from '@mantine/modals'
 import type { ReactNode } from 'react'
 import { PiWarningDuotone } from 'react-icons/pi'
@@ -12,9 +13,8 @@ export interface ModalHeader {
     title: ReactNode
 }
 
-// openModal shows content in a Mantine modal titled like the panel's
-// overlays (soft icon + title + subtitle); the render function gets a close
-// callback.
+// openModal shows content in a modal titled with a tinted icon, title and
+// subtitle; the render function gets a close callback.
 export function openModal(header: ModalHeader, render: (close: () => void) => ReactNode, size: string | number = 'md') {
     const id = `m-${Math.random().toString(36).slice(2)}`
     const close = () => modals.close(id)
@@ -22,16 +22,21 @@ export function openModal(header: ModalHeader, render: (close: () => void) => Re
         modalId: id,
         title: (
             <BaseOverlayHeader
-                iconColor={header.color ?? 'cyan'}
+                iconColor={header.color ?? 'brand'}
                 IconComponent={header.icon}
                 subtitle={header.subtitle}
                 title={header.title}
             />
         ),
         size,
-        // wide entity modals go full screen on phones, as in the panel
+        // wide entity modals go full screen on phones
         fullScreen: size === '1000px' && window.matchMedia('(max-width: 40em)').matches,
-        children: render(close)
+        children: (
+            <>
+                <FocusTrap.InitialFocus />
+                {render(close)}
+            </>
+        )
     })
     return close
 }
@@ -39,10 +44,15 @@ export function openModal(header: ModalHeader, render: (close: () => void) => Re
 export function confirmDanger(title: string, text: ReactNode, onConfirm: () => void, confirmLabel = i18n.t('common.delete')) {
     modals.openConfirmModal({
         title: <BaseOverlayHeader iconColor="red" IconComponent={PiWarningDuotone} title={title} />,
-        children: text,
+        children: (
+            <>
+                <FocusTrap.InitialFocus />
+                {text}
+            </>
+        ),
         labels: { confirm: confirmLabel, cancel: i18n.t('common.cancel') },
-        confirmProps: { color: 'red', variant: 'soft' },
-        cancelProps: { color: 'gray', variant: 'subtle' },
+        confirmProps: { color: 'red', variant: 'filled' },
+        cancelProps: { variant: 'default' },
         onConfirm
     })
 }

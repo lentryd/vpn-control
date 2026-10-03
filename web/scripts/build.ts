@@ -1,15 +1,18 @@
 // Production build: index.html → dist/ with relative asset URLs, so the same
 // build works at the domain root or under any BASE_PATH (e.g. /control/),
 // plus public/ (favicon, locales) copied as is.
-import { cp, mkdir, rm } from 'node:fs/promises'
-import { basename, dirname, resolve } from 'node:path'
+import { cp, mkdir, readdir, rm } from 'node:fs/promises'
+import { basename, dirname, extname, resolve } from 'node:path'
+import { brotliCompressSync, constants, gzipSync } from 'node:zlib'
 
 import type { BunPlugin } from 'bun'
+import { bundleAsync } from 'lightningcss'
 
 import postcss from './postcss-plugin'
 
 const root = new URL('..', import.meta.url).pathname
 const outdir = `${root}dist`
+const vendorCss = `${root}src/app/vendor.css`
 
 await rm(outdir, { recursive: true, force: true })
 
@@ -27,6 +30,14 @@ const externalFonts: BunPlugin = {
     }
 }
 
+// Library styles are built separately below (see src/app/vendor.css).
+const skipVendorCss: BunPlugin = {
+    name: 'skip-vendor-css',
+    setup(build) {
+        build.onLoad({ filter: /[\\/]src[\\/]app[\\/]vendor\.css$/ }, () => ({ contents: '', loader: 'css' }))
+    }
+}
+
 const result = await Bun.build({
     entrypoints: [`${root}index.html`],
     outdir,
@@ -36,7 +47,7 @@ const result = await Bun.build({
     sourcemap: 'none',
     naming: { chunk: 'assets/[name]-[hash].[ext]', asset: 'assets/[name]-[hash].[ext]' },
     define: { 'process.env.NODE_ENV': '"production"' },
-    plugins: [postcss, externalFonts]
+    plugins: [skipVendorCss, postcss, externalFonts]
 })
 
 if (!result.success) {
@@ -44,7 +55,25 @@ if (!result.success) {
     process.exit(1)
 }
 
+// Modern targets: logical properties and :is() stay as they are.
+const version = (major: number, minor = 0) => (major << 16) | (minor << 8)
+const vendor = await bundleAsync({
+    filename: vendorCss,
+    minify: true,
+    targets: { chrome: version(100), edge: version(100), firefox: version(100), safari: version(15, 4), ios_saf: version(15, 4) },
+    resolver: { resolve: (specifier, from) => Bun.resolveSync(specifier, dirname(from)) }
+})
+const vendorName = `assets/vendor-${Bun.hash(vendor.code).toString(36).slice(0, 8)}.css`
+await Bun.write(`${outdir}/${vendorName}`, vendor.code)
+
+// Before the app stylesheet, so our overrides still win the cascade.
+const html = await Bun.file(`${outdir}/index.html`).text()
+const link = `<link rel="stylesheet" crossorigin href="./${vendorName}">`
+await Bun.write(`${outdir}/index.html`, html.includes('<link rel="stylesheet"') ? html.replace('<link rel="stylesheet"', `${link}<link rel="stylesheet"`) : html.replace('</head>', `${link}</head>`))
+
 await cp(`${root}public`, outdir, { recursive: true })
+// tracked in git, so `go build` works (with an empty SPA) before a web build
+await Bun.write(`${outdir}/.gitkeep`, '')
 
 for (const [ref, src] of fonts) {
     const dest = resolve(outdir, 'assets', ref)
@@ -53,4 +82,23 @@ for (const [ref, src] of fonts) {
 }
 console.log(`assets/files/  ${fonts.size} fonts (${[...new Set([...fonts.keys()].map((f) => basename(f).split('-')[0]))].join(', ')})`)
 
-for (const out of result.outputs) console.log(`${out.path.replace(root, '')}  ${(out.size / 1024).toFixed(1)} kB`)
+// Precompressed copies for the Go server to send as is (internal/api/static.go):
+// max-level brotli once at build time instead of a fast one on every request.
+const compressible = new Set(['.js', '.css', '.html', '.json', '.svg'])
+let raw = 0
+let br = 0
+for (const entry of await readdir(outdir, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile() || !compressible.has(extname(entry.name))) continue
+    const path = `${entry.parentPath}/${entry.name}`
+    const data = await Bun.file(path).bytes()
+    if (data.length < 1024) continue
+    const brotli = brotliCompressSync(data, { params: { [constants.BROTLI_PARAM_QUALITY]: 11, [constants.BROTLI_PARAM_SIZE_HINT]: data.length } })
+    await Bun.write(`${path}.br`, brotli)
+    await Bun.write(`${path}.gz`, gzipSync(data, { level: 9 }))
+    raw += data.length
+    br += brotli.length
+}
+
+const sizes = [...result.outputs.map((o) => [o.path.replace(root, ''), o.size] as const), [`dist/${vendorName}`, vendor.code.length] as const]
+for (const [path, size] of sizes) console.log(`${path}  ${(size / 1024).toFixed(1)} kB`)
+console.log(`total ${(raw / 1024).toFixed(0)} kB → ${(br / 1024).toFixed(0)} kB brotli`)

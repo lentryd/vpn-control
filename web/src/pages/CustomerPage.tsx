@@ -14,16 +14,13 @@ import {
 } from '@mantine/core'
 import {
     PiCalendarPlusDuotone,
-    PiCoinsDuotone,
     PiCreditCardDuotone,
     PiLink,
     PiPencilSimple,
     PiPlus,
     PiScales,
     PiTrash,
-    PiUserDuotone,
     PiUserPlus,
-    PiUsersThreeDuotone,
     PiWalletDuotone
 } from 'react-icons/pi'
 import { TbChevronDown } from 'react-icons/tb'
@@ -36,13 +33,14 @@ import { durationLabel, fmtDate, fmtDateTime, fmtMoney } from '@/components/form
 import { notifyError, errorText } from '@/components/notify'
 import { paymentColumns, paymentTableProps } from '@/components/PaymentTable'
 import { SubscriptionCard } from '@/components/SubscriptionCard'
-import { Money, PageHeader, StatCard } from '@/components/ui'
+import { BackLink, Money, PageHeader } from '@/components/ui'
 import { openAdjustModal, openCustomerForm } from '@/modals/CustomerModals'
 import { confirmDanger } from '@/modals/open'
 import { openPaymentModal } from '@/modals/PaymentModal'
 import { openProvisionModal, openSubscriptionForm } from '@/modals/SubscriptionModals'
 import { LoadingScreen } from '@shared/ui/loading-screen'
 import { Page } from '@shared/ui/page'
+import { StatStrip } from '@shared/ui/stat-strip'
 import { DataTableCard } from '@shared/ui/table'
 import i18n from '@/app/i18n/i18n'
 import { useMemo } from 'react'
@@ -55,7 +53,7 @@ const extKind = (kind: string) =>
     ['extend', 'connect', 'tariff_change'].includes(kind) ? i18n.t(`customer.ext.${kind as 'extend'}`) : kind
 
 const mono = (v: string) => (
-    <Text ff="monospace" size="sm">
+    <Text className="num" size="sm">
         {v}
     </Text>
 )
@@ -67,7 +65,7 @@ const ledgerColumns = (): MRT_ColumnDef<LedgerEntry>[] => [
         accessorKey: 'type',
         header: i18n.t('customer.col_operation'),
         Cell: ({ row }) => (
-            <Badge color={ledgerColor[row.original.type]} size="lg" variant="soft">
+            <Badge color={ledgerColor[row.original.type]} size="md">
                 {ledgerLabel(row.original.type)}
             </Badge>
         )
@@ -76,7 +74,7 @@ const ledgerColumns = (): MRT_ColumnDef<LedgerEntry>[] => [
         accessorKey: 'amount',
         header: i18n.t('customer.col_amount'),
         Cell: ({ cell }) => (
-            <Text c={cell.getValue<number>() > 0 ? 'teal' : 'red'} ff="monospace" fw={600} size="sm">
+            <Text c={cell.getValue<number>() > 0 ? 'teal' : 'red'} className="num" fw={600} size="sm">
                 {cell.getValue<number>() > 0 ? '+' : ''}
                 {fmtMoney(cell.getValue<number>(), 2)}
             </Text>
@@ -154,15 +152,17 @@ export function CustomerPage() {
     return (
         <Page title={c.name}>
             <PageHeader
-                icon={<PiUserDuotone size={24} />}
+                eyebrow={<BackLink to="/customers">{t('menu.customers')}</BackLink>}
                 title={c.name}
+                badges={
+                    c.archived && (
+                        <Badge color="gray" size="lg">
+                            {t('customer.archived')}
+                        </Badge>
+                    )
+                }
                 description={
-                    <Group gap="xs" component="span">
-                        {c.archived && (
-                            <Badge color="gray" variant="soft">
-                                {t('customer.archived')}
-                            </Badge>
-                        )}
+                    <Group gap={6} component="span">
                         {c.referrer_id ? (
                             <span>
                                 {t('customer.referred_by')}{' '}
@@ -178,12 +178,12 @@ export function CustomerPage() {
                 }
                 actions={
                     <>
-                        <Button color="teal" variant="soft" leftSection={<PiCreditCardDuotone size={16} />} onClick={() => openPaymentModal({ customerId: c.id, name: c.name })}>
+                        <Button variant="filled" leftSection={<PiCreditCardDuotone size={16} />} onClick={() => openPaymentModal({ customerId: c.id, name: c.name })}>
                             {t('customer.record_payment')}
                         </Button>
                         <Menu position="bottom-end">
                             <Menu.Target>
-                                <Button color="gray" rightSection={<TbChevronDown size={14} />}>
+                                <Button rightSection={<TbChevronDown size={14} />}>
                                     {t('customer.more')}
                                 </Button>
                             </Menu.Target>
@@ -210,17 +210,25 @@ export function CustomerPage() {
                 }
             />
 
-            <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }} spacing="xs" mb="md">
-                <StatCard title={t('dashboard.col_balance')} value={<Money value={c.balance} signed digits={2} />} icon={PiWalletDuotone} color={c.balance < 0 ? 'red' : 'teal'} />
-                <StatCard title={t('sub.per_month')} value={<Money value={c.monthly} />} icon={PiCoinsDuotone} />
-                <StatCard title={t('customer.total_paid')} value={<Money value={c.total_paid} />} hint={t('customer.last_payment', { date: fmtDate(c.last_payment_at) })} icon={PiCreditCardDuotone} color="grape" />
-                <StatCard title={t('customer.referred_count')} value={c.referrals_count} icon={PiUsersThreeDuotone} color="indigo" />
-            </SimpleGrid>
+            <StatStrip
+                items={[
+                    { label: t('dashboard.col_balance'), value: <Money value={c.balance} signed digits={2} />, color: c.balance < 0 ? 'red' : undefined },
+                    { label: t('sub.per_month'), value: <Money value={c.monthly} /> },
+                    { label: t('customer.total_paid'), value: <Money value={c.total_paid} />, hint: c.last_payment_at ? t('customer.last_payment', { date: fmtDate(c.last_payment_at) }) : undefined },
+                    { label: t('customer.referred_count'), value: c.referrals_count }
+                ]}
+                mb="lg"
+            />
 
             {c.notes && (
-                <Alert color="gray" mb="lg">
-                    {c.notes}
-                </Alert>
+                <Card mb="lg" padding="md">
+                    <Text c="dimmed" fw={500} mb={4} size="xs">
+                        {t('customer.notes')}
+                    </Text>
+                    <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
+                        {c.notes}
+                    </Text>
+                </Card>
             )}
 
             <Tabs defaultValue="subs" keepMounted={false}>
@@ -241,10 +249,10 @@ export function CustomerPage() {
                             <Text c="dimmed">{t('customer.no_subs')}</Text>
                         )}
                         <Group>
-                            <Button color="teal" leftSection={<PiPlus size={16} />} onClick={() => openProvisionModal(c)} variant="soft">
+                            <Button leftSection={<PiPlus size={16} />} onClick={() => openProvisionModal(c)} variant="light">
                                 {t('sub.create_in_panel')}
                             </Button>
-                            <Button leftSection={<PiLink size={16} />} color="gray" onClick={() => openSubscriptionForm({ customerId: c.id })}>
+                            <Button leftSection={<PiLink size={16} />} onClick={() => openSubscriptionForm({ customerId: c.id })}>
                                 {t('customer.link_existing')}
                             </Button>
                         </Group>

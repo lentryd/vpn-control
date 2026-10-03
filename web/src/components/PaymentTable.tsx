@@ -1,5 +1,5 @@
 import type { MRT_ColumnDef } from '@kastov/mantine-react-table-open'
-import { ActionIcon, ActionIconGroup, Anchor, Badge, Group, Text } from '@mantine/core'
+import { ActionIcon, Anchor, Badge, Group, Text } from '@mantine/core'
 import { PiBank, PiCurrencyBtc, PiLightning, PiMoney, PiPencilSimple, PiQuestion, PiTrash, PiUser } from 'react-icons/pi'
 import { Link } from 'react-router'
 
@@ -14,7 +14,7 @@ import { notifyError } from './notify'
 import i18n from '@/app/i18n/i18n'
 
 // methodMeta styles the suggested methods of both languages; others are gray.
-const bank = { color: 'cyan', icon: <PiBank size={14} /> }
+const bank = { color: 'brand', icon: <PiBank size={14} /> }
 const instant = { color: 'violet', icon: <PiLightning size={14} /> }
 const cash = { color: 'teal', icon: <PiMoney size={14} /> }
 const crypto = { color: 'orange', icon: <PiCurrencyBtc size={14} /> }
@@ -33,7 +33,7 @@ export function MethodBadge({ method }: { method: string }) {
     if (!method) return <Text c="dimmed">—</Text>
     const m = methodMeta[method] ?? { color: 'gray', icon: <PiQuestion size={14} /> }
     return (
-        <Badge color={m.color} leftSection={m.icon} size="lg" variant="soft">
+        <Badge color={m.color} leftSection={m.icon} size="md">
             {method}
         </Badge>
     )
@@ -50,7 +50,7 @@ export function paymentColumns(withCustomer: boolean): MRT_ColumnDef<Payment>[] 
             accessorFn: (r) => new Date(r.date),
             enableColumnFilter: false,
             Cell: ({ row }) => (
-                <Text ff="monospace" fw={500} size="sm">
+                <Text className="num" fw={500} size="sm">
                     {fmtDate(row.original.date)}
                 </Text>
             )
@@ -77,7 +77,7 @@ export function paymentColumns(withCustomer: boolean): MRT_ColumnDef<Payment>[] 
             size: 140,
             enableColumnFilter: false,
             Cell: ({ cell }) => (
-                <Text c="teal.4" ff="monospace" fw={600} size="sm" style={{ whiteSpace: 'nowrap' }}>
+                <Text c="teal.4" className="num" fw={600} size="sm" style={{ whiteSpace: 'nowrap' }}>
                     +{fmtMoney(cell.getValue<number>(), 2)}
                 </Text>
             )
@@ -126,14 +126,14 @@ export function PaymentRowActions({ payment }: { payment: Payment }) {
             }
         )
     return (
-        <ActionIconGroup>
-            <ActionIcon color="cyan" onClick={() => openPaymentEdit(payment)} size="lg" variant="soft">
+        <Group gap={2} wrap="nowrap">
+            <ActionIcon onClick={() => openPaymentEdit(payment)} size="lg">
                 <PiPencilSimple size={18} />
             </ActionIcon>
-            <ActionIcon color="red" onClick={remove} size="lg" variant="soft">
+            <ActionIcon color="red" onClick={remove} size="lg">
                 <PiTrash size={18} />
             </ActionIcon>
-        </ActionIconGroup>
+        </Group>
     )
 }
 

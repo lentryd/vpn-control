@@ -1,19 +1,11 @@
-import '@fontsource-variable/montserrat'
-import '@fontsource/fira-mono/400.css'
-import '@fontsource/fira-mono/500.css'
-import '@fontsource/fira-mono/700.css'
-import '@fontsource/unbounded/700.css'
-import '@mantine/core/styles.css'
-import '@mantine/dates/styles.css'
-import '@mantine/charts/styles.css'
-import '@mantine/notifications/styles.css'
-import '@mantine/nprogress/styles.css'
-import '@kastov/mantine-react-table-open/styles.css'
+import '@fontsource-variable/geist'
+import '@fontsource-variable/geist-mono'
+import './app/vendor.css'
 import './app/global.css'
 
 import './app/i18n/i18n'
 
-import { MantineProvider, v8CssVariablesResolver } from '@mantine/core'
+import { MantineProvider } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import { NavigationProgress } from '@mantine/nprogress'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -25,7 +17,7 @@ import { HashRouter } from 'react-router'
 
 import { App } from './app/App'
 import { LocaleProvider } from './app/i18n/locale-provider'
-import { theme } from '@shared/constants/theme'
+import { cssVariablesResolver, theme } from '@shared/constants/theme'
 import { LoadingScreen } from '@shared/ui/loading-screen'
 
 dayjs.extend(relativeTime)
@@ -38,18 +30,13 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
-        <MantineProvider
-            cssVariablesResolver={v8CssVariablesResolver}
-            defaultColorScheme="dark"
-            forceColorScheme="dark"
-            theme={theme}
-        >
+        <MantineProvider cssVariablesResolver={cssVariablesResolver} defaultColorScheme="auto" theme={theme}>
             <Suspense fallback={<LoadingScreen />}>
                 <QueryClientProvider client={queryClient}>
                     <HashRouter>
                         <LocaleProvider>
-                            <Notifications position="top-right" />
-                            <NavigationProgress />
+                            <Notifications position="top-right" limit={4} />
+                            <NavigationProgress size={2} />
                             <App />
                         </LocaleProvider>
                     </HashRouter>

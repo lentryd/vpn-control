@@ -23,7 +23,8 @@
         "danger_zone": "Опасная зона",
         "ok": "ok",
         "never": "никогда",
-        "amount_in": "Сумма, {{currency}}"
+        "amount_in": "Сумма, {{currency}}",
+        "empty": "Здесь пока пусто"
     },
     "menu": {
         "home": "Главная",
@@ -38,7 +39,10 @@
         "expense_items": "Статьи расходов",
         "panel": "Панель",
         "panel_users": "Пользователи панели",
-        "settings": "Настройки"
+        "settings": "Настройки",
+        "overview": "Обзор",
+        "catalog": "Каталог",
+        "system": "Система"
     },
     "header": {
         "logout": "Выйти",
@@ -247,7 +251,16 @@
         "ts_unlimited": "Без лимита",
         "ts_next_reset": "Ближайший сброс у кончающихся",
         "extend": "Продлить",
-        "expiring": "Истекает и просрочено"
+        "expiring": "Истекает и просрочено",
+        "period_income": "Поступления",
+        "period_spent": "Траты",
+        "period_net": "Итог",
+        "new_customer": "Новый клиент",
+        "open_all": "Все",
+        "last_months_one": "за {{count}} месяц",
+        "last_months_few": "за {{count}} месяца",
+        "last_months_many": "за {{count}} месяцев",
+        "last_months_other": "за {{count}} месяца"
     },
     "metered": {
         "tiered_price": "ступенчатая цена",
@@ -358,7 +371,16 @@
         "hwid": "Лимит устройств (HWID)",
         "hwid_hint": "Пусто — как в панели по умолчанию",
         "squads_label": "Внутренние сквады",
-        "choose": "Выберите"
+        "choose": "Выберите",
+        "addons_title": "Аддоны",
+        "addons_hint": "Дополнительные пользователи панели к подписке, у каждого свои тарифы",
+        "stat_tariffs": "Тарифов",
+        "stat_active": "активных: {{count}}",
+        "stat_subscribers": "Подписчиков",
+        "stat_addons": "Аддонов",
+        "per_month": "/ мес",
+        "traffic": "Трафик",
+        "no_tariffs_yet": "Тарифов пока нет"
     },
     "expense_items": {
         "overdue_one": "просрочено на {{count}} день",
@@ -457,7 +479,16 @@
         "tiered_hint": "Разная цена за ГБ в зависимости от объёма за период",
         "tier_up_to": "До, ГБ (0 — без ограничения)",
         "price_per_gb": "Цена за ГБ, {{currency}}",
-        "add_tier": "Добавить ступень"
+        "add_tier": "Добавить ступень",
+        "stat_monthly": "Плановые расходы в месяц",
+        "stat_rate": "по текущему курсу",
+        "stat_items": "Учитываются",
+        "stat_total_one": "из {{count}} статьи",
+        "stat_total_few": "из {{count}} статей",
+        "stat_total_many": "из {{count}} статей",
+        "stat_total_other": "из {{count}} статей",
+        "per_gb_unit": "за ГБ",
+        "monthly_net": "Итого в месяц"
     },
     "sub": {
         "tariff_label": "{{name}} — {{price}}/мес",
@@ -579,7 +610,8 @@
         "accruals": "Начисления (учётно)",
         "accrual_from": "от {{name}}",
         "accrual_for": "для {{name}}",
-        "ext_hint": "Что и когда продлевалось в панели"
+        "ext_hint": "Что и когда продлевалось в панели",
+        "notes": "Заметки"
     },
     "view": {
         "not_linked": "не привязана к панели",
@@ -674,7 +706,18 @@
         "every_hours": "Каждые, часов",
         "every_hours_hint": "0 — не делать",
         "keep": "Хранить, штук",
-        "keep_hint": "Старые автоматические удаляются"
+        "keep_hint": "Старые автоматические удаляются",
+        "last_snapshot": "Последний снапшот",
+        "none_yet": "ещё не было",
+        "count": "Снапшотов хранится",
+        "total_size": "Занимают",
+        "schedule_state": "Расписание",
+        "schedule_on": "каждые {{hours}} ч",
+        "schedule_off": "выключено",
+        "transfer": "Перенос данных",
+        "transfer_hint": "Zip-архив с выбранными данными: на хранение или для переноса на другую установку",
+        "hours_suffix": " ч",
+        "keep_n": "хранить {{keep}} шт."
     },
     "expenses": {
         "charge": "Списание",
@@ -804,7 +847,13 @@
         "description": "Плательщики: у каждого может быть несколько подписок и аддонов",
         "list": "Список клиентов",
         "scope_active": "Активные",
-        "scope_archived": "Архив"
+        "scope_archived": "Архив",
+        "stat_total_one": "всего {{count}}",
+        "stat_total_other": "всего {{count}}",
+        "stat_expiring": "Истекают за неделю",
+        "stat_debtors": "С долгом",
+        "stat_total_few": "всего {{count}}",
+        "stat_total_many": "всего {{count}}"
     },
     "referrals": {
         "expand": "Раскрыть",
@@ -820,7 +869,13 @@
         "tree": "Кто кого привёл",
         "accruals": "Начисления",
         "tree_hint": "Ветки раскрываются; цифры — по приглашённым и всей ветке",
-        "accruals_hint": "Только учёт: баланс клиентов не меняется"
+        "accruals_hint": "Только учёт: баланс клиентов не меняется",
+        "expand_all": "Развернуть всё",
+        "collapse_all": "Свернуть всё",
+        "stat_referrers": "Приглашали",
+        "stat_referred": "Приглашённых",
+        "stat_referred_monthly": "Приглашённые платят в месяц",
+        "stat_accrued": "Начислено"
     },
     "settings": {
         "fields": {
@@ -849,7 +904,21 @@
         "base_locked": "В ней ведутся платежи, балансы и итоги трат. Уже есть деньги в учёте — сменить нельзя",
         "base_hint": "В ней ведутся платежи, балансы и итоги трат. Курсы: ЦБ РФ для RUB, ЕЦБ для остальных",
         "saved": "Настройки сохранены",
-        "audit_hint": "Кто что менял и как ответила панель"
+        "audit_hint": "Кто что менял и как ответила панель",
+        "nav": {
+            "params_hint": "Валюта, рефералка, дашборд",
+            "backups_hint": "Снапшоты, экспорт, импорт",
+            "tokens_hint": "Доступ для других сервисов",
+            "audit_hint": "Кто и что менял"
+        },
+        "group_money": "Деньги",
+        "group_money_hint": "Как ведутся и пересчитываются суммы",
+        "group_referrals": "Рефералка",
+        "group_referrals_hint": "Только учёт, без списаний",
+        "group_dashboard": "Дашборд",
+        "group_dashboard_hint": "О чём предупреждает главная",
+        "unsaved": "Есть несохранённые изменения",
+        "discard": "Отменить"
     },
     "expense_modal": {
         "refund": "Возврат средств",
@@ -908,14 +977,24 @@
             "backups_list": "Список снапшотов",
             "backups_download": "Скачать снапшот",
             "backups_create": "Сделать снапшот и сразу скачать его"
-        }
+        },
+        "none_cta": "Создать первый токен",
+        "last_used": "Последнее использование",
+        "never_used": "ещё не использовался",
+        "endpoints_one": "{{count}} эндпоинт",
+        "endpoints_few": "{{count}} эндпоинта",
+        "endpoints_many": "{{count}} эндпоинтов",
+        "endpoints_other": "{{count}} эндпоинта",
+        "delete": "Удалить токен «{{name}}»?",
+        "delete_hint": "Сервисы, которые им пользуются, сразу потеряют доступ."
     },
     "panel_users": {
         "unlinked_one": "не привязан",
         "description": "Кэш пользователей Remnawave. Привяжите каждого к клиенту — тогда он появится в учёте и продлениях",
         "table_title": "Пользователи Remnawave",
         "unlinked": "Непривязанные",
-        "to_customer": "К клиенту"
+        "to_customer": "К существующему клиенту",
+        "link": "Привязать"
     },
     "addon_form": {
         "new": "Новый аддон",
@@ -946,7 +1025,9 @@
         "after_charge": "После списания",
         "short": "Не хватает {{amount}} — без этого операция не пройдёт",
         "debt": "Баланс клиента станет отрицательным (долг)",
-        "allow_debt": "Разрешить уход в минус"
+        "allow_debt": "Разрешить уход в минус",
+        "from": "Сейчас до",
+        "to": "Будет до"
     },
     "sync": {
         "done": "Данные из панели обновлены",
@@ -989,6 +1070,29 @@
         "username": "Логин",
         "password": "Пароль",
         "password_placeholder": "Ваш пароль",
-        "submit": "Войти"
+        "submit": "Войти",
+        "welcome": "Вход в VPN Control",
+        "footer": "Бэк-офис вашего VPN на Remnawave"
+    },
+    "shell": {
+        "search": "Поиск…",
+        "search_placeholder": "Страницы, клиенты, подписки…",
+        "nothing_found": "Ничего не найдено",
+        "group_pages": "Страницы",
+        "group_actions": "Действия",
+        "group_customers": "Клиенты",
+        "group_subscriptions": "Подписки",
+        "collapse": "Свернуть меню",
+        "expand": "Развернуть меню",
+        "theme": "Тема",
+        "theme_light": "Светлая",
+        "theme_dark": "Тёмная",
+        "theme_auto": "Как в системе",
+        "toggle_theme": "Сменить тему",
+        "sync_now": "Синхронизировать с панелью",
+        "signed_in_as": "Вы вошли как",
+        "open_menu": "Открыть меню",
+        "go_to": "Перейти",
+        "synced_ago": "Синхр. в {{time}}"
     }
 }

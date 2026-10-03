@@ -1,17 +1,12 @@
-// Adapted from remnawave/frontend (AGPL-3.0)
-import { Box, BoxProps, MantineSize } from '@mantine/core'
-
-import classes from './shimmer-skeleton.module.css'
+import { Skeleton, type MantineSize, type SkeletonProps } from '@mantine/core'
 
 type SizeValue = MantineSize | number | (string & {})
 
-interface IProps extends Omit<BoxProps, 'h' | 'w'> {
+interface IProps extends Omit<SkeletonProps, 'h' | 'w' | 'height' | 'width'> {
     height: SizeValue
     width: SizeValue
 }
 
-export function ShimmerSkeleton(props: IProps) {
-    const { height, width, ...rest } = props
-
-    return <Box className={classes.skeleton} h={height} w={width} {...rest} />
+export function ShimmerSkeleton({ height, width, ...rest }: IProps) {
+    return <Skeleton h={height} w={width} {...rest} />
 }

@@ -1,4 +1,6 @@
-import { Group, Text, ThemeIconProps } from '@mantine/core'
+import { Anchor, Group, Text, ThemeIconProps } from '@mantine/core'
+import { IconChevronLeft } from '@tabler/icons-react'
+import { Link } from 'react-router'
 import type { ReactNode } from 'react'
 
 import { MetricCardShared } from '@shared/ui/metrics/metric-card'
@@ -6,29 +8,42 @@ import { PageHeaderShared } from '@shared/ui/page-header'
 
 import { fmtMoney } from './format'
 
-// PageHeader is the panel's page header card: soft icon, title,
-// description and actions on the right.
+// PageHeader is the top of a page: title, description and actions.
 export function PageHeader({
     title,
     description,
     actions,
-    icon
+    icon,
+    eyebrow,
+    badges
 }: {
     title: ReactNode
     description?: ReactNode
     actions?: ReactNode
-    icon: ReactNode
+    icon?: ReactNode
+    eyebrow?: ReactNode
+    badges?: ReactNode
 }) {
-    return <PageHeaderShared actions={actions} description={description} icon={icon} title={title} wrapActions />
+    return <PageHeaderShared actions={actions} badges={badges} description={description} eyebrow={eyebrow} icon={icon} title={title} wrapActions />
 }
 
-// StatCard is the panel's metric card.
+// BackLink is a page header's way back to the list it came from.
+export function BackLink({ to, children }: { to: string; children: ReactNode }) {
+    return (
+        <Anchor c="dimmed" component={Link} size="sm" to={to} underline="never" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <IconChevronLeft size={14} stroke={2} />
+            {children}
+        </Anchor>
+    )
+}
+
+// StatCard is a KPI tile.
 export function StatCard({
     title,
     value,
     hint,
     icon,
-    color = 'cyan'
+    color = 'brand'
 }: {
     title: string
     value: ReactNode
@@ -36,14 +51,14 @@ export function StatCard({
     icon: React.ComponentType<{ size: number }>
     color?: ThemeIconProps['color']
 }) {
-    return <MetricCardShared IconComponent={icon} iconColor={color} iconVariant="soft" subtitle={hint} title={title} value={value} />
+    return <MetricCardShared IconComponent={icon} iconColor={color} subtitle={hint} title={title} value={value} />
 }
 
 export function Money({ value, signed, digits = 0 }: { value: number | null | undefined; signed?: boolean; digits?: 0 | 2 }) {
     if (value === null || value === undefined) return <Text c="dimmed">—</Text>
     const color = signed ? (value > 0 ? 'teal' : value < 0 ? 'red' : undefined) : undefined
     return (
-        <Text span c={color} fw={500} inherit style={{ whiteSpace: 'nowrap' }}>
+        <Text span c={color} className="num" fw={500} inherit style={{ whiteSpace: 'nowrap' }}>
             {signed && value > 0 ? '+' : ''}
             {fmtMoney(value, digits)}
         </Text>

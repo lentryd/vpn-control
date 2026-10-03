@@ -1,6 +1,5 @@
-// Adapted from remnawave/frontend (AGPL-3.0)
-import { Card, CardProps, Divider, MantineSpacing, Stack } from '@mantine/core'
-import { Children, ReactNode, RefObject } from 'react'
+import { Card, Divider, Stack, type CardProps, type MantineSpacing } from '@mantine/core'
+import { Children, type ReactNode, type RefObject } from 'react'
 
 interface ISectionCardRootProps extends Omit<CardProps, 'children'> {
     children: ReactNode
@@ -11,43 +10,18 @@ interface ISectionCardRootProps extends Omit<CardProps, 'children'> {
     ref?: RefObject<HTMLDivElement | null>
 }
 
-export function SectionCardRoot({
-    children,
-    dividerOpacity = 0.3,
-    onlyFirstDivider = false,
-    allDividers = true,
-    gap = 'md',
-    p = 'md',
-    radius = 'md',
-    style,
-    ref,
-    ...props
-}: ISectionCardRootProps) {
+// SectionCardRoot stacks sections in a bordered card with hairlines between.
+export function SectionCardRoot({ children, onlyFirstDivider = false, allDividers = true, gap = 'md', p = 'md', ref, dividerOpacity: _o, ...props }: ISectionCardRootProps) {
     const childArray = Children.toArray(children).filter(Boolean)
 
-    const childrenWithDividers = childArray.flatMap((child, index) => {
-        if (onlyFirstDivider && index === 0 && childArray.length > 1) {
-            return [child, <Divider key={`divider-${index}`} style={{ opacity: dividerOpacity }} />]
-        }
-        if (allDividers && index < childArray.length - 1) {
-            return [child, <Divider key={`divider-${index}`} style={{ opacity: dividerOpacity }} />]
-        }
-        return [child]
+    const withDividers = childArray.flatMap((child, index) => {
+        const divide = (onlyFirstDivider && index === 0 && childArray.length > 1) || (!onlyFirstDivider && allDividers && index < childArray.length - 1)
+        return divide ? [child, <Divider key={`divider-${index}`} />] : [child]
     })
 
     return (
-        <Card
-            p={p}
-            radius={radius}
-            ref={ref}
-            style={{
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                ...style
-            }}
-            {...props}
-        >
-            <Stack gap={gap}>{childrenWithDividers}</Stack>
+        <Card p={p} radius="lg" ref={ref} style={{ boxShadow: 'none' }} {...props}>
+            <Stack gap={gap}>{withDividers}</Stack>
         </Card>
     )
 }

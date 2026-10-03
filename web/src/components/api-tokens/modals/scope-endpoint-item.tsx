@@ -48,7 +48,7 @@ export const ScopeEndpointItem = memo(({ checked, endpoint, onToggle, readOnly }
 
                 <Badge
                     color={isWrite ? 'orange' : 'blue'}
-                    ff="monospace"
+                    className="num"
                     radius="sm"
                     variant="soft"
                 >

@@ -56,8 +56,8 @@ export function ProviderLabel({ name, uuid, size = 'sm' }: { name: string; uuid?
     if (!name) return <Text c="dimmed">—</Text>
     const p = lookup(uuid, name)
     return (
-        <Group gap="sm" wrap="nowrap">
-            <ProviderAvatar faviconLink={p?.faviconLink} name={p?.name ?? name} size={size === 'md' ? 24 : 20} />
+        <Group gap={size === 'xs' ? 8 : 'sm'} wrap="nowrap">
+            <ProviderAvatar faviconLink={p?.faviconLink} name={p?.name ?? name} size={size === 'md' ? 24 : size === 'xs' ? 16 : 20} />
             <Text fw={500} size={size} truncate="end">
                 {p?.name ?? name}
             </Text>

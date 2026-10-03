@@ -1,9 +1,8 @@
-// Adapted from remnawave/frontend (AGPL-3.0): table settings follow
-// widgets/dashboard/users/users-table/user-table.widget.tsx.
 import {
     MantineReactTable,
     MRT_ShowHideColumnsButton,
     MRT_ToggleDensePaddingButton,
+    MRT_ToggleFiltersButton,
     MRT_ToggleFullScreenButton,
     useMantineReactTable,
     type MRT_RowData,
@@ -13,19 +12,19 @@ import {
 } from '@kastov/mantine-react-table-open'
 import { MRT_Localization_EN } from '@kastov/mantine-react-table-open/locales/en/index.esm.mjs'
 import { MRT_Localization_RU } from '@kastov/mantine-react-table-open/locales/ru/index.esm.mjs'
-import { ActionIconGroup, Badge } from '@mantine/core'
-import { ReactNode, useCallback, useEffect, useState } from 'react'
+import { Badge, Group, Stack, Text } from '@mantine/core'
+import { IconInbox, IconSearch } from '@tabler/icons-react'
+import { type ReactNode, useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { CardTitle } from './table.card-titile'
 import { TableContainerShared } from './table.container.shared'
+import classes from './table.module.css'
 import { DataTableContent } from './table.table-content'
-import { useTranslation } from 'react-i18next'
-
-const TOOLBAR_BG = { '--mrt-base-background-color': '#1b2027' } as React.CSSProperties
 
 type Persisted = Pick<
     MRT_TableState<MRT_RowData>,
-    'columnOrder' | 'columnPinning' | 'columnSizing' | 'columnVisibility' | 'density' | 'sorting'
+    'columnOrder' | 'columnPinning' | 'columnSizing' | 'columnVisibility' | 'density' | 'sorting' | 'showColumnFilters'
 > & { pageSize: number }
 
 function readPersisted(key: string): Partial<Persisted> {
@@ -36,8 +35,8 @@ function readPersisted(key: string): Partial<Persisted> {
     }
 }
 
-// usePersisted keeps one piece of table state in localStorage, like the
-// panel's mrt-table-store, so column layout survives reloads.
+// usePersisted keeps one piece of table state in localStorage, so the
+// column layout survives reloads.
 function usePersisted<K extends keyof Persisted>(key: string, field: K, initial: Persisted[K]) {
     const [value, setValue] = useState<Persisted[K]>(() => readPersisted(key)[field] ?? initial)
 
@@ -51,8 +50,7 @@ function usePersisted<K extends keyof Persisted>(key: string, field: K, initial:
     }, [key, field, value])
 
     const set = useCallback(
-        (u: MRT_Updater<Persisted[K]>) =>
-            setValue((prev) => (typeof u === 'function' ? (u as (p: Persisted[K]) => Persisted[K])(prev) : u)),
+        (u: MRT_Updater<Persisted[K]>) => setValue((prev) => (typeof u === 'function' ? (u as (p: Persisted[K]) => Persisted[K])(prev) : u)),
         []
     )
     return [value, set] as const
@@ -60,36 +58,25 @@ function usePersisted<K extends keyof Persisted>(key: string, field: K, initial:
 
 export interface DataTableCardProps<T extends MRT_RowData> extends MRT_TableOptions<T> {
     actions?: ReactNode
-    // compact hides column filters and pagination, for short embedded lists
+    // compact hides the toolbar, filters and pagination, for short embedded lists
     compact?: boolean
     description?: ReactNode
     // fill stretches the card to its parent's height (e.g. a grid cell)
     fill?: boolean
-    icon: ReactNode
-    // onRowClick opens the entity, as row clicks do in the panel.
+    icon?: ReactNode
+    // onRowClick opens the entity
     onRowClick?: (row: T) => void
-    // storageKey identifies the table for remembered layout.
+    // storageKey identifies the table for remembered layout
     storageKey: string
-    title: ReactNode
+    title?: ReactNode
     toolbarActions?: ReactNode
 }
 
+// DataTableCard is a titled card around a mantine-react-table with search,
+// optional column filters and a remembered column layout.
 export function DataTableCard<T extends MRT_RowData>(props: DataTableCardProps<T>) {
     const { t, i18n } = useTranslation()
-    const {
-        actions,
-        compact,
-        description,
-        fill,
-        icon,
-        onRowClick,
-        storageKey,
-        title,
-        toolbarActions,
-        initialState,
-        state,
-        ...rest
-    } = props
+    const { actions, compact, description, fill, icon, onRowClick, storageKey, title, toolbarActions, initialState, state, ...rest } = props
 
     const [columnOrder, setColumnOrder] = usePersisted(storageKey, 'columnOrder', [])
     const [columnPinning, setColumnPinning] = usePersisted(storageKey, 'columnPinning', {
@@ -97,13 +84,10 @@ export function DataTableCard<T extends MRT_RowData>(props: DataTableCardProps<T
         right: rest.enableRowActions ? ['mrt-row-actions'] : []
     })
     const [columnSizing, setColumnSizing] = usePersisted(storageKey, 'columnSizing', {})
-    const [columnVisibility, setColumnVisibility] = usePersisted(
-        storageKey,
-        'columnVisibility',
-        initialState?.columnVisibility ?? {}
-    )
+    const [columnVisibility, setColumnVisibility] = usePersisted(storageKey, 'columnVisibility', initialState?.columnVisibility ?? {})
     const [density, setDensity] = usePersisted(storageKey, 'density', 'xs')
     const [sorting, setSorting] = usePersisted(storageKey, 'sorting', initialState?.sorting ?? [])
+    const [showColumnFilters, setShowColumnFilters] = usePersisted(storageKey, 'showColumnFilters', false)
     const [pageSize, setPageSize] = usePersisted(storageKey, 'pageSize', 25)
     const [pageIndex, setPageIndex] = useState(0)
 
@@ -113,7 +97,10 @@ export function DataTableCard<T extends MRT_RowData>(props: DataTableCardProps<T
         enableFacetedValues: true,
         enableFullScreenToggle: true,
         enableSortingRemoval: true,
-        enableGlobalFilter: false,
+        enableGlobalFilter: !compact,
+        enableGlobalFilterRankedResults: false,
+        globalFilterFn: 'contains',
+        positionGlobalFilter: 'left',
         enableClickToCopy: false,
         enableColumnFilterModes: false,
         enableColumnOrdering: true,
@@ -126,32 +113,37 @@ export function DataTableCard<T extends MRT_RowData>(props: DataTableCardProps<T
         displayColumnDefOptions: {
             'mrt-row-actions': { header: '', size: 60, enableColumnOrdering: false }
         },
-        mantineFilterTextInputProps: () => ({ placeholder: t('common.filter') }),
+        mantineSearchTextInputProps: {
+            placeholder: t('common.filter'),
+            leftSection: <IconSearch size={15} stroke={1.75} />,
+            size: 'sm',
+            className: classes.search,
+            variant: 'default'
+        },
+        mantineFilterTextInputProps: () => ({ placeholder: t('common.filter'), size: 'xs' }),
         mantineFilterSelectProps: ({ column }) => {
             const value = column.getFilterValue()
-            return { clearable: value !== undefined && value !== null && value !== '' }
+            return { size: 'xs', clearable: value !== undefined && value !== null && value !== '' }
         },
         mantineFilterMultiSelectProps: ({ column }) => {
             const value = column.getFilterValue()
             const count = Array.isArray(value) ? value.length : 0
             return {
+                size: 'xs',
                 clearable: count > 0,
                 renderPill: () => null,
                 ...(count > 0 && {
-                    leftSection: <Badge variant="soft">{count}</Badge>,
+                    leftSection: <Badge size="sm">{count}</Badge>,
                     placeholder: '',
                     clearSectionMode: 'clear'
                 })
             }
         },
-        mantineTopToolbarProps: { style: TOOLBAR_BG },
-        mantineTableHeadProps: { style: TOOLBAR_BG },
-        mantineBottomToolbarProps: { style: TOOLBAR_BG },
-        mantinePaperProps: {
-            style: { '--paper-radius': 'var(--mantine-radius-xs)' } as React.CSSProperties,
-            withBorder: false
-        },
-        mantineTableContainerProps: { style: { maxHeight: compact ? undefined : 'calc(100dvh - 320px)' } },
+        mantinePaginationProps: { radius: 'md', size: 'sm', rowsPerPageOptions: ['10', '25', '50', '100'] },
+        mantineTopToolbarProps: { className: classes.toolbar },
+        mantinePaperProps: { withBorder: false, radius: 0, shadow: undefined },
+        mantineTableProps: { highlightOnHover: false, striped: false, withColumnBorders: false, withTableBorder: false },
+        mantineTableContainerProps: { style: { maxHeight: compact ? undefined : 'calc(100dvh - 300px)' } },
         mantineTableBodyRowProps: onRowClick
             ? ({ row }) => ({
                   onClick: (e) => {
@@ -162,43 +154,54 @@ export function DataTableCard<T extends MRT_RowData>(props: DataTableCardProps<T
                   style: { cursor: 'pointer' }
               })
             : undefined,
-        renderToolbarInternalActions: ({ table: t }) => (
-            <>
+        renderToolbarInternalActions: ({ table: tb }) => (
+            <Group gap={4} wrap="nowrap">
                 {toolbarActions}
-                <ActionIconGroup>
-                    <MRT_ToggleDensePaddingButton table={t} />
-                    <MRT_ToggleFullScreenButton table={t} />
-                    <MRT_ShowHideColumnsButton table={t} />
-                </ActionIconGroup>
-            </>
+                <MRT_ToggleFiltersButton table={tb} />
+                <MRT_ShowHideColumnsButton table={tb} />
+                <MRT_ToggleDensePaddingButton table={tb} />
+                <MRT_ToggleFullScreenButton table={tb} />
+            </Group>
         ),
         ...(compact && {
+            layoutMode: 'semantic',
+            enableColumnResizing: false,
             enablePagination: false,
             enableBottomToolbar: false,
             enableColumnFilters: false,
             enableColumnActions: false,
             enableTopToolbar: false
         }),
-        initialState: { showColumnFilters: !compact, ...initialState },
+        initialState: { showGlobalFilter: !compact, ...initialState },
         onColumnOrderChange: setColumnOrder,
         onColumnPinningChange: setColumnPinning,
         onColumnSizingChange: setColumnSizing,
         onColumnVisibilityChange: setColumnVisibility,
         onDensityChange: setDensity,
         onSortingChange: setSorting,
+        onShowColumnFiltersChange: setShowColumnFilters,
         onPaginationChange: (u) => {
             const next = typeof u === 'function' ? u({ pageIndex, pageSize }) : u
             setPageIndex(next.pageIndex)
             setPageSize(next.pageSize)
         },
+        renderEmptyRowsFallback: () => (
+            <Stack align="center" className={classes.empty} gap={6}>
+                <IconInbox color="var(--app-text-faint)" size={28} stroke={1.5} />
+                <Text c="dimmed" size="sm">
+                    {t('common.empty')}
+                </Text>
+            </Stack>
+        ),
         ...rest,
         state: {
             ...(columnOrder.length > 0 && { columnOrder }),
-            columnPinning,
+            columnPinning: compact ? { left: [], right: [] } : columnPinning,
             columnSizing,
             columnVisibility,
             density,
             sorting,
+            showColumnFilters: compact ? false : showColumnFilters,
             pagination: compact ? { pageIndex: 0, pageSize: 1000 } : { pageIndex, pageSize },
             ...state
         }
@@ -206,7 +209,7 @@ export function DataTableCard<T extends MRT_RowData>(props: DataTableCardProps<T
 
     return (
         <TableContainerShared h={fill ? '100%' : undefined}>
-            <CardTitle actions={actions} description={description} icon={icon} title={title} />
+            {title && <CardTitle actions={actions} description={description} icon={icon} title={title} />}
             <DataTableContent>
                 <MantineReactTable table={table} />
             </DataTableContent>

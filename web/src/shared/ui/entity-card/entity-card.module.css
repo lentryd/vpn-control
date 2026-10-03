@@ -1,0 +1,85 @@
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--entity-min, 270px), 1fr));
+    gap: 16px;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition:
+        border-color 140ms var(--app-ease),
+        box-shadow 140ms var(--app-ease);
+
+    &[data-clickable] {
+        cursor: pointer;
+    }
+
+    &[data-clickable]:hover {
+        border-color: var(--app-border-strong);
+        box-shadow: var(--mantine-shadow-md);
+    }
+
+    &[data-dimmed] {
+        opacity: 0.72;
+    }
+}
+
+.body {
+    flex: 1;
+    padding: 18px;
+}
+
+.params {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--app-border);
+}
+
+.footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 45px;
+    padding: 10px 18px;
+    background: var(--app-surface-2);
+    border-top: 1px solid var(--app-border);
+}
+
+.figure {
+    font-size: 28px;
+    font-weight: 650;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--app-text-strong);
+    font-variant-numeric: tabular-nums;
+}
+
+.add {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 180px;
+    border: 1px dashed var(--app-border-strong);
+    border-radius: var(--app-radius-card);
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-sm);
+    font-weight: 500;
+    transition:
+        border-color 140ms var(--app-ease),
+        color 140ms var(--app-ease),
+        background-color 140ms var(--app-ease);
+
+    &:hover {
+        border-color: var(--mantine-primary-color-filled);
+        color: var(--mantine-primary-color-filled);
+        background: var(--mantine-primary-color-light);
+    }
+}

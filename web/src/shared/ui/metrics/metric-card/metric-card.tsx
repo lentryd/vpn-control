@@ -1,72 +1,53 @@
-// Adapted from remnawave/frontend (AGPL-3.0)
-import { Card, Group, Stack, Text, ThemeIcon, ThemeIconProps } from '@mantine/core'
-import { ReactNode } from 'react'
+import { Box, Card, Group, Skeleton, Text, ThemeIcon, type ThemeIconProps } from '@mantine/core'
+import type { ReactNode } from 'react'
 
-import { ShimmerSkeleton } from '@shared/ui/shimmer-skeleton'
+import { fmtLocale } from '@/components/format'
 
 import classes from './metric-card.module.css'
-import { fmtLocale } from '@/components/format'
 
 export interface IMetricCardProps {
     iconColor?: ThemeIconProps['color']
     IconComponent: React.ComponentType<{ size: number }>
     iconSize?: number
-    iconVariant: ThemeIconProps['variant']
+    iconVariant?: ThemeIconProps['variant']
     isLoading?: boolean
     subtitle?: ReactNode
     themeIconProps?: ThemeIconProps
     title: string
     value: ReactNode
     rollingNumberComponent?: ReactNode
+    // footer slot under the numbers: a sparkline, a meter
+    children?: ReactNode
 }
 
+// MetricCardShared is a KPI tile: label with a tinted icon, a large figure
+// and a muted line of context.
 export function MetricCardShared(props: IMetricCardProps) {
-    const {
-        iconColor,
-        themeIconProps,
-        IconComponent,
-        iconSize = 24,
-        iconVariant,
-        isLoading,
-        title,
-        value,
-        subtitle,
-        rollingNumberComponent
-    } = props
+    const { iconColor = 'brand', themeIconProps, IconComponent, iconSize = 17, iconVariant = 'soft', isLoading, title, value, subtitle, rollingNumberComponent, children } = props
 
     return (
-        <Card>
-            <Group gap="md" wrap="nowrap">
-                <ThemeIcon
-                    color={iconColor}
-                    radius="lg"
-                    size="xl"
-                    variant={iconVariant}
-                    {...themeIconProps}
-                >
+        <Card className={classes.card} h="100%" padding="lg">
+            <Group align="flex-start" gap="sm" justify="space-between" wrap="nowrap">
+                <Text className={classes.title}>{title}</Text>
+                <ThemeIcon color={iconColor} radius="md" size={30} variant={iconVariant} {...themeIconProps}>
                     <IconComponent size={iconSize} />
                 </ThemeIcon>
-
-                <Stack gap={0} miw={0}>
-                    <Text className={classes.title} truncate="end">
-                        {title}
-                    </Text>
-                    {isLoading ? (
-                        <ShimmerSkeleton height={24} width={80} />
-                    ) : (
-                        (rollingNumberComponent ?? (
-                            <Text className={classes.value} component="div" truncate="end">
-                                {typeof value === 'number' ? value.toLocaleString(fmtLocale()) : value}
-                            </Text>
-                        ))
-                    )}
-                    {subtitle && (
-                        <Text className={classes.subtitle} component="div">
-                            {subtitle}
-                        </Text>
-                    )}
-                </Stack>
             </Group>
+            {isLoading ? (
+                <Skeleton h={30} mt={6} w={120} />
+            ) : (
+                (rollingNumberComponent ?? (
+                    <Text className={classes.value} component="div">
+                        {typeof value === 'number' ? value.toLocaleString(fmtLocale()) : value}
+                    </Text>
+                ))
+            )}
+            {subtitle && (
+                <Text className={classes.subtitle} component="div">
+                    {subtitle}
+                </Text>
+            )}
+            {children && <Box mt="md">{children}</Box>}
         </Card>
     )
 }

@@ -1,4 +1,4 @@
-import { Alert, NumberInput, SimpleGrid, TextInput, Autocomplete } from '@mantine/core'
+import { Alert, Autocomplete, NumberInput, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
 import { DateInput } from '@mantine/dates'
 import { useForm } from '@mantine/form'
 import dayjs from 'dayjs'
@@ -9,7 +9,7 @@ import { useApiMutation } from '@/api/hooks'
 import type { Payment } from '@/api/types'
 import { fmtMoney, currencySymbol, dateLayout } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
-import { FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
+import { FormFooter } from '@shared/ui/forms/form-section'
 
 import { openModal } from './open'
 import i18n from '@/app/i18n/i18n'
@@ -58,8 +58,10 @@ function PaymentEditForm({ payment, onDone }: { payment: Payment; onDone: () => 
                 })
             )}
         >
-            <FormStack>
-                <FormSection color="teal" description={t('payment.edit_hint')} icon={PiCreditCardDuotone} title={t('payment.income')}>
+            <Stack gap="md">
+                <Text c="dimmed" size="sm">
+                    {t('payment.edit_hint')}
+                </Text>
                     <SimpleGrid cols={{ base: 1, xs: 2 }}>
                         <NumberInput
                             data-autofocus
@@ -73,14 +75,13 @@ function PaymentEditForm({ payment, onDone }: { payment: Payment; onDone: () => 
                         <Autocomplete data={methods} label={t('payment.method')} leftSection={<PiBank size={16} />} {...form.getInputProps('method')} />
                         <TextInput label={t('payment.comment')} leftSection={<PiNotePencil size={16} />} {...form.getInputProps('note')} />
                     </SimpleGrid>
-                    <Alert color="gray" icon={<PiInfo size={18} />} variant="soft">
+                    <Alert color="gray" icon={<PiInfo size={18} />}>
                         {payment.historical
                             ? t('payment.historical')
                             : t('payment.edit_effects')}
                     </Alert>
-                </FormSection>
                 <FormFooter loading={m.isPending} onCancel={onDone} />
-            </FormStack>
+            </Stack>
         </form>
     )
 }

@@ -1,4 +1,3 @@
-// Adapted from remnawave/frontend (AGPL-3.0)
 import { nprogress } from '@mantine/nprogress'
 import { useEffect } from 'react'
 

@@ -1,12 +1,12 @@
 import { SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
 import { useForm } from '@mantine/form'
-import { PiChatTextDuotone, PiPuzzlePieceDuotone, PiTextAa, PiWarningDuotone } from 'react-icons/pi'
+import { PiPuzzlePieceDuotone, PiTextAa } from 'react-icons/pi'
 
 import { api } from '@/api/client'
 import { useApiMutation } from '@/api/hooks'
 import type { Addon } from '@/api/types'
 import { notifyError, notifyOk } from '@/components/notify'
-import { FormFooter, FormSection } from '@shared/ui/forms/form-section'
+import { FieldGroup, FormFooter } from '@shared/ui/forms/form-section'
 
 import { openModal } from './open'
 import i18n from '@/app/i18n/i18n'
@@ -51,13 +51,8 @@ function AddonForm({ addon, onDone }: { addon?: Addon; onDone: () => void }) {
                 })
             )}
         >
-            <Stack gap="md">
-                <FormSection
-                    icon={PiPuzzlePieceDuotone}
-                    color="grape"
-                    title={t('addon_form.user')}
-                    description={t('addon_form.user_hint')}
-                >
+            <Stack gap={0}>
+                <FieldGroup title={t('addon_form.user')} description={t('addon_form.user_hint')}>
                     <TextInput label={t('tariffs.col_name')} leftSection={<PiTextAa size={16} />} placeholder="premium" {...form.getInputProps('name')} />
                     <SimpleGrid cols={2}>
                         <TextInput label={t('addon_form.prefix')} placeholder="premium_" {...form.getInputProps('prefix')} />
@@ -66,27 +61,17 @@ function AddonForm({ addon, onDone }: { addon?: Addon; onDone: () => void }) {
                     <Text c="dimmed" size="xs">
                         {t('addon_form.username')} <b>{`${v.prefix}<username>${v.suffix}`}</b>
                     </Text>
-                </FormSection>
-                <FormSection
-                    icon={PiChatTextDuotone}
-                    color="cyan"
-                    title={t('addon_form.remarks')}
-                    description={t('addon_form.remarks_hint')}
-                >
+                </FieldGroup>
+                <FieldGroup title={t('addon_form.remarks')} description={t('addon_form.remarks_hint')}>
                     <TextInput label={t('addon_form.remark')} placeholder={t('addon_form.remark_placeholder')} {...form.getInputProps('remark')} />
                     <TextInput label={t('addon_form.remark_unlimited')} placeholder={t('addon_form.remark_unlimited_placeholder')} {...form.getInputProps('remark_unlimited')} />
-                </FormSection>
-                <FormSection
-                    icon={PiWarningDuotone}
-                    color="orange"
-                    title={t('addon_form.stubs')}
-                    description={t('addon_form.stubs_hint')}
-                >
+                </FieldGroup>
+                <FieldGroup title={t('addon_form.stubs')} description={t('addon_form.stubs_hint')}>
                     {STUB_STATUSES.map((s) => (
                         <TextInput key={s} label={s} {...form.getInputProps(`stubs.${s}`)} />
                     ))}
-                </FormSection>
-                <FormFooter inline loading={m.isPending} onCancel={onDone} />
+                </FieldGroup>
+                <FormFooter loading={m.isPending} onCancel={onDone} />
             </Stack>
         </form>
     )

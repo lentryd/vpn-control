@@ -1,38 +1,70 @@
-/* Adapted from remnawave/frontend (AGPL-3.0) */
-.headerWrapper {
+.container {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.header {
+    display: flex;
+    align-items: center;
     justify-content: space-between;
-    gap: var(--mantine-spacing-md);
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    padding: 14px 18px;
+
+    &[data-with-border] {
+        border-bottom: 1px solid var(--app-border);
+    }
 }
 
-.contentSection {
-    flex: 1 1 auto;
-    min-width: 0;
+.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: var(--mantine-radius-md);
+    border: 1px solid var(--app-border);
+    background: var(--app-surface-2);
+    color: var(--app-text-muted);
+
+    & svg {
+        width: 16px;
+        height: 16px;
+    }
 }
 
-.actionsSection {
-    flex: 0 1 auto;
+.title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.35;
+    color: var(--app-text-strong);
+}
+
+.actions {
     margin-left: auto;
-    display: flex;
     justify-content: flex-end;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+.content {
+    flex: 1;
+    min-height: 0;
 }
 
-.card {
-    animation: fadeIn 200ms linear both;
-    position: relative;
+.toolbar {
+    border-bottom: 1px solid var(--app-border);
 }
 
-.actionIcon {
-    cursor: default;
+.search {
+    width: 280px;
+    max-width: 100%;
+}
+
+.empty {
+    padding: 40px 16px;
+    text-align: center;
+    color: var(--app-text-muted);
+    font-size: var(--mantine-font-size-sm);
 }

@@ -1,7 +1,6 @@
-// Adapted from remnawave/frontend (AGPL-3.0)
-import { Group, MantineSpacing, Modal } from '@mantine/core'
+import { Group, type MantineSpacing } from '@mantine/core'
 
-import styles from './ModalFooter.module.css'
+import styles from './modal-footer.module.css'
 
 interface IProps {
     children: React.ReactNode
@@ -9,21 +8,11 @@ interface IProps {
     mt?: MantineSpacing
 }
 
-export function ModalFooter(props: IProps) {
-    const { children, isMobile = false, mt = 'md' } = props
-
+// ModalFooter sticks a modal's buttons to its bottom edge.
+export function ModalFooter({ children, isMobile = false, mt = 'md' }: IProps) {
     return (
-        <Modal.Header className={styles.footer} component="footer" h="auto" mt={mt} pos="sticky">
-            <Group
-                gap="md"
-                grow={!!isMobile}
-                justify="flex-end"
-                preventGrowOverflow={false}
-                w="100%"
-                wrap="wrap"
-            >
-                {children}
-            </Group>
-        </Modal.Header>
+        <Group className={styles.footer} component="footer" gap="sm" grow={isMobile} justify="flex-end" mt={mt} preventGrowOverflow={false} wrap="wrap">
+            {children}
+        </Group>
     )
 }

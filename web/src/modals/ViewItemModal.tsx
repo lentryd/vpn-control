@@ -1,9 +1,6 @@
-// Layout follows remnawave/frontend (AGPL-3.0): shared/_modals/users/view-user-modal
-// and shared/ui/forms/users/forms-components/user-identification-card.
-import { ActionIcon, Badge, Button, Group, Menu, NumberInput, Paper, Progress, SimpleGrid, Stack, Switch, Text, TextInput, Tooltip } from '@mantine/core'
+import { ActionIcon, Alert, Box, Button, Group, Menu, NumberInput, Stack, Switch, Text, TextInput, Tooltip, UnstyledButton } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import dayjs from 'dayjs'
-import { motion } from 'motion/react'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import {
     PiArrowSquareOut,
@@ -18,16 +15,16 @@ import {
     PiHexagonDuotone,
     PiPuzzlePiece,
     PiPuzzlePieceDuotone,
-    PiUserCircle
+    PiLinkBreak
 } from 'react-icons/pi'
-import { TbCalendar, TbDots, TbUser, TbWifi } from 'react-icons/tb'
+import { TbDots, TbUser } from 'react-icons/tb'
 import { Link } from 'react-router'
 
 import { api } from '@/api/client'
 import { useApiMutation, useCustomers, useRwUsers, useSubscriptions, useTariffs } from '@/api/hooks'
 import type { AddonItem, RwUser, Subscription } from '@/api/types'
-import { StatusBadge, trafficHint, trafficResetColor, trafficResetText } from '@/components/badges'
-import { fmtBytes, fmtDate, fmtDateTime, fmtMoney, fromNow, currencySymbol } from '@/components/format'
+import { Dot, ExpireCell, lastSeenColor, OnlineCell, StatusBadge, TrafficCell } from '@/components/badges'
+import { fmtDate, fmtMoney, currencySymbol } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { addonTitle, AddonMenuItems, SubscriptionMenuItems, useItemActions } from '@/components/ItemActions'
 import { Money } from '@/components/ui'
@@ -36,155 +33,78 @@ import { openChangeTariffModal, openConnectAddonModal, RwUserSelect, rwLabel, ta
 import { FormColumns, FormSection } from '@shared/ui/forms/form-section'
 import { LoadingScreen } from '@shared/ui/loading-screen'
 import { ModalFooter } from '@shared/ui/modal-footer'
-import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
-import { SectionCard } from '@shared/ui/section-card'
 
 import { openModal } from './open'
+import classes from './view-item.module.css'
 import { SearchSelect } from '@shared/ui/forms/search-select'
 import { CurrencyIcon } from '@shared/currencies'
 import i18n from '@/app/i18n/i18n'
 import { useTranslation } from 'react-i18next'
 
-const cardVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.3 } } }
-
-const statusIconColor: Record<string, string> = { ACTIVE: 'teal', DISABLED: 'gray', EXPIRED: 'red', LIMITED: 'yellow' }
-
-function expirationStyle(expireAt: string | null | undefined) {
-    const days = expireAt ? dayjs(expireAt).diff(dayjs(), 'day') : null
-    if (days === null || days <= 0)
-        return { bg: 'rgba(239, 68, 68, 0.08)', border: 'rgba(239, 68, 68, 0.2)', color: 'red.5', icon: 'var(--mantine-color-red-5)' }
-    if (days <= 7)
-        return { bg: 'rgba(251, 191, 36, 0.10)', border: 'rgba(251, 191, 36, 0.2)', color: 'yellow.4', icon: 'var(--mantine-color-yellow-4)' }
-    return { bg: 'rgba(45, 212, 191, 0.08)', border: 'rgba(45, 212, 191, 0.2)', color: 'teal.5', icon: 'var(--mantine-color-teal-5)' }
-}
-
-// lastSeenStyle follows the panel's last-seen indicator: green within 5
-// minutes, yellow within an hour, red otherwise.
-function lastSeenStyle(onlineAt: string | null | undefined) {
-    const minutes = onlineAt ? dayjs().diff(dayjs(onlineAt), 'minute') : null
-    if (minutes !== null && minutes <= 5) return expirationStyle(dayjs().add(30, 'day').toISOString())
-    if (minutes !== null && minutes <= 60) return expirationStyle(dayjs().add(3, 'day').toISOString())
-    return expirationStyle(null)
-}
-
-function Pill({ tip, style, icon, children }: { tip: string; style: ReturnType<typeof expirationStyle>; icon: ReactNode; children: ReactNode }) {
-    return (
-        <Paper bd={`1px solid ${style.border}`} bg={style.bg} p="xs" radius="md">
-            <Tooltip label={tip}>
-                <Group gap="xs" justify="center" wrap="nowrap">
-                    {icon}
-                    <Text c={style.color} fw={600} size="sm">
-                        {children}
-                    </Text>
-                </Group>
-            </Tooltip>
-        </Paper>
-    )
-}
-
-// IdentityCard is the panel's user identification card for the RW user
-// behind a subscription or add-on.
-function IdentityCard({ title, rw, icon }: { title: string; rw: RwUser | null; icon: React.ComponentType<{ size: number }> }) {
+// IdentityPanel is the panel user behind a subscription or add-on: who it
+// is, its status and links, then expiry, traffic and last connection.
+function IdentityPanel({ rw, caption }: { rw: RwUser | null; caption?: string }) {
     const { t } = useTranslation()
     const { copyLink } = useItemActions()
-    const used = rw?.used_traffic_bytes ?? 0
-    const limit = rw?.traffic_limit_bytes ?? 0
-    const pct = limit ? Math.floor((used * 100) / limit) : 0
-    const exp = expirationStyle(rw?.expire_at)
-    const onlineStyle = lastSeenStyle(rw?.online_at)
-
+    if (!rw) {
+        return (
+            <Alert color="yellow" icon={<PiLinkBreak size={18} />} mb="md" title={caption}>
+                {t('view.not_linked')}
+            </Alert>
+        )
+    }
+    const online = !!rw.online_at && dayjs().diff(dayjs(rw.online_at), 'minute') <= 5
     return (
-        <motion.div variants={cardVariants}>
-            <SectionCard.Root>
-                <SectionCard.Section>
-                    <Group justify="space-between" wrap="nowrap">
-                        <BaseOverlayHeader
-                            iconColor={rw ? statusIconColor[rw.status] ?? 'gray' : 'yellow'}
-                            IconComponent={icon}
-                            subtitle={rw ? `${rw.username} · ID ${rw.id}` : t('view.not_linked')}
-                            title={title}
-                            titleOrder={5}
-                        />
-                        <StatusBadge h={28} user={rw} />
-                    </Group>
-                </SectionCard.Section>
-
-                {rw && (
-                    <SectionCard.Section>
-                        <Group gap={5} justify="flex-end">
-                            <Tooltip label={t('view.copy_link')}>
-                                <ActionIcon color="teal" onClick={() => copyLink(rw.subscription_url)} size="lg" variant="soft">
-                                    <PiCopy size={22} />
-                                </ActionIcon>
-                            </Tooltip>
-                            {rw.subscription_url && (
-                                <Tooltip label={t('view.open_page')}>
-                                    <ActionIcon
-                                        color="cyan"
-                                        component="a"
-                                        href={rw.subscription_url}
-                                        rel="noopener noreferrer"
-                                        size="lg"
-                                        target="_blank"
-                                        variant="soft"
-                                    >
-                                        <PiUserCircle size={22} />
-                                    </ActionIcon>
-                                </Tooltip>
-                            )}
-                        </Group>
-                    </SectionCard.Section>
-                )}
-
-                {rw && (
-                    <SectionCard.Section>
-                        <Group gap="xs" justify="space-between" mb={6}>
-                            <Text c="gray.3" ff="monospace" fw={600} size="sm">
-                                {fmtBytes(used)}
-                            </Text>
+        <div className={classes.identity}>
+            <div className={classes.identityHead}>
+                <Group gap="sm" miw={0} wrap="nowrap">
+                    <Dot color={rw.online_at ? lastSeenColor(rw.online_at) : 'var(--app-border-strong)'} pulse={online} size={9} />
+                    <Box miw={0}>
+                        {caption && (
                             <Text c="dimmed" size="xs">
-                                {limit ? fmtBytes(limit) : '∞'}
+                                {caption}
                             </Text>
-                        </Group>
-                        <Progress
-                            color={!limit ? 'teal' : pct > 95 ? 'red' : pct > 80 ? 'yellow.4' : 'teal'}
-                            radius="sm"
-                            size="sm"
-                            value={limit ? pct : 100}
-                        />
-                        {limit > 0 && (
-                            <Tooltip label={trafficHint(rw)}>
-                                <Group gap="xs" justify="space-between" mt={6}>
-                                    <Text c="dimmed" size="xs">
-                                        {t('traffic.left', { left: fmtBytes(Math.max(0, limit - used)) })}
-                                    </Text>
-                                    <Text c={trafficResetColor(rw)} size="xs">
-                                        {trafficResetText(rw)}
-                                    </Text>
-                                </Group>
-                            </Tooltip>
                         )}
-                    </SectionCard.Section>
-                )}
-
-                {rw && (
-                    <SectionCard.Section>
-                        <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="xs">
-                            <Pill icon={<TbCalendar color={exp.icon} size={18} />} style={exp} tip={t('sub.paid_until')}>
-                                {rw.unlimited ? `∞ ${t('expiry.forever')}` : fmtDateTime(rw.expire_at)}
-                            </Pill>
-                            <Pill
-                                icon={<TbWifi color={onlineStyle.icon} size={18} />}
-                                style={onlineStyle}
-                                tip={rw.online_at ? fmtDateTime(rw.online_at) : t('users.never_connected')}
-                            >
-                                {rw.online_at ? fromNow(rw.online_at) : t('users.never_connected')}
-                            </Pill>
-                        </SimpleGrid>
-                    </SectionCard.Section>
-                )}
-            </SectionCard.Root>
-        </motion.div>
+                        <Text c="var(--app-text-strong)" fw={600} truncate="end">
+                            {rw.username}
+                        </Text>
+                        <Text c="dimmed" className="num" size="xs">
+                            ID {rw.id}
+                            {rw.short_uuid ? ` · ${rw.short_uuid}` : ''}
+                        </Text>
+                    </Box>
+                </Group>
+                <Group gap={6} wrap="nowrap">
+                    <StatusBadge user={rw} />
+                    <Tooltip label={t('view.copy_link')}>
+                        <ActionIcon onClick={() => copyLink(rw.subscription_url)} size="lg" variant="default">
+                            <PiCopy size={16} />
+                        </ActionIcon>
+                    </Tooltip>
+                    {rw.subscription_url && (
+                        <Tooltip label={t('view.open_page')}>
+                            <ActionIcon component="a" href={rw.subscription_url} rel="noopener noreferrer" size="lg" target="_blank" variant="default">
+                                <PiArrowSquareOut size={16} />
+                            </ActionIcon>
+                        </Tooltip>
+                    )}
+                </Group>
+            </div>
+            <div className={classes.identityFacts}>
+                <div className={classes.fact}>
+                    <Text className={classes.factLabel}>{t('sub.paid_until')}</Text>
+                    <ExpireCell align="flex-start" date={rw.expire_at} />
+                </div>
+                <div className={classes.fact} data-wide>
+                    <Text className={classes.factLabel}>{t('sub.traffic')}</Text>
+                    <TrafficCell user={rw} />
+                </div>
+                <div className={classes.fact}>
+                    <Text className={classes.factLabel}>{t('card.last_online')}</Text>
+                    <OnlineCell user={rw} />
+                </div>
+            </div>
+        </div>
     )
 }
 
@@ -236,9 +156,27 @@ function useSyncedForm<T extends Record<string, unknown>>(server: T) {
 function CustomerLink({ id, onNavigate }: { id: number; onNavigate: () => void }) {
     const { t } = useTranslation()
     return (
-        <Button color="indigo" component={Link} onClick={onNavigate} rightSection={<PiArrowSquareOut size={14} />} size="xs" to={`/customers/${id}`} variant="subtle">
+        <Button component={Link} onClick={onNavigate} rightSection={<PiArrowSquareOut size={14} />} size="xs" to={`/customers/${id}`} variant="default">
             {t('sub.customer')}
         </Button>
+    )
+}
+
+// MiniIdentity is a one-line summary of a panel user.
+function MiniIdentity({ rw }: { rw: RwUser | null }) {
+    const { t } = useTranslation()
+    if (!rw) return <Text c="dimmed" size="sm">{t('view.not_linked')}</Text>
+    return (
+        <Stack gap="sm">
+            <Group justify="space-between" wrap="nowrap">
+                <Text fw={500} size="sm" truncate="end">
+                    {rw.username}
+                </Text>
+                <StatusBadge user={rw} />
+            </Group>
+            <ExpireCell align="flex-start" date={rw.expire_at} />
+            <TrafficCell user={rw} />
+        </Stack>
     )
 }
 
@@ -257,54 +195,43 @@ function SwitchAutoExtend(props: ReturnType<ReturnType<typeof useForm>['getInput
 function AddonsCard({ sub }: { sub: Subscription }) {
     const { t } = useTranslation()
     return (
-        <motion.div variants={cardVariants}>
-            <SectionCard.Root>
-                <SectionCard.Section>
-                    <Group justify="space-between" wrap="nowrap">
-                        <BaseOverlayHeader IconComponent={PiPuzzlePieceDuotone} iconColor="grape" title={t('view.addons')} titleOrder={5} />
-                        <Button
-                            color="grape"
-                            disabled={!sub.rw_user}
-                            leftSection={<PiPuzzlePiece size={16} />}
-                            onClick={() => openConnectAddonModal(sub)}
-                            size="xs"
-                            variant="soft"
-                        >
-                            {t('sub.connect')}
-                        </Button>
-                    </Group>
-                </SectionCard.Section>
-                {sub.addons.length === 0 && (
-                    <Text c="dimmed" size="sm">
-                        {t('view.no_addons')}
-                    </Text>
-                )}
-                {sub.addons.map((a) => (
-                    <Group
-                        justify="space-between"
-                        key={a.id}
-                        onClick={() => openViewAddonModal(a.id, sub.id)}
-                        style={{ cursor: 'pointer' }}
-                        wrap="nowrap"
-                    >
-                        <Stack gap={0} miw={0}>
-                            <Group gap={6} wrap="nowrap">
-                                <Badge color="grape" variant="soft">
+        <FormSection
+            actions={
+                <Button disabled={!sub.rw_user} leftSection={<PiPuzzlePiece size={15} />} onClick={() => openConnectAddonModal(sub)} size="xs" variant="default">
+                    {t('sub.connect')}
+                </Button>
+            }
+            color="grape"
+            icon={PiPuzzlePieceDuotone}
+            title={t('view.addons')}
+        >
+            {sub.addons.length === 0 && (
+                <Text c="dimmed" size="sm">
+                    {t('view.no_addons')}
+                </Text>
+            )}
+            {sub.addons.length > 0 && (
+                <Stack gap={0} className={classes.addonList}>
+                    {sub.addons.map((a) => (
+                        <UnstyledButton className={classes.addonRow} key={a.id} onClick={() => openViewAddonModal(a.id, sub.id)}>
+                            <Box miw={0}>
+                                <Text fw={500} size="sm" truncate="end">
                                     {a.addon_name}
-                                </Badge>
-                                <Text size="sm" truncate="end">
-                                    {a.tariff_name || t('view.no_tariff')}
+                                    <Text c="dimmed" component="span" fw={400} inherit>
+                                        {' · '}
+                                        {a.tariff_name || t('view.no_tariff')}
+                                    </Text>
                                 </Text>
-                            </Group>
-                            <Text c="dimmed" size="xs">
-                                {a.rw_user?.unlimited ? t('expiry.forever') : t('view.until', { date: fmtDate(a.rw_user?.expire_at) })} · <Money value={a.price} />
-                            </Text>
-                        </Stack>
-                        <StatusBadge size="md" user={a.rw_user} />
-                    </Group>
-                ))}
-            </SectionCard.Root>
-        </motion.div>
+                                <Text c="dimmed" size="xs">
+                                    {a.rw_user?.unlimited ? t('expiry.forever') : t('view.until', { date: fmtDate(a.rw_user?.expire_at) })} · <Money value={a.price} />
+                                </Text>
+                            </Box>
+                            <StatusBadge user={a.rw_user} />
+                        </UnstyledButton>
+                    ))}
+                </Stack>
+            )}
+        </FormSection>
     )
 }
 
@@ -313,7 +240,7 @@ function MoreMenu({ children }: { children: ReactNode }) {
     return (
         <Menu keepMounted position="top-end" shadow="md">
             <Menu.Target>
-                <Button color="gray" leftSection={<TbDots size={18} />} size="md">
+                <Button leftSection={<TbDots size={18} />} mr="auto" variant="default">
                     {t('customer.more')}
                 </Button>
             </Menu.Target>
@@ -370,11 +297,11 @@ function SubscriptionEditor({ sub, close }: { sub: Subscription; close: () => vo
     )
 
     return (
-        <motion.form animate={{ opacity: 1 }} initial={{ opacity: 0 }} onSubmit={save} transition={{ duration: 0.4, ease: 'easeInOut' }}>
+        <form className="vpnc-fade" onSubmit={save}>
+            <IdentityPanel rw={sub.rw_user} />
             <FormColumns
                 left={
                     <>
-                        <IdentityCard icon={PiHexagonDuotone} rw={sub.rw_user} title={sub.title} />
                         <FormSection
                             actions={<CustomerLink id={sub.customer_id} onNavigate={close} />}
                             color="indigo"
@@ -436,34 +363,30 @@ function SubscriptionEditor({ sub, close }: { sub: Subscription; close: () => vo
                     <SubscriptionMenuItems inView onUnlinked={close} sub={sub} />
                 </MoreMenu>
                 <Button
-                    color="indigo"
                     leftSection={<PiArrowsLeftRight size={16} />}
                     onClick={() => openChangeTariffModal({ kind: 'subscription', id: sub.id, title: sub.title, tariffId: sub.tariff_id })}
-                    size="md"
-                    variant="soft"
+                    variant="default"
                 >
                     {t('sub.change_tariff')}
                 </Button>
                 <Button
-                    color="teal"
                     disabled={!sub.rw_user || sub.rw_user.unlimited}
                     leftSection={<PiCalendarPlus size={16} />}
                     onClick={() => openExtendModal({ kind: 'subscription', id: sub.id, title: sub.title })}
-                    size="md"
-                    variant="soft"
+                    variant={form.isDirty() ? 'default' : 'filled'}
                 >
                     {t('dashboard.extend')}
                 </Button>
                 <SaveButton dirty={form.isDirty()} loading={m.isPending} />
             </ModalFooter>
-        </motion.form>
+        </form>
     )
 }
 
 function SaveButton({ dirty, loading }: { dirty: boolean; loading: boolean }) {
     const { t } = useTranslation()
     return (
-        <Button color="teal" disabled={!dirty} leftSection={<PiFloppyDiskDuotone size={16} />} loading={loading} size="md" type="submit" variant="light">
+        <Button disabled={!dirty} leftSection={<PiFloppyDiskDuotone size={16} />} loading={loading} type="submit" variant={dirty ? 'filled' : 'default'}>
             {t('common.save')}
         </Button>
     )
@@ -507,10 +430,10 @@ function AddonEditor({ addon, sub, close }: { addon: AddonItem; sub: Subscriptio
     )
 
     return (
-        <motion.form animate={{ opacity: 1 }} initial={{ opacity: 0 }} onSubmit={save} transition={{ duration: 0.4, ease: 'easeInOut' }}>
+        <form className="vpnc-fade" onSubmit={save}>
+            <IdentityPanel rw={addon.rw_user} />
             <FormColumns
-                left={<IdentityCard icon={PiPuzzlePieceDuotone} rw={addon.rw_user} title={title} />}
-                right={
+                left={
                     <>
                         <FormSection
                             actions={<CustomerLink id={sub.customer_id} onNavigate={close} />}
@@ -537,8 +460,12 @@ function AddonEditor({ addon, sub, close }: { addon: AddonItem; sub: Subscriptio
                                 </>
                             )}
                         </FormSection>
-                        <IdentityCard icon={PiHexagonDuotone} rw={sub.rw_user} title={t('view.main_subscription', { title: sub.title })} />
                     </>
+                }
+                right={
+                    <FormSection color="brand" icon={PiHexagonDuotone} title={t('view.main_subscription', { title: sub.title })}>
+                        <MiniIdentity rw={sub.rw_user} />
+                    </FormSection>
                 }
             />
             <ModalFooter isMobile={window.matchMedia('(max-width: 40em)').matches}>
@@ -547,30 +474,26 @@ function AddonEditor({ addon, sub, close }: { addon: AddonItem; sub: Subscriptio
                 </MoreMenu>
                 {!addon.included && (
                     <Button
-                        color="indigo"
                         leftSection={<PiArrowsLeftRight size={16} />}
                         onClick={() =>
                             openChangeTariffModal({ kind: 'addon', id: addon.id, title, tariffId: addon.tariff_id, addonId: addon.addon_id })
                         }
-                        size="md"
-                        variant="soft"
+                        variant="default"
                     >
                         {t('sub.change_tariff')}
                     </Button>
                 )}
                 <Button
-                    color="teal"
                     disabled={!addon.rw_user || addon.rw_user.unlimited || addon.included}
                     leftSection={<PiCalendarPlus size={16} />}
                     onClick={() => openExtendModal({ kind: 'addon', id: addon.id, title })}
-                    size="md"
-                    variant="soft"
+                    variant={form.isDirty() ? 'default' : 'filled'}
                 >
                     {t('dashboard.extend')}
                 </Button>
                 <SaveButton dirty={form.isDirty()} loading={m.isPending} />
             </ModalFooter>
-        </motion.form>
+        </form>
     )
 }
 

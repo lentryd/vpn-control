@@ -1,16 +1,15 @@
-// Adapted from remnawave/frontend (AGPL-3.0): pages/auth/login + features/auth/login-form
-import { Badge, Box, Button, Container, Group, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Button, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useForm } from '@mantine/form'
+import { IconAlertCircle, IconArrowRight } from '@tabler/icons-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { PiSignInDuotone } from 'react-icons/pi'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
 import { api } from '@/api/client'
+import { errorText } from '@/components/notify'
 import { Logo } from '@shared/ui/logo'
 import { Page } from '@shared/ui/page'
-import { errorText } from '@/components/notify'
-import { useTranslation } from 'react-i18next'
 
 export function LoginPage() {
     const { t } = useTranslation()
@@ -36,61 +35,44 @@ export function LoginPage() {
 
     return (
         <Page title={t('login.title')}>
-            <Stack align="center" gap="xs">
-                <Group align="center" gap={4} justify="center">
-                    <Logo c="cyan" w="3rem" />
-                    <Title ff="Unbounded" order={1} pos="relative">
-                        <Text c="cyan" component="span" inherit>
-                            VPN
-                        </Text>
-                        <Text c="white" component="span" inherit>
-                            Control
-                        </Text>
-                    </Title>
-                </Group>
-                <Text c="dimmed" size="sm" ta="center">
+            <Stack gap={6} mb={28}>
+                <Logo mb={14} size={40} />
+                <Title order={2} style={{ letterSpacing: '-0.02em' }}>
+                    {t('login.welcome')}
+                </Title>
+                <Text c="dimmed" size="sm">
                     {t('login.hint')}
                 </Text>
-
-                <Box maw={800} p={30} w={{ base: 440, sm: 500, md: 500 }}>
-                    <form onSubmit={submit}>
-                        <Container size="100%">
-                            <Paper>
-                                <TextInput
-                                    autoComplete="username"
-                                    label={t('login.username')}
-                                    placeholder={t('login.username')}
-                                    required
-                                    {...form.getInputProps('username')}
-                                />
-                                <PasswordInput
-                                    autoComplete="current-password"
-                                    label={t('login.password')}
-                                    mt="md"
-                                    placeholder={t('login.password_placeholder')}
-                                    required
-                                    {...form.getInputProps('password')}
-                                />
-                                {error && (
-                                    <Badge color="red" fullWidth mt="md" size="lg" style={{ textTransform: 'none' }} variant="soft">
-                                        {error}
-                                    </Badge>
-                                )}
-                                <Button
-                                    fullWidth
-                                    leftSection={<PiSignInDuotone size="16px" />}
-                                    loading={loading}
-                                    mt="xl"
-                                    type="submit"
-                                    variant="default"
-                                >
-                                    {t('login.submit')}
-                                </Button>
-                            </Paper>
-                        </Container>
-                    </form>
-                </Box>
             </Stack>
+            <form onSubmit={submit}>
+                <Stack gap="md">
+                    <TextInput
+                        autoComplete="username"
+                        autoFocus
+                        label={t('login.username')}
+                        placeholder="admin"
+                        required
+                        size="md"
+                        {...form.getInputProps('username')}
+                    />
+                    <PasswordInput
+                        autoComplete="current-password"
+                        label={t('login.password')}
+                        placeholder={t('login.password_placeholder')}
+                        required
+                        size="md"
+                        {...form.getInputProps('password')}
+                    />
+                    {error && (
+                        <Alert color="red" icon={<IconAlertCircle size={18} />} py="xs">
+                            {error}
+                        </Alert>
+                    )}
+                    <Button fullWidth loading={loading} mt={4} rightSection={<IconArrowRight size={16} />} size="md" type="submit" variant="filled">
+                        {t('login.submit')}
+                    </Button>
+                </Stack>
+            </form>
         </Page>
     )
 }

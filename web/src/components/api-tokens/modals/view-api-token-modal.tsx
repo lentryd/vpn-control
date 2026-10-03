@@ -1,5 +1,5 @@
 // Adapted from remnawave/frontend (AGPL-3.0): api-tokens-card/modals/view-api-token-modal.widget
-import { ActionIcon, ActionIconGroup, Box, Button, CopyButton, Stack, Text, Tooltip } from '@mantine/core'
+import { ActionIcon, ActionIconGroup, Box, Button, CopyButton, FocusTrap, Stack, Text, Tooltip } from '@mantine/core'
 import { modals } from '@mantine/modals'
 import dayjs from 'dayjs'
 import { useMemo, useState } from 'react'
@@ -36,17 +36,18 @@ export function ViewApiTokenContent({ isMobile, token }: { isMobile: boolean; to
 
     return (
         <Stack>
+            <FocusTrap.InitialFocus />
             <Stack gap="md" pb="xs">
                 <Box className={classes.metaGrid}>
                     <div className={classes.metaCell}>
                         <Text className={classes.tokenColLabel}>{t('tokens.col_created')}</Text>
-                        <Text c="gray.2" className={classes.metaValue}>
+                        <Text className={classes.metaValue} fw={500}>
                             {formatTokenTime(token.created_at)}
                         </Text>
                     </div>
                     <div className={classes.metaCell}>
                         <Text className={classes.tokenColLabel}>{t('tokens.col_expires')}</Text>
-                        <Text c={isExpired ? 'red.5' : 'gray.2'} className={classes.metaValue}>
+                        <Text c={isExpired ? 'red' : undefined} className={classes.metaValue} fw={500}>
                             {token.expire_at ? formatTokenTime(token.expire_at) : t('tokens.never_expires')}
                         </Text>
                     </div>
@@ -99,7 +100,7 @@ export function ViewApiTokenContent({ isMobile, token }: { isMobile: boolean; to
                     </CopyButton>
                 </ActionIconGroup>
 
-                <Button color="teal" onClick={() => modals.closeAll()} size="md" variant="light">
+                <Button onClick={() => modals.closeAll()} size="md" variant="filled">
                     {t('common.close')}
                 </Button>
             </ModalFooter>

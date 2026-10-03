@@ -48,7 +48,7 @@ const statusColor: Record<string, string> = { ACTIVE: 'teal', EXPIRED: 'red', LI
 // openSubscriptionForm links a panel user to a customer; an existing link
 // is edited in the subscription modal itself.
 export function openSubscriptionForm(p: { customerId?: number; rwUserId?: number }) {
-    openModal({ icon: PiLinkDuotone, color: 'cyan', title: i18n.t('sub.link_title') }, (close) => <SubscriptionForm {...p} onDone={close} />, '1000px')
+    openModal({ icon: PiLinkDuotone, color: 'brand', title: i18n.t('sub.link_title') }, (close) => <SubscriptionForm {...p} onDone={close} />, '1000px')
 }
 
 // RwUserSelect picks a panel user, listed the way the panel shows them.
@@ -91,7 +91,7 @@ function RwUserPreview({ user }: { user: RwUserRow }) {
     const { t } = useTranslation()
     const days = daysLeft(user.expire_at)
     return (
-        <Paper bd="1px solid rgba(255,255,255,0.08)" bg="rgba(255,255,255,0.02)" p="sm" radius="md">
+        <Paper bd="1px solid var(--app-border)" bg="var(--app-surface-2)" p="sm" radius="md">
             <Stack gap="sm">
                 <Group justify="space-between" wrap="nowrap">
                     <Stack gap={0} miw={0}>
@@ -109,7 +109,7 @@ function RwUserPreview({ user }: { user: RwUserRow }) {
                         <Text c="dimmed" size="xs">
                             {t('sub.expires')}
                         </Text>
-                        <Text c={expiryColor(days)} ff="monospace" fw={500} size="sm">
+                        <Text c={expiryColor(days)} className="num" fw={500} size="sm">
                             {fmtDate(user.expire_at)}
                         </Text>
                     </Stack>
@@ -117,7 +117,7 @@ function RwUserPreview({ user }: { user: RwUserRow }) {
                         <Text c="dimmed" size="xs">
                             {t('sub.traffic')}
                         </Text>
-                        <Text ff="monospace" fw={500} size="sm">
+                        <Text className="num" fw={500} size="sm">
                             {fmtBytes(user.used_traffic_bytes)} / {user.traffic_limit_bytes ? fmtBytes(user.traffic_limit_bytes) : '∞'}
                         </Text>
                     </Stack>
@@ -193,7 +193,7 @@ function SubscriptionForm({ customerId, rwUserId, onDone }: { customerId?: numbe
                                 {...form.getInputProps('label')}
                             />
                         </FormSection>
-                        <FormSection color="cyan" icon={PiUserCircleDuotone} title={t('sub.panel_user')} description={t('sub.panel_user_hint')}>
+                        <FormSection color="brand" icon={PiUserCircleDuotone} title={t('sub.panel_user')} description={t('sub.panel_user_hint')}>
                             <RwUserSelect options={rwOptions} users={rwUsers.data} {...form.getInputProps('rw_user_id')} />
                             {picked && <RwUserPreview user={picked} />}
                         </FormSection>
@@ -279,7 +279,7 @@ function ProvisionForm({ customerId, onDone }: { customerId: number; onDone: () 
             <FormColumns
                 left={
                     <>
-                        <FormSection color="cyan" icon={PiUserCircleDuotone} title={t('sub.panel_user_new')} description={t('sub.panel_user_new_hint')}>
+                        <FormSection color="brand" icon={PiUserCircleDuotone} title={t('sub.panel_user_new')} description={t('sub.panel_user_new_hint')}>
                             <Select
                                 data={eligible.map((t) => ({ value: String(t.id), label: tariffLabel(t) }))}
                                 label={t('tariffs.tariff')}
@@ -535,13 +535,13 @@ function ChangeTariffForm({
                             onChange={setTarget}
                         />
                         {quote.data && (
-                            <Paper bd="1px solid rgba(255,255,255,0.08)" bg="rgba(255,255,255,0.02)" p="sm" radius="md">
+                            <Paper bd="1px solid var(--app-border)" bg="var(--app-surface-2)" p="sm" radius="md">
                                 <Stack gap={4}>
                                     <Group justify="space-between">
                                         <Text c="dimmed" size="sm">
                                             {t('sub.per_month')}
                                         </Text>
-                                        <Text ff="monospace" fw={600} size="sm">
+                                        <Text className="num" fw={600} size="sm">
                                             {fmtMoney(quote.data.old_monthly)} → {fmtMoney(quote.data.new_monthly)}
                                         </Text>
                                     </Group>
@@ -549,7 +549,7 @@ function ChangeTariffForm({
                                         <Text c="dimmed" size="sm">
                                             {t('sub.paid_until')}
                                         </Text>
-                                        <Text ff="monospace" size="sm">
+                                        <Text className="num" size="sm">
                                             {fmtDate(quote.data.expire_at)}
                                         </Text>
                                     </Group>
@@ -557,7 +557,7 @@ function ChangeTariffForm({
                                         <Text c="dimmed" size="sm">
                                             {t('sub.prorated')}
                                         </Text>
-                                        <Text ff="monospace" fw={600} size="sm">
+                                        <Text className="num" fw={600} size="sm">
                                             {fmtMoney(quote.data.surcharge, 2)}
                                         </Text>
                                     </Group>

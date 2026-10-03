@@ -65,7 +65,7 @@ export const ScopeResourceRow = (props: IProps) => {
                             <Text className={classes.resourceName} truncate="end">
                                 {humanizeResource(resource.resource)}
                             </Text>
-                            <Text c="dimmed" ff="monospace" size="xs">
+                            <Text c="dimmed" className="num" size="xs">
                                 {selectedCount}/{total}
                             </Text>
                         </Stack>

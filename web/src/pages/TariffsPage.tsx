@@ -1,8 +1,9 @@
 import {
     ActionIcon,
-    ActionIconGroup,
     Box,
-    Indicator,
+    Card,
+    ThemeIcon,
+    Tooltip,
     Alert,
     Badge,
     Button,
@@ -15,7 +16,6 @@ import {
     Select,
     SimpleGrid,
     Stack,
-    Tabs,
     Text,
     Textarea,
     TextInput
@@ -33,9 +33,8 @@ import {
     PiTextAa,
     PiTrash
 } from 'react-icons/pi'
-import { TbChartLine, TbCirclesRelation, TbDevices, TbTags } from 'react-icons/tb'
-import type { MRT_ColumnDef } from '@kastov/mantine-react-table-open'
-import { useMemo, useState } from 'react'
+import { TbChartLine, TbCirclesRelation, TbDevices } from 'react-icons/tb'
+import { useState } from 'react'
 
 import { api } from '@/api/client'
 import { useAddons, useApiMutation, useInvalidateAll, useSquads, useTariffs } from '@/api/hooks'
@@ -48,7 +47,11 @@ import { confirmDanger } from '@/modals/open'
 import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
 import { Page } from '@shared/ui/page'
 import { FormFooter, FormSection } from '@shared/ui/forms/form-section'
-import { DataTableCard } from '@shared/ui/table'
+import { StatStrip } from '@shared/ui/stat-strip'
+import { EntityAdd, EntityCard, EntityFigure, EntityGrid, EntityParam } from '@shared/ui/entity-card'
+import { FooterFigure } from '@shared/ui/entity-card/footer-figure'
+
+import classes from './tariffs.module.css'
 import { CurrencyIcon } from '@shared/currencies'
 import { useTranslation } from 'react-i18next'
 
@@ -59,8 +62,9 @@ export function TariffsPage() {
     const tariffs = useTariffs()
     const addons = useAddons()
     const [draft, setDraft] = useState<Draft | null>(null)
-    const base = (tariffs.data ?? []).filter((t) => t.kind === 'base')
-    const addonTariffs = (tariffs.data ?? []).filter((t) => t.kind === 'addon')
+    const all = tariffs.data ?? []
+    const base = all.filter((t) => t.kind === 'base')
+    const addonTariffs = all.filter((t) => t.kind === 'addon')
     const invalidate = useInvalidateAll()
     const deleteAddon = (a: Addon) =>
         confirmDanger(t('tariffs.delete_addon', { name: a.name }), t('tariffs.delete_addon_hint'), async () => {
@@ -75,89 +79,108 @@ export function TariffsPage() {
     return (
         <Page title={t('menu.tariffs_addons')}>
             <PageHeader
-                icon={<TbTags size={24} />}
                 title={t('menu.tariffs_addons')}
                 description={t('tariffs.description')}
                 actions={
-                    <Group gap="xs">
-                        <Button color="grape" leftSection={<PiPlus size={16} />} onClick={() => openAddonModal()} variant="soft">
+                    <>
+                        <Button leftSection={<PiPlus size={16} />} onClick={() => openAddonModal()} variant="default">
                             {t('tariffs.addon')}
                         </Button>
-                        <Button color="teal" leftSection={<PiPlus size={16} />} onClick={() => setDraft({ kind: 'base', active: true })} variant="soft">
+                        <Button leftSection={<PiPlus size={16} />} onClick={() => setDraft({ kind: 'base', active: true })} variant="filled">
                             {t('tariffs.tariff')}
                         </Button>
-                    </Group>
+                    </>
                 }
             />
-            <Tabs defaultValue="base">
-                <Tabs.List mb="md">
-                    <Tabs.Tab value="base">{t('tariffs.tab_base', { count: base.length })}</Tabs.Tab>
-                    <Tabs.Tab value="addons">{t('tariffs.tab_addons', { count: addonTariffs.length })}</Tabs.Tab>
-                </Tabs.List>
-                <Tabs.Panel value="base">
-                    <TariffTable
-                        description={t('tariffs.base_hint')}
-                        icon={<PiTagDuotone size={24} />}
-                        loading={!tariffs.data}
-                        onEdit={(t) => setDraft(t)}
-                        rows={base}
-                        storageKey="tariffs-base"
-                        title={t('tariffs.base_title')}
-                    />
-                </Tabs.Panel>
-                <Tabs.Panel value="addons">
-                    <Stack>
-                        {(addons.data ?? []).length === 0 && (
-                            <Alert color="gray">
-                                {t('tariffs.no_addons')}
-                            </Alert>
-                        )}
-                        {(addons.data ?? []).map((a) => (
-                            <TariffTable
-                                key={a.id}
-                                actions={
-                                    <Group gap="xs">
-                                        {a.source === 'ui' && (
-                                            <>
-                                                <ActionIcon color="gray" onClick={() => openAddonModal(a)} variant="subtle">
+
+            <StatStrip
+                items={[
+                    { label: t('tariffs.stat_tariffs'), value: all.length, hint: t('tariffs.stat_active', { count: all.filter((x) => x.active).length }) },
+                    { label: t('tariffs.stat_subscribers'), value: all.reduce((n, x) => n + x.subscribers, 0) },
+                    { label: 'MRR', value: fmtMoney(all.reduce((n, x) => n + x.mrr, 0)) },
+                    { label: t('tariffs.stat_addons'), value: addons.data?.length ?? 0 }
+                ]}
+                mb="xl"
+            />
+
+            <SectionTitle description={t('tariffs.base_hint')} title={t('tariffs.base_title')} />
+            <EntityGrid>
+                {base.map((tf) => (
+                    <TariffCard key={tf.id} onEdit={() => setDraft(tf)} tariff={tf} />
+                ))}
+                {tariffs.data && base.length === 0 && <EntityAdd label={t('tariffs.new_tariff')} onClick={() => setDraft({ kind: 'base', active: true })} />}
+            </EntityGrid>
+
+            <SectionTitle description={t('tariffs.addons_hint')} mt={40} title={t('tariffs.addons_title')} />
+            <Stack gap="lg">
+                {(addons.data ?? []).length === 0 && <Alert color="gray">{t('tariffs.no_addons')}</Alert>}
+                {(addons.data ?? []).map((a) => {
+                    const rows = addonTariffs.filter((x) => x.addon_id === a.id)
+                    return (
+                        <Card className={classes.addon} key={a.id} padding={0}>
+                            <div className={classes.addonHeader}>
+                                <Group gap="sm" miw={0} wrap="nowrap">
+                                    <ThemeIcon color="grape" radius="md" size={34}>
+                                        <PiPuzzlePieceDuotone size={18} />
+                                    </ThemeIcon>
+                                    <Box miw={0}>
+                                        <Group gap="xs">
+                                            <Text c="var(--app-text-strong)" fw={600}>
+                                                {a.name}
+                                            </Text>
+                                            {a.source === 'file' && (
+                                                <Badge color="gray">{a.in_config ? t('tariffs.from_file') : t('tariffs.removed_from_file')}</Badge>
+                                            )}
+                                        </Group>
+                                        <Text c="dimmed" size="xs">
+                                            {t('tariffs.addon_user', { name: `${a.prefix}<username>${a.suffix}` })}
+                                        </Text>
+                                    </Box>
+                                </Group>
+                                <Group gap={4} wrap="nowrap">
+                                    {a.source === 'ui' && (
+                                        <>
+                                            <Tooltip label={t('common.edit')}>
+                                                <ActionIcon onClick={() => openAddonModal(a)} size="lg">
                                                     <PiPencilSimple size={16} />
                                                 </ActionIcon>
-                                                <ActionIcon color="red" onClick={() => deleteAddon(a)} variant="subtle">
+                                            </Tooltip>
+                                            <Tooltip label={t('common.delete')}>
+                                                <ActionIcon color="red" onClick={() => deleteAddon(a)} size="lg">
                                                     <PiTrash size={16} />
                                                 </ActionIcon>
-                                            </>
-                                        )}
-                                        <Button
-                                            color="grape"
-                                            leftSection={<PiPlus size={14} />}
-                                            onClick={() => setDraft({ kind: 'addon', addon_id: a.id, active: true, manage_rw: true })}
-                                            size="xs"
-                                            variant="soft"
-                                        >
-                                            {t('tariffs.addon_tariff')}
-                                        </Button>
-                                    </Group>
-                                }
-                                description={t('tariffs.addon_user', { name: `${a.prefix}<username>${a.suffix}` })}
-                                icon={<PiPuzzlePieceDuotone size={24} />}
-                                onEdit={(t) => setDraft(t)}
-                                rows={addonTariffs.filter((t) => t.addon_id === a.id)}
-                                storageKey="tariffs-addon"
-                                title={
-                                    <Group gap="xs">
-                                        {a.name}
-                                        {a.source === 'file' && (
-                                            <Badge color="gray" variant="soft">
-                                                {a.in_config ? t('tariffs.from_file') : t('tariffs.removed_from_file')}
-                                            </Badge>
-                                        )}
-                                    </Group>
-                                }
-                            />
-                        ))}
-                    </Stack>
-                </Tabs.Panel>
-            </Tabs>
+                                            </Tooltip>
+                                        </>
+                                    )}
+                                    <Button
+                                        leftSection={<PiPlus size={14} />}
+                                        ml={4}
+                                        onClick={() => setDraft({ kind: 'addon', addon_id: a.id, active: true, manage_rw: true })}
+                                        size="xs"
+                                        variant="default"
+                                    >
+                                        {t('tariffs.addon_tariff')}
+                                    </Button>
+                                </Group>
+                            </div>
+                            {rows.length ? (
+                                <div className={classes.addonGrid}>
+                                    <EntityGrid>
+                                        {rows.map((tf) => (
+                                            <TariffCard key={tf.id} onEdit={() => setDraft(tf)} tariff={tf} />
+                                        ))}
+                                    </EntityGrid>
+                                </div>
+                            ) : (
+                                <Text c="dimmed" p="lg" size="sm">
+                                    {t('tariffs.no_tariffs_yet')}
+                                </Text>
+                            )}
+                        </Card>
+                    )
+                })}
+            </Stack>
+
             <Drawer
                 opened={!!draft}
                 onClose={() => setDraft(null)}
@@ -177,28 +200,27 @@ export function TariffsPage() {
     )
 }
 
-function TariffTable({
-    rows,
-    onEdit,
-    storageKey,
-    icon,
-    title,
-    description,
-    actions,
-    loading
-}: {
-    rows: Tariff[]
-    onEdit: (t: Tariff) => void
-    storageKey: string
-    icon: React.ReactNode
-    title: React.ReactNode
-    description?: string
-    actions?: React.ReactNode
-    loading?: boolean
-}) {
+function SectionTitle({ title, description, mt }: { title: string; description?: string; mt?: number }) {
+    return (
+        <Box mb="md" mt={mt}>
+            <Text c="var(--app-text-strong)" fw={600} fz={17} style={{ letterSpacing: '-0.01em' }}>
+                {title}
+            </Text>
+            {description && (
+                <Text c="dimmed" size="sm">
+                    {description}
+                </Text>
+            )}
+        </Box>
+    )
+}
+
+// TariffCard is one tariff: price and periods, what it sets in the panel,
+// and how many pay for it. A click opens it for editing.
+function TariffCard({ tariff: tf, onEdit }: { tariff: Tariff; onEdit: () => void }) {
     const { t } = useTranslation()
     const invalidate = useInvalidateAll()
-    const remove = (tf: Tariff) =>
+    const remove = () =>
         confirmDanger(t('tariffs.delete', { name: tf.name }), t('tariffs.delete_hint'), async () => {
             try {
                 await api.del(`tariffs/${tf.id}`)
@@ -207,139 +229,76 @@ function TariffTable({
                 notifyError(e)
             }
         })
-
-    const columns = useMemo<MRT_ColumnDef<Tariff>[]>(
-        () => [
-            {
-                accessorKey: 'name',
-                header: t('tariffs.col_name'),
-                size: 220,
-                Cell: ({ row }) => (
-                    <Group gap="md" pl={10} wrap="nowrap">
-                        <Indicator color={row.original.active ? 'teal' : 'gray'} inline size={10} zIndex={0} />
-                        <Box miw={0}>
-                            <Text fw={500} size="sm" truncate="end">
-                                {row.original.name}
+    return (
+        <EntityCard
+            badges={!tf.active && <Badge color="gray">{t('tariffs.hidden')}</Badge>}
+            dimmed={!tf.active}
+            dot={tf.active ? 'teal' : 'gray'}
+            footer={
+                <>
+                    <FooterFigure label={t('tariffs.col_subscribers')}>
+                        {tf.subscribers}
+                        {tf.overridden > 0 && (
+                            <Text c="yellow" component="span" fw={500} size="xs">
+                                {` ${t('tariffs.overridden', { count: tf.overridden })}`}
                             </Text>
-                            <Text c="dimmed" fw={600} size="xs" truncate="end">
-                                {row.original.description || (row.original.active ? t('tariffs.active') : t('tariffs.hidden'))}
-                            </Text>
-                            {row.original.included_addon_tariff_ids?.length > 0 && (
-                                <Badge color="grape" leftSection={<PiPuzzlePieceDuotone size={12} />} mt={2} size="xs" variant="soft">
-                                    {t('tariffs.plus_addons', { count: row.original.included_addon_tariff_ids.length })}
-                                </Badge>
-                            )}
-                        </Box>
-                    </Group>
-                )
-            },
-            {
-                accessorKey: 'monthly_price',
-                header: t('tariffs.col_price'),
-                mantineTableBodyCellProps: { align: 'center' },
-                Cell: ({ cell }) => (
-                    <Text ff="monospace" fw={600} size="sm">
-                        {fmtMoney(cell.getValue<number>())}
-                    </Text>
-                )
-            },
-            {
-                id: 'periods',
-                header: t('tariffs.col_periods'),
-                enableSorting: false,
-                accessorFn: (t) => t.periods.length,
-                Cell: ({ row }) =>
-                    row.original.periods.length ? (
-                        <Group gap={4}>
-                            {row.original.periods.map((p) => (
-                                <Badge key={`${p.months}:${p.days}`} variant="soft">
-                                    {durationLabel(p.months, p.days)} · {fmtMoney(p.price)}
-                                </Badge>
-                            ))}
-                        </Group>
-                    ) : (
-                        <Text c="dimmed">–</Text>
-                    )
-            },
-            {
-                id: 'rw',
-                header: t('tariffs.col_panel'),
-                size: 280,
-                enableSorting: false,
-                accessorFn: (t) => t.manage_rw,
-                Cell: ({ row }) => {
-                    const tf = row.original
-                    if (!tf.manage_rw) return <Text c="dimmed" size="xs">{t('tariffs.not_managed')}</Text>
-                    return (
-                        <Group gap={4}>
-                            <Badge color="violet" variant="soft">
-                                {tf.traffic_limit_bytes ? fmtBytes(tf.traffic_limit_bytes) : '∞'}
-                            </Badge>
-                            <Badge color="gray" variant="soft">
-                                {strategyLabel(tf.traffic_strategy)}
-                            </Badge>
-                            {tf.hwid_limit !== null && (
-                                <Badge color="indigo" variant="soft">
-                                    {t('tariffs.devices', { count: tf.hwid_limit })}
-                                </Badge>
-                            )}
-                            <Badge variant="soft">{t('tariffs.squads', { count: tf.squad_uuids.length })}</Badge>
-                        </Group>
-                    )
-                }
-            },
-            {
-                accessorKey: 'subscribers',
-                header: t('tariffs.col_subscribers'),
-                mantineTableBodyCellProps: { align: 'center' },
-                Cell: ({ row }) => (
-                    <Text fw={600} size="sm">
-                        {row.original.subscribers}
-                        {row.original.overridden > 0 && (
-                            <Text c="yellow" component="span" size="xs">{` ${t('tariffs.overridden', { count: row.original.overridden })}`}</Text>
                         )}
-                    </Text>
-                )
-            },
-            {
-                accessorKey: 'mrr',
-                header: 'MRR',
-                mantineTableBodyCellProps: { align: 'center' },
-                Cell: ({ cell }) => (
-                    <Text ff="monospace" fw={600} size="sm">
-                        {fmtMoney(cell.getValue<number>())}
+                    </FooterFigure>
+                    <FooterFigure align="right" label="MRR">
+                        {fmtMoney(tf.mrr)}
+                    </FooterFigure>
+                </>
+            }
+            menu={[
+                { label: t('common.edit'), icon: PiPencilSimple, onClick: onEdit },
+                { label: t('common.delete'), icon: PiTrash, color: 'red', onClick: remove }
+            ]}
+            onClick={onEdit}
+            params={
+                tf.manage_rw ? (
+                    <>
+                        <EntityParam icon={TbChartLine} label={t('tariffs.traffic')}>
+                            {tf.traffic_limit_bytes ? fmtBytes(tf.traffic_limit_bytes) : '∞'}
+                            <Text c="dimmed" component="span" inherit>
+                                {' · '}
+                                {strategyLabel(tf.traffic_strategy)}
+                            </Text>
+                        </EntityParam>
+                        {tf.hwid_limit !== null && (
+                            <EntityParam icon={TbDevices} label="HWID">
+                                {t('tariffs.devices', { count: tf.hwid_limit })}
+                            </EntityParam>
+                        )}
+                        <EntityParam icon={TbCirclesRelation} label={t('tariffs.squads_label')}>
+                            {t('tariffs.squads', { count: tf.squad_uuids.length })}
+                        </EntityParam>
+                    </>
+                ) : (
+                    <Text c="dimmed" size="xs">
+                        {t('tariffs.col_panel')}: {t('tariffs.not_managed')}
                     </Text>
                 )
             }
-        ],
-        [t]
-    )
+            subtitle={tf.description}
+            title={tf.name}
+        >
+            <EntityFigure unit={t('tariffs.per_month')} value={fmtMoney(tf.monthly_price)} />
 
-    return (
-        <DataTableCard
-            actions={actions}
-            columns={columns}
-            compact
-            data={rows}
-            description={description}
-            enableRowActions
-            icon={icon}
-            onRowClick={onEdit}
-            renderRowActions={({ row }) => (
-                <ActionIconGroup>
-                    <ActionIcon color="cyan" onClick={() => onEdit(row.original)} size="lg" variant="soft">
-                        <PiPencilSimple size={18} />
-                    </ActionIcon>
-                    <ActionIcon color="red" onClick={() => remove(row.original)} size="lg" variant="soft">
-                        <PiTrash size={18} />
-                    </ActionIcon>
-                </ActionIconGroup>
+            {(tf.periods.length > 0 || tf.included_addon_tariff_ids?.length > 0) && (
+                <Group gap={6} mt="sm">
+                    {tf.periods.map((p) => (
+                        <Badge color="gray" key={`${p.months}:${p.days}`}>
+                            {durationLabel(p.months, p.days)} · {fmtMoney(p.price)}
+                        </Badge>
+                    ))}
+                    {tf.included_addon_tariff_ids?.length > 0 && (
+                        <Badge color="grape" leftSection={<PiPuzzlePieceDuotone size={12} />}>
+                            {t('tariffs.plus_addons', { count: tf.included_addon_tariff_ids.length })}
+                        </Badge>
+                    )}
+                </Group>
             )}
-            displayColumnDefOptions={{ 'mrt-row-actions': { header: '', size: 110 } }}
-            state={{ isLoading: loading }}
-            storageKey={storageKey}
-            title={title}
-        />
+        </EntityCard>
     )
 }
 
@@ -503,11 +462,10 @@ function TariffForm({ draft, addons, onDone }: { draft: Draft; addons: Addon[]; 
                     description={t('tariffs.periods_hint')}
                     actions={
                         <Button
-                            color="teal"
                             leftSection={<PiPlus size={14} />}
                             onClick={() => form.insertListItem('periods', { months: 3, days: 0, price: form.values.monthly_price * 3 })}
                             size="xs"
-                            variant="soft"
+                            variant="default"
                         >
                             {t('tariffs.period')}
                         </Button>

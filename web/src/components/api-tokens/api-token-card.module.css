@@ -1,59 +1,15 @@
-/* Adapted from remnawave/frontend (AGPL-3.0) */
-.tokenTable {
-    border: 1px solid rgb(255, 255, 255, 0.08);
-    border-radius: var(--mantine-radius-md);
-    overflow: hidden;
-    background: rgb(255, 255, 255, 0.02);
-}
-
-.tokenHeaderRow,
-.tokenRow {
-    display: grid;
-    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) 44px;
-    gap: 16px;
-    align-items: center;
-    padding: 11px 16px;
-}
-
-@media (max-width: 48em) {
-    .tokenHeaderRow,
-    .tokenRow {
-        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 44px;
-        gap: 10px;
-    }
-}
-
-.tokenHeaderRow {
-    border-bottom: 1px solid rgb(255, 255, 255, 0.06);
-}
-
 .tokenColLabel {
-    font-size: 11px;
-    font-family: var(--mantine-font-family-monospace);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--mantine-color-dark-2);
-}
-
-.tokenRow {
-    border-bottom: 1px solid rgb(255, 255, 255, 0.04);
-    transition: background-color 120ms ease;
-}
-
-.tokenRow:last-child {
-    border-bottom: none;
-}
-
-.tokenRow:hover {
-    background-color: rgb(255, 255, 255, 0.02);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--app-text-muted);
 }
 
 .resourceRow {
     border-radius: var(--mantine-radius-md);
     overflow: hidden;
 
-    background: rgb(255, 255, 255, 0.02);
-    border: 1px solid rgb(255, 255, 255, 0.08);
+    background: var(--app-surface-2);
+    border: 1px solid var(--app-border);
 
     transition:
         border-color 150ms ease,
@@ -72,7 +28,7 @@
 
 .chevron {
     flex: none;
-    color: var(--mantine-color-dark-2);
+    color: var(--app-text-muted);
     transition: transform 150ms ease;
 }
 
@@ -84,12 +40,12 @@
     font-size: var(--mantine-font-size-sm);
     font-weight: 500;
     font-family: var(--mantine-font-family-monospace);
-    color: var(--mantine-color-gray-2);
+    color: var(--mantine-color-text);
 }
 
 .endpointList {
     padding: 2px 4px 4px;
-    border-top: 1px solid var(--mantine-color-dark-5);
+    border-top: 1px solid var(--app-border);
 }
 
 .endpointRow {
@@ -101,7 +57,7 @@
 }
 
 .endpointRow:hover {
-    background-color: rgb(255, 255, 255, 0.025);
+    background-color: var(--app-fill);
 }
 
 .endpointRow[data-readonly] {
@@ -113,7 +69,7 @@
 }
 
 .endpointRow[data-checked] {
-    background-color: var(--mantine-color-cyan-light);
+    background-color: var(--mantine-color-brand-light);
 }
 
 .methodBadge {
@@ -126,7 +82,7 @@
 .endpointPath {
     font-size: 12.5px;
     font-family: var(--mantine-font-family-monospace);
-    color: var(--mantine-color-gray-3);
+    color: var(--mantine-color-text);
 }
 
 .kindPill {
@@ -136,9 +92,9 @@
     height: 24px;
     padding: 0 9px;
     border-radius: var(--mantine-radius-md);
-    border: 1px solid var(--mantine-color-dark-4);
-    background: rgb(255, 255, 255, 0.02);
-    color: var(--mantine-color-dark-1);
+    border: 1px solid var(--app-border-strong);
+    background: var(--app-surface-2);
+    color: var(--app-text-muted);
     font-size: 11px;
     font-weight: 500;
     font-family: var(--mantine-font-family-monospace);
@@ -148,9 +104,9 @@
 }
 
 .kindPillActive {
-    background: rgb(45, 212, 168, 0.05);
-    border-color: var(--mantine-color-teal-9);
-    color: var(--mantine-color-teal-4);
+    background: var(--mantine-color-teal-light);
+    border-color: color-mix(in srgb, var(--mantine-color-teal-6) 35%, transparent);
+    color: var(--mantine-color-teal-light-color);
 }
 
 .oneTimeNotice {
@@ -159,8 +115,8 @@
     align-items: flex-start;
     padding: 12px 14px;
     border-radius: var(--mantine-radius-md);
-    border: 1px solid rgb(245, 159, 11, 0.22);
-    background: linear-gradient(135deg, rgb(245, 159, 11, 0.1) 0%, rgb(245, 159, 11, 0.02) 100%);
+    border: 1px solid color-mix(in srgb, var(--mantine-color-yellow-6) 28%, transparent);
+    background: var(--mantine-color-yellow-light);
     transition:
         border-color 150ms ease,
         background-color 150ms ease;
@@ -169,27 +125,27 @@
 .oneTimeNoticeIcon {
     flex: none;
     margin-top: 1px;
-    color: var(--mantine-color-yellow-5);
+    color: var(--mantine-color-yellow-light-color);
 }
 
 .oneTimeNoticeText {
     font-size: var(--mantine-font-size-sm);
     line-height: 1.45;
-    color: var(--mantine-color-gray-3);
+    color: var(--mantine-color-text);
 }
 
 .oneTimeNoticeEmphasis {
     font-weight: 700;
-    color: var(--mantine-color-yellow-4);
+    color: var(--mantine-color-yellow-light-color);
 }
 
 .metaGrid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr);
-    border: 1px solid rgb(255, 255, 255, 0.08);
+    border: 1px solid var(--app-border);
     border-radius: var(--mantine-radius-md);
     overflow: hidden;
-    background: rgb(255, 255, 255, 0.02);
+    background: var(--app-surface-2);
 }
 
 @media (max-width: 48em) {
@@ -204,7 +160,7 @@
     gap: 5px;
     min-width: 0;
     padding: 10px 14px;
-    border-right: 1px solid rgb(255, 255, 255, 0.06);
+    border-right: 1px solid var(--app-border);
 }
 
 .metaCell:last-child {
@@ -214,7 +170,7 @@
 @media (max-width: 48em) {
     .metaCell {
         border-right: none;
-        border-bottom: 1px solid rgb(255, 255, 255, 0.06);
+        border-bottom: 1px solid var(--app-border);
     }
 
     .metaCell:last-child {
@@ -236,5 +192,5 @@
 .metaUuidText {
     font-size: 12.5px;
     font-family: var(--mantine-font-family-monospace);
-    color: var(--mantine-color-gray-3);
+    color: var(--mantine-color-text);
 }

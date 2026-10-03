@@ -23,7 +23,8 @@
         "danger_zone": "Danger zone",
         "ok": "ok",
         "never": "never",
-        "amount_in": "Amount, {{currency}}"
+        "amount_in": "Amount, {{currency}}",
+        "empty": "Nothing here yet"
     },
     "menu": {
         "home": "Home",
@@ -38,7 +39,10 @@
         "expense_items": "Expense items",
         "panel": "Panel",
         "panel_users": "Panel users",
-        "settings": "Settings"
+        "settings": "Settings",
+        "overview": "Overview",
+        "catalog": "Catalog",
+        "system": "System"
     },
     "header": {
         "logout": "Sign out",
@@ -241,7 +245,14 @@
         "ts_unlimited": "Unlimited",
         "ts_next_reset": "Next reset among those running out",
         "extend": "Extend",
-        "expiring": "Expiring and overdue"
+        "expiring": "Expiring and overdue",
+        "period_income": "Income",
+        "period_spent": "Spent",
+        "period_net": "Net",
+        "last_months_one": "last {{count}} month",
+        "last_months_other": "last {{count}} months",
+        "new_customer": "New customer",
+        "open_all": "Show all"
     },
     "metered": {
         "tiered_price": "tiered price",
@@ -340,7 +351,16 @@
         "hwid": "Device limit (HWID)",
         "hwid_hint": "Empty — the panel's default",
         "squads_label": "Internal squads",
-        "choose": "Choose"
+        "choose": "Choose",
+        "addons_title": "Add-ons",
+        "addons_hint": "Extra panel users attached to a subscription, each with its own tariffs",
+        "stat_tariffs": "Tariffs",
+        "stat_active": "{{count}} active",
+        "stat_subscribers": "Subscribers",
+        "stat_addons": "Add-ons",
+        "per_month": "/ mo",
+        "traffic": "Traffic",
+        "no_tariffs_yet": "No tariffs yet"
     },
     "expense_items": {
         "overdue_one": "{{count}} day overdue",
@@ -433,7 +453,16 @@
         "tiered_hint": "Price per GB depends on the volume in the period",
         "tier_up_to": "Up to, GB (0 — unlimited)",
         "price_per_gb": "Price per GB, {{currency}}",
-        "add_tier": "Add tier"
+        "add_tier": "Add tier",
+        "stat_monthly": "Planned per month",
+        "stat_rate": "at the current rate",
+        "stat_items": "Active items",
+        "stat_total_one": "of {{count}} item",
+        "stat_total_few": "of {{count}} items",
+        "stat_total_many": "of {{count}} items",
+        "stat_total_other": "of {{count}} items",
+        "per_gb_unit": "per GB",
+        "monthly_net": "Net per month"
     },
     "sub": {
         "tariff_label": "{{name}} — {{price}}/mo",
@@ -555,7 +584,8 @@
         "accruals": "Accruals (bookkeeping)",
         "accrual_from": "from {{name}}",
         "accrual_for": "for {{name}}",
-        "ext_hint": "What was extended in the panel and when"
+        "ext_hint": "What was extended in the panel and when",
+        "notes": "Notes"
     },
     "view": {
         "not_linked": "not linked to the panel",
@@ -650,7 +680,18 @@
         "every_hours": "Every, hours",
         "every_hours_hint": "0 — never",
         "keep": "Keep",
-        "keep_hint": "Older automatic ones are deleted"
+        "keep_hint": "Older automatic ones are deleted",
+        "last_snapshot": "Last snapshot",
+        "none_yet": "none yet",
+        "count": "Snapshots kept",
+        "total_size": "Taking up",
+        "schedule_state": "Schedule",
+        "schedule_on": "every {{hours}} h",
+        "schedule_off": "off",
+        "transfer": "Transfer",
+        "transfer_hint": "A zip archive with chosen data: to keep aside or move to another install",
+        "hours_suffix": " h",
+        "keep_n": "keeping {{keep}}"
     },
     "expenses": {
         "charge": "Charge",
@@ -776,7 +817,11 @@
         "description": "Payers: each can have several subscriptions and add-ons",
         "list": "Customer list",
         "scope_active": "Active",
-        "scope_archived": "Archive"
+        "scope_archived": "Archive",
+        "stat_total_one": "{{count}} in total",
+        "stat_total_other": "{{count}} in total",
+        "stat_expiring": "Expiring this week",
+        "stat_debtors": "In debt"
     },
     "referrals": {
         "expand": "Expand",
@@ -792,7 +837,13 @@
         "tree": "Who referred whom",
         "accruals": "Accruals",
         "tree_hint": "Branches expand; figures cover direct referrals and the whole branch",
-        "accruals_hint": "Bookkeeping only: customer balances don't change"
+        "accruals_hint": "Bookkeeping only: customer balances don't change",
+        "expand_all": "Expand all",
+        "collapse_all": "Collapse all",
+        "stat_referrers": "Referrers",
+        "stat_referred": "Referred",
+        "stat_referred_monthly": "Referred pay per month",
+        "stat_accrued": "Accrued"
     },
     "settings": {
         "fields": {
@@ -821,7 +872,21 @@
         "base_locked": "Payments, balances and expense totals are kept in it. There's money in the books already — it can't change",
         "base_hint": "Payments, balances and expense totals are kept in it. Rates: Bank of Russia for RUB, ECB for the others",
         "saved": "Settings saved",
-        "audit_hint": "Who changed what and how the panel responded"
+        "audit_hint": "Who changed what and how the panel responded",
+        "nav": {
+            "params_hint": "Currency, referrals, dashboard",
+            "backups_hint": "Snapshots, export, import",
+            "tokens_hint": "Access for other services",
+            "audit_hint": "Who changed what"
+        },
+        "group_money": "Money",
+        "group_money_hint": "How amounts are kept and converted",
+        "group_referrals": "Referrals",
+        "group_referrals_hint": "Accounting only, nothing is charged",
+        "group_dashboard": "Dashboard",
+        "group_dashboard_hint": "What the home page warns about",
+        "unsaved": "You have unsaved changes",
+        "discard": "Discard"
     },
     "expense_modal": {
         "refund": "Refund",
@@ -878,14 +943,24 @@
             "backups_list": "List snapshots",
             "backups_download": "Download a snapshot",
             "backups_create": "Take a snapshot and download it"
-        }
+        },
+        "none_cta": "Create the first token",
+        "last_used": "Last used",
+        "never_used": "never used",
+        "endpoints_one": "{{count}} endpoint",
+        "endpoints_few": "{{count}} endpoints",
+        "endpoints_many": "{{count}} endpoints",
+        "endpoints_other": "{{count}} endpoints",
+        "delete": "Delete token «{{name}}»?",
+        "delete_hint": "Services using it will lose access immediately."
     },
     "panel_users": {
         "unlinked_one": "not linked",
         "description": "Cache of Remnawave users. Link each to a customer — then it shows up in the books and renewals",
         "table_title": "Remnawave users",
         "unlinked": "Unlinked",
-        "to_customer": "To customer"
+        "to_customer": "To an existing customer",
+        "link": "Link"
     },
     "addon_form": {
         "new": "New add-on",
@@ -916,7 +991,9 @@
         "after_charge": "After the charge",
         "short": "{{amount}} short — the operation won't go through without it",
         "debt": "The customer's balance will go negative (debt)",
-        "allow_debt": "Allow a negative balance"
+        "allow_debt": "Allow a negative balance",
+        "from": "Now until",
+        "to": "Will be until"
     },
     "sync": {
         "done": "Panel data refreshed",
@@ -955,6 +1032,29 @@
         "username": "Username",
         "password": "Password",
         "password_placeholder": "Your password",
-        "submit": "Sign in"
+        "submit": "Sign in",
+        "welcome": "Sign in to VPN Control",
+        "footer": "Back office for your Remnawave VPN"
+    },
+    "shell": {
+        "search": "Search…",
+        "search_placeholder": "Search pages, customers, subscriptions…",
+        "nothing_found": "Nothing found",
+        "group_pages": "Pages",
+        "group_actions": "Actions",
+        "group_customers": "Customers",
+        "group_subscriptions": "Subscriptions",
+        "collapse": "Collapse sidebar",
+        "expand": "Expand sidebar",
+        "theme": "Theme",
+        "theme_light": "Light",
+        "theme_dark": "Dark",
+        "theme_auto": "System",
+        "toggle_theme": "Toggle theme",
+        "sync_now": "Sync with panel",
+        "signed_in_as": "Signed in as",
+        "open_menu": "Open menu",
+        "go_to": "Go to",
+        "synced_ago": "Synced at {{time}}"
     }
 }

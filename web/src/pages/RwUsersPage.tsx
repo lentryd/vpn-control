@@ -1,12 +1,13 @@
 import type { MRT_ColumnDef } from '@kastov/mantine-react-table-open'
-import { Anchor, Badge, Button, Group, SegmentedControl } from '@mantine/core'
+import { Anchor, Badge, Button, Group, Menu, SegmentedControl } from '@mantine/core'
 import { PiLink, PiUserPlus, PiUsersThreeDuotone } from 'react-icons/pi'
+import { TbChevronDown } from 'react-icons/tb'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 
 import { useRwUsers } from '@/api/hooks'
 import type { RwUserRow } from '@/api/types'
-import { ExpireCell, OnlineCell, StatusBadge, TrafficCell, UsernameCell } from '@/components/badges'
+import { ExpireCell, StatusBadge, TrafficCell, UsernameCell } from '@/components/badges'
 import { trafficPct } from '@/components/format'
 import { PageHeader } from '@/components/ui'
 import { openCustomerForm } from '@/modals/CustomerModals'
@@ -25,8 +26,8 @@ export function RwUsersPage() {
     const columns = useMemo<MRT_ColumnDef<RwUserRow>[]>(
         () => [
             { accessorKey: 'username', header: t('expense_items.col_user'), size: 240, Cell: ({ row }) => <UsernameCell user={row.original} /> },
-            { accessorKey: 'description', header: t('tariffs.description_label') },
-            { id: 'status', header: t('dashboard.col_status'), accessorFn: (r) => r.status, filterVariant: 'multi-select', size: 190, mantineTableBodyCellProps: { align: 'center' }, Cell: ({ row }) => <StatusBadge user={row.original} /> },
+            { accessorKey: 'description', header: t('tariffs.description_label'), size: 160 },
+            { id: 'status', header: t('dashboard.col_status'), accessorFn: (r) => r.status, filterVariant: 'multi-select', size: 140, mantineTableBodyCellProps: { align: 'center' }, Cell: ({ row }) => <StatusBadge user={row.original} /> },
             {
                 id: 'expire',
                 header: t('sub.expires'),
@@ -40,19 +41,10 @@ export function RwUsersPage() {
             },
             { id: 'traffic', header: t('sub.traffic'), accessorFn: (r) => trafficPct(r) ?? -1, sortDescFirst: true, enableColumnFilter: false, size: 260, Cell: ({ row }) => <TrafficCell user={row.original} /> },
             {
-                id: 'online',
-                header: t('subscriptions.col_online'),
-                size: 190,
-                sortingFn: 'datetime',
-                accessorFn: (r) => (r.online_at ? new Date(r.online_at) : undefined),
-                sortUndefined: 'last',
-                enableColumnFilter: false,
-                Cell: ({ row }) => <OnlineCell user={row.original} />
-            },
-            {
                 id: 'linked',
                 header: t('sub.customer'),
                 accessorFn: (r) => r.customer_name,
+                size: 200,
                 Cell: ({ row }) =>
                     row.original.linked ? (
                         <Group gap={6}>
@@ -66,9 +58,7 @@ export function RwUsersPage() {
                             )}
                         </Group>
                     ) : (
-                        <Badge color="yellow" variant="soft">
-                            {t('panel_users.unlinked_one')}
-                        </Badge>
+                        <LinkMenu user={row.original} />
                     )
             }
         ],
@@ -104,36 +94,41 @@ export function RwUsersPage() {
                     if (r.subscription_addon_id && r.parent_subscription_id) openViewAddonModal(r.subscription_addon_id, r.parent_subscription_id)
                     else if (r.subscription_id) openViewSubscriptionModal({ id: r.subscription_id, title: r.username, customer_name: r.customer_name })
                 }}
-                displayColumnDefOptions={{ 'mrt-row-actions': { header: '', size: 270 } }}
                 initialState={{ sorting: [{ id: 'expire', desc: false }] }}
-                enableRowActions
-                positionActionsColumn="last"
-                renderRowActions={({ row }) =>
-                    row.original.linked ? null : (
-                        <Group gap={4} wrap="nowrap">
-                            <Button
-                                size="compact-xs"
-                                variant="soft"
-                                leftSection={<PiLink size={14} />}
-                                onClick={() => openSubscriptionForm({ rwUserId: row.original.id })}
-                            >
-                                {t('panel_users.to_customer')}
-                            </Button>
-                            <Button
-                                size="compact-xs"
-                                color="teal"
-                                variant="soft"
-                                leftSection={<PiUserPlus size={14} />}
-                                onClick={() =>
-                                    openCustomerForm(undefined, (id) => openSubscriptionForm({ customerId: id, rwUserId: row.original.id }))
-                                }
-                            >
-                                {t('customers.new')}
-                            </Button>
-                        </Group>
-                    )
-                }
             />
         </Page>
+    )
+}
+
+// LinkMenu is the customer cell of an unlinked panel user: one button that
+// attaches it to an existing customer or to a new one.
+function LinkMenu({ user }: { user: RwUserRow }) {
+    const { t } = useTranslation()
+    return (
+        <Menu position="bottom-start" withinPortal>
+            <Menu.Target>
+                <Button
+                    color="yellow"
+                    leftSection={<PiLink size={14} />}
+                    onClick={(e) => e.stopPropagation()}
+                    rightSection={<TbChevronDown size={12} />}
+                    size="compact-sm"
+                    variant="soft"
+                >
+                    {t('panel_users.link')}
+                </Button>
+            </Menu.Target>
+            <Menu.Dropdown onClick={(e) => e.stopPropagation()}>
+                <Menu.Item leftSection={<PiLink size={15} />} onClick={() => openSubscriptionForm({ rwUserId: user.id })}>
+                    {t('panel_users.to_customer')}
+                </Menu.Item>
+                <Menu.Item
+                    leftSection={<PiUserPlus size={15} />}
+                    onClick={() => openCustomerForm(undefined, (id) => openSubscriptionForm({ customerId: id, rwUserId: user.id }))}
+                >
+                    {t('customers.new')}
+                </Menu.Item>
+            </Menu.Dropdown>
+        </Menu>
     )
 }
