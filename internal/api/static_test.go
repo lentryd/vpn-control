@@ -16,25 +16,25 @@ func TestStaticHandler(t *testing.T) {
 		"assets/app-x1.js.br": {Data: []byte("brotli")},
 		"assets/app-x1.js.gz": {Data: []byte("gzip")},
 	}
-	h, err := staticHandler(fsys, "/control")
+	h, err := staticHandler(fsys)
 	if err != nil {
 		t.Fatal(err)
 	}
 	app := fiber.New()
-	app.Group("/control").Use(h)
+	app.Use(h)
 
 	tests := []struct {
 		path, accept, ifNoneMatch string
 		status                    int
 		body, encoding, cache     string
 	}{
-		{path: "/control/assets/app-x1.js", accept: "gzip, deflate, br", status: 200, body: "brotli", encoding: "br", cache: "public, max-age=31536000, immutable"},
-		{path: "/control/assets/app-x1.js", accept: "gzip, br;q=0", status: 200, body: "gzip", encoding: "gzip"},
-		{path: "/control/assets/app-x1.js", status: 200, body: "plain"},
-		{path: "/control/assets/app-x1.js", accept: "br", ifNoneMatch: `"5a8ea5e1d3d0d2d8br"`, status: 200, body: "brotli", encoding: "br"},
-		{path: "/control/assets/missing.js", status: 404},
-		{path: "/control/", status: 200, body: "<html>", cache: "no-cache"},
-		{path: "/control/customers/1", status: 200, body: "<html>", cache: "no-cache"},
+		{path: "/assets/app-x1.js", accept: "gzip, deflate, br", status: 200, body: "brotli", encoding: "br", cache: "public, max-age=31536000, immutable"},
+		{path: "/assets/app-x1.js", accept: "gzip, br;q=0", status: 200, body: "gzip", encoding: "gzip"},
+		{path: "/assets/app-x1.js", status: 200, body: "plain"},
+		{path: "/assets/app-x1.js", accept: "br", ifNoneMatch: `"5a8ea5e1d3d0d2d8br"`, status: 200, body: "brotli", encoding: "br"},
+		{path: "/assets/missing.js", status: 404},
+		{path: "/", status: 200, body: "<html>", cache: "no-cache"},
+		{path: "/customers/1", status: 200, body: "<html>", cache: "no-cache"},
 	}
 	for _, tt := range tests {
 		req := httptest.NewRequest("GET", tt.path, nil)
@@ -65,7 +65,7 @@ func TestStaticHandler(t *testing.T) {
 	}
 
 	// Revalidation with the ETag just served.
-	req := httptest.NewRequest("GET", "/control/assets/app-x1.js", nil)
+	req := httptest.NewRequest("GET", "/assets/app-x1.js", nil)
 	req.Header.Set("Accept-Encoding", "br")
 	res, _ := app.Test(req)
 	req.Header.Set("If-None-Match", res.Header.Get("ETag"))

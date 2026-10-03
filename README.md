@@ -26,12 +26,12 @@ Stack: Go 1.26, Fiber, Ent and SQLite (no CGO). The UI uses Mantine 9, mantine-r
 
    ```bash
    cp .env.example .env
-   # REMNAWAVE_TOKEN, PANEL_DOMAIN, JWT_SECRET (openssl rand -hex 32)
+   # REMNAWAVE_TOKEN, APP_DOMAIN, JWT_SECRET (openssl rand -hex 32)
    ```
 
 3. Run `docker compose up -d --build`.
 
-The container joins the panel's docker network (`REMNAWAVE_NETWORK`, default `remnawave-network`) and talks to the backend directly at `http://remnawave:3000`. It sets the `X-Forwarded-*` headers the panel requires. Traefik labels serve the app at `https://$PANEL_DOMAIN$BASE_PATH/`, with `/control` as the default path. Set `TRAEFIK_CERTRESOLVER` and `TRAEFIK_ENTRYPOINTS` to match your Traefik.
+The container joins the panel's docker network (`REMNAWAVE_NETWORK`, default `remnawave-network`) and talks to the backend directly at `http://remnawave:3000`. It sets the `X-Forwarded-*` headers the panel requires. Traefik labels serve the app at `https://$APP_DOMAIN/`; it needs its own domain (e.g. a subdomain of the panel's). Set `TRAEFIK_CERTRESOLVER` and `TRAEFIK_ENTRYPOINTS` to match your Traefik.
 
 **Traefik on another host through frp:** add `COMPOSE_FILE=compose.yml:compose.frp.yml` to `.env`. `HOST_PORT` is then tunnelled to `1${HOST_PORT}` on the Traefik side.
 
@@ -42,7 +42,7 @@ Admins sign in with their panel username and password. The app checks them with 
 **Webhooks (optional)** update statuses instantly. In the panel's `.env`, set:
 
 - `WEBHOOK_ENABLED=true`
-- `WEBHOOK_URL=https://<PANEL_DOMAIN>/control/api/webhooks/remnawave`. The panel only accepts `https://`, so the webhook goes through its Traefik.
+- `WEBHOOK_URL=https://<APP_DOMAIN>/api/webhooks/remnawave`. The panel only accepts `https://`, so the webhook goes through its Traefik.
 - the same secret in the panel's `WEBHOOK_SECRET_HEADER` and in `WEBHOOK_SECRET` here.
 
 Without webhooks, data is synced every `SYNC_INTERVAL` (10 minutes by default) and with the ⟳ button.
@@ -55,7 +55,6 @@ Everything is set through environment variables; see `.env.example` for the full
 |---|---|---|
 | `REMNAWAVE_URL`, `REMNAWAVE_TOKEN` | — | Panel backend and API token (required) |
 | `JWT_SECRET` | — | Signs admin sessions (required) |
-| `BASE_PATH` | `/control` in compose, empty locally | URL prefix of the app |
 | `TZ` | `UTC` | Time zone used to show dates and to cut periods |
 | `SYNC_INTERVAL` | `10m` | Panel users sync |
 | `TRAFFIC_SYNC_INTERVAL` | `1h` | Node traffic sync for metered expenses |
@@ -97,8 +96,8 @@ Add-ons come from two sources:
 Other services can read the catalog. Create a token in **Settings → API tokens**, as in the panel: a name, an expiry in days and scopes per resource (Read/Write or single endpoints; presets: read only, full access, subpage). A token is shown once, and only a hash of it is stored. Then call the API:
 
 ```bash
-curl -H "Authorization: Bearer vpc_…" https://panel.example.com/control/api/v1/addons              # JSON
-curl -H "Authorization: Bearer vpc_…" "https://panel.example.com/control/api/v1/addons?format=yaml" # addons.yml
+curl -H "Authorization: Bearer vpc_…" https://control.example.com/api/v1/addons              # JSON
+curl -H "Authorization: Bearer vpc_…" "https://control.example.com/api/v1/addons?format=yaml" # addons.yml
 ```
 
 | Endpoint | Endpoint key | |

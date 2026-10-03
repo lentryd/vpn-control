@@ -1,6 +1,4 @@
-// API base is relative to the page: the app may live at "/" or under a
-// BASE_PATH like "/control/", and the API is always "<that>/api/".
-export const API_BASE = new URL('api/', document.baseURI).toString()
+export const API_BASE = '/api/'
 
 // ApiError carries the server's error code and params (translated by
 // errorText) next to its English message.

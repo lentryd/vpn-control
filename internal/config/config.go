@@ -12,9 +12,6 @@ import (
 type Config struct {
 	// Port is the HTTP port the API/web server listens on.
 	Port string
-	// BasePath is the URL prefix the app is served under (e.g. "/control"
-	// when mounted under the panel's domain); empty for the root.
-	BasePath string
 	// DBPath is the SQLite database file.
 	DBPath string
 	// Debug enables verbose (slog debug level) logging.
@@ -70,10 +67,9 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		Port:     envOrDefault("PORT", "8080"),
-		BasePath: normalizeBasePath(getenv("BASE_PATH")),
-		DBPath:   envOrDefault("DB_PATH", "./data/vpn-control.db"),
-		Debug:    getenv("DEBUG") == "true",
+		Port:   envOrDefault("PORT", "8080"),
+		DBPath: envOrDefault("DB_PATH", "./data/vpn-control.db"),
+		Debug:  getenv("DEBUG") == "true",
 
 		RemnawaveURL:    strings.TrimSuffix(getenv("REMNAWAVE_URL"), "/"),
 		RemnawaveToken:  getenv("REMNAWAVE_TOKEN"),
@@ -104,16 +100,6 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
-}
-
-// normalizeBasePath turns "control", "/control/" etc. into "/control", and
-// "/" or "" into "".
-func normalizeBasePath(p string) string {
-	p = strings.Trim(p, "/")
-	if p == "" {
-		return ""
-	}
-	return "/" + p
 }
 
 // getenv reads an env var trimmed of surrounding whitespace — hand-edited

@@ -1,6 +1,6 @@
-// Production build: index.html → dist/ with relative asset URLs, so the same
-// build works at the domain root or under any BASE_PATH (e.g. /control/),
-// plus public/ (favicon, locales, PWA manifest, icons, service worker) copied as is.
+// Production build: index.html → dist/ with root-absolute asset URLs (the app
+// owns its domain, so a page at any path loads them), plus public/ (favicon,
+// locales, PWA manifest, icons, service worker) copied as is.
 import { cp, mkdir, readdir, rm } from 'node:fs/promises'
 import { basename, dirname, extname, resolve } from 'node:path'
 import { brotliCompressSync, constants, gzipSync } from 'node:zlib'
@@ -45,6 +45,7 @@ const result = await Bun.build({
     minify: true,
     splitting: true,
     sourcemap: 'none',
+    publicPath: '/',
     naming: { chunk: 'assets/[name]-[hash].[ext]', asset: 'assets/[name]-[hash].[ext]' },
     define: { 'process.env.NODE_ENV': '"production"' },
     plugins: [skipVendorCss, postcss, externalFonts]
@@ -68,15 +69,14 @@ await Bun.write(`${outdir}/${vendorName}`, vendor.code)
 
 // Before the app stylesheet, so our overrides still win the cascade.
 let html = await Bun.file(`${outdir}/index.html`).text()
-const link = `<link rel="stylesheet" crossorigin href="./${vendorName}">`
+const link = `<link rel="stylesheet" crossorigin href="/${vendorName}">`
 html = html.includes('<link rel="stylesheet"') ? html.replace('<link rel="stylesheet"', `${link}<link rel="stylesheet"`) : html.replace('</head>', `${link}</head>`)
 
-// Bun hashes the web manifest into assets/ like any other file, but its
-// start_url, scope and icons resolve against its own URL: it has to stay
-// next to index.html (copied from public/ below).
-const manifest = html.match(/\.\/(assets\/manifest-[\w-]+\.webmanifest)/)
+// Bun hashes the web manifest into assets/ like any other file, but it must
+// not be cached for a year: keep the one copied from public/ below.
+const manifest = html.match(/\/(assets\/manifest-[\w-]+\.webmanifest)/)
 if (manifest) {
-    html = html.replace(manifest[0], './manifest.webmanifest')
+    html = html.replace(manifest[0], '/manifest.webmanifest')
     await rm(`${outdir}/${manifest[1]}`)
 }
 await Bun.write(`${outdir}/index.html`, html)

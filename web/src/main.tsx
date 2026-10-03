@@ -26,7 +26,7 @@ dayjs.extend(relativeTime)
 // server, where a cached shell would only get in the way of reloads.
 if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch((err) => console.warn('service worker:', err))
+        navigator.serviceWorker.register('/sw.js').catch((err) => console.warn('service worker:', err))
     })
 }
 

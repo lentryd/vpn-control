@@ -63,14 +63,10 @@ func (h *Handlers) Me(c *fiber.Ctx) error {
 }
 
 func (h *Handlers) sessionCookie(value string, expires time.Time) *fiber.Cookie {
-	path := h.Config.BasePath
-	if path == "" {
-		path = "/"
-	}
 	return &fiber.Cookie{
 		Name:     middleware.SessionCookie,
 		Value:    value,
-		Path:     path,
+		Path:     "/",
 		Expires:  expires,
 		HTTPOnly: true,
 		Secure:   h.Config.SecureCookie,

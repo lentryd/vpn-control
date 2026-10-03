@@ -23,8 +23,7 @@ i18n.use(initReactI18next)
             convertDetectedLanguage: (lng) => (lng.includes('-') ? lng.split('-')[0] : lng)
         },
         load: 'languageOnly',
-        // relative to the page, so it works under any BASE_PATH
-        backend: { loadPath: 'locales/{{lng}}/{{ns}}.json' },
+        backend: { loadPath: '/locales/{{lng}}/{{ns}}.json' },
         interpolation: { escapeValue: false },
         react: { useSuspense: true }
     })

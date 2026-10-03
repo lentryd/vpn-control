@@ -1,23 +1,18 @@
 package api
 
 import (
-	"strings"
-
 	"github.com/gofiber/fiber/v2"
 
 	appmiddleware "vpn-control/internal/api/middleware"
 	"vpn-control/web"
 )
 
-// RegisterRoutes wires the route table. Everything lives under BasePath so
-// the app can sit at a path of the panel's domain; JSON endpoints are under
-// {base}/api, the SPA is served for the rest.
+// RegisterRoutes wires the route table. The app owns its domain: JSON
+// endpoints are under /api, the SPA is served for the rest.
 func RegisterRoutes(app *fiber.App, deps *Deps) {
 	h := deps.Handlers
-	base := h.Config.BasePath
 
-	root := app.Group(base)
-	api := root.Group("/api")
+	api := app.Group("/api")
 
 	api.Get("/healthz", func(c *fiber.Ctx) error { return c.SendString("ok") })
 	api.Post("/auth/login", h.Login)
@@ -130,22 +125,10 @@ func RegisterRoutes(app *fiber.App, deps *Deps) {
 		return
 	}
 
-	// The SPA uses relative asset URLs and a hash router, so it works under
-	// any BasePath — as long as the page URL ends with "/".
-	if base != "" {
-		// Fiber matches "/control" and "/control/" alike, so check the raw
-		// path to redirect only the slash-less form.
-		app.Get(base, func(c *fiber.Ctx) error {
-			if path, _, _ := strings.Cut(c.OriginalURL(), "?"); path == base {
-				return c.Redirect(base+"/", fiber.StatusMovedPermanently)
-			}
-			return c.Next()
-		})
-	}
 	// Registered after the API: the SPA files, precompressed at build time.
-	static, err := staticHandler(web.Dist, base)
+	static, err := staticHandler(web.Dist)
 	if err != nil {
 		panic(err)
 	}
-	root.Use(static)
+	app.Use(static)
 }

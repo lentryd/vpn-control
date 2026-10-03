@@ -1,5 +1,5 @@
 # Runs next to the Remnawave panel in its docker network, served by the
-# panel's Traefik under https://$PANEL_DOMAIN$BASE_PATH/ (default /control).
+# panel's Traefik at https://$APP_DOMAIN/.
 # Behind frp add compose.frp.yml: COMPOSE_FILE=compose.yml:compose.frp.yml.
 services:
     vpn-control:
@@ -14,7 +14,6 @@ services:
             - .env
         # Container-side values; they override the local ones from .env.
         environment:
-            BASE_PATH: ${BASE_PATH:-/control}
             PORT: 8080
             DB_PATH: /data/vpn-control.db
             ADDONS_CONFIG: /etc/vpn-control/addons.yml
@@ -27,8 +26,7 @@ services:
             - remnawave-network
         labels:
             - 'traefik.enable=true'
-            - 'traefik.http.routers.vpn-control.rule=Host(`${PANEL_DOMAIN}`) && PathPrefix(`${BASE_PATH:-/control}`)'
-            - 'traefik.http.routers.vpn-control.priority=100'
+            - 'traefik.http.routers.vpn-control.rule=Host(`${APP_DOMAIN}`)'
             - 'traefik.http.routers.vpn-control.tls=true'
             - 'traefik.http.routers.vpn-control.entrypoints=${TRAEFIK_ENTRYPOINTS:-web,websecure}'
             - 'traefik.http.routers.vpn-control.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}'

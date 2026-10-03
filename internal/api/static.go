@@ -26,7 +26,7 @@ type staticFile struct {
 // content-hashed files in assets/. Unknown paths get index.html (the
 // router is hash-based, but old bookmarks may still point at a path),
 // except under assets/, where a missing chunk is a real 404.
-func staticHandler(fsys fs.FS, base string) (fiber.Handler, error) {
+func staticHandler(fsys fs.FS) (fiber.Handler, error) {
 	files := map[string]*staticFile{}
 	err := fs.WalkDir(fsys, ".", func(name string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || strings.HasSuffix(name, ".br") || strings.HasSuffix(name, ".gz") || path.Base(name) == ".gitkeep" {
@@ -61,7 +61,7 @@ func staticHandler(fsys fs.FS, base string) (fiber.Handler, error) {
 		if c.Method() != fiber.MethodGet && c.Method() != fiber.MethodHead {
 			return c.Next()
 		}
-		name := strings.Trim(strings.TrimPrefix(c.Path(), base), "/")
+		name := strings.Trim(c.Path(), "/")
 		f := files[name]
 		if f == nil {
 			if strings.HasPrefix(name, "assets/") {

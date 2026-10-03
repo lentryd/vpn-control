@@ -67,7 +67,7 @@ func main() {
 	setupLogging(cfg.Debug)
 	time.Local = cfg.Location
 
-	slog.Info("starting", "version", Version, "commit", Commit, "base_path", cfg.BasePath)
+	slog.Info("starting", "version", Version, "commit", Commit)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()

@@ -1,6 +1,5 @@
 // Service worker: makes the app installable and keeps the shell available
-// offline. Paths resolve against the worker's own URL, so it works under any
-// BASE_PATH. The API is never touched: data always comes from the network.
+// offline. The API is never touched: data always comes from the network.
 //   - page (navigation): network first, the cached index.html when offline
 //   - assets/ (content-hashed, immutable): cache first
 //   - everything else (locales, icons, manifest): stale-while-revalidate
@@ -8,7 +7,7 @@ const SHELL = 'shell-v1'
 const ASSETS = 'assets-v1'
 const MAX_ASSETS = 300
 
-const scope = new URL('./', self.location).href
+const scope = new URL('/', self.location).href
 const shellUrl = scope // the page itself; the hash router keeps it the only one
 
 self.addEventListener('install', (event) => {

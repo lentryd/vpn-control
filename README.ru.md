@@ -26,12 +26,12 @@
 
    ```bash
    cp .env.example .env
-   # REMNAWAVE_TOKEN, PANEL_DOMAIN, JWT_SECRET (openssl rand -hex 32)
+   # REMNAWAVE_TOKEN, APP_DOMAIN, JWT_SECRET (openssl rand -hex 32)
    ```
 
 3. Запустите `docker compose up -d --build`.
 
-Контейнер подключается к docker-сети панели (`REMNAWAVE_NETWORK`, по умолчанию `remnawave-network`) и обращается к бэкенду напрямую: `http://remnawave:3000`. Заголовки `X-Forwarded-*`, которые требует панель, сервис выставляет сам. Лейблы Traefik отдают приложение по адресу `https://$PANEL_DOMAIN$BASE_PATH/`, по умолчанию с путём `/control`. Укажите `TRAEFIK_CERTRESOLVER` и `TRAEFIK_ENTRYPOINTS` под свой Traefik.
+Контейнер подключается к docker-сети панели (`REMNAWAVE_NETWORK`, по умолчанию `remnawave-network`) и обращается к бэкенду напрямую: `http://remnawave:3000`. Заголовки `X-Forwarded-*`, которые требует панель, сервис выставляет сам. Лейблы Traefik отдают приложение по адресу `https://$APP_DOMAIN/`; ему нужен собственный домен (например, поддомен панели). Укажите `TRAEFIK_CERTRESOLVER` и `TRAEFIK_ENTRYPOINTS` под свой Traefik.
 
 **Traefik на другом хосте через frp:** добавьте в `.env` строку `COMPOSE_FILE=compose.yml:compose.frp.yml`. Тогда `HOST_PORT` пробрасывается на `1${HOST_PORT}` на стороне Traefik.
 
@@ -42,7 +42,7 @@
 **Вебхуки (по желанию)** мгновенно обновляют статусы. В `.env` панели укажите:
 
 - `WEBHOOK_ENABLED=true`;
-- `WEBHOOK_URL=https://<PANEL_DOMAIN>/control/api/webhooks/remnawave`. Панель принимает только `https://`, поэтому вебхук идёт через её Traefik;
+- `WEBHOOK_URL=https://<APP_DOMAIN>/api/webhooks/remnawave`. Панель принимает только `https://`, поэтому вебхук идёт через её Traefik;
 - тот же секрет в `WEBHOOK_SECRET_HEADER` панели и в `WEBHOOK_SECRET` здесь.
 
 Без вебхуков данные синхронизируются раз в `SYNC_INTERVAL` (по умолчанию 10 минут) и по кнопке ⟳.
@@ -55,7 +55,6 @@
 |---|---|---|
 | `REMNAWAVE_URL`, `REMNAWAVE_TOKEN` | — | Бэкенд панели и API-токен (обязательно) |
 | `JWT_SECRET` | — | Подпись сессий администратора (обязательно) |
-| `BASE_PATH` | `/control` в compose, пусто локально | Префикс URL приложения |
 | `TZ` | `UTC` | Часовой пояс для отображения дат и границ периодов |
 | `SYNC_INTERVAL` | `10m` | Синхронизация пользователей панели |
 | `TRAFFIC_SYNC_INTERVAL` | `1h` | Синхронизация трафика нод для статей по трафику |
@@ -97,8 +96,8 @@
 Другие сервисы могут читать каталог. Создайте токен в **Настройки → API-токены** — как в панели: название, срок действия в днях и права по ресурсам (Read/Write или отдельные эндпоинты; пресеты: только чтение, полный доступ, subpage). Токен показывается один раз, хранится только его хеш. Затем обращайтесь к API:
 
 ```bash
-curl -H "Authorization: Bearer vpc_…" https://panel.example.com/control/api/v1/addons              # JSON
-curl -H "Authorization: Bearer vpc_…" "https://panel.example.com/control/api/v1/addons?format=yaml" # addons.yml
+curl -H "Authorization: Bearer vpc_…" https://control.example.com/api/v1/addons              # JSON
+curl -H "Authorization: Bearer vpc_…" "https://control.example.com/api/v1/addons?format=yaml" # addons.yml
 ```
 
 | Эндпоинт | Ключ эндпоинта | |

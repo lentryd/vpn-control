@@ -1,5 +1,5 @@
-// Package api implements the HTTP server: JSON API routes under
-// {BASE_PATH}/api and the embedded SPA.
+// Package api implements the HTTP server: JSON API routes under /api and
+// the embedded SPA.
 package api
 
 import (
