@@ -39,7 +39,10 @@ func staticHandler(fsys fs.FS, base string) (fiber.Handler, error) {
 		f := &staticFile{data: data, cacheControl: "no-cache"}
 		f.br, _ = fs.ReadFile(fsys, name+".br")
 		f.gz, _ = fs.ReadFile(fsys, name+".gz")
-		if f.contentType = mime.TypeByExtension(path.Ext(name)); f.contentType == "" {
+		// the system MIME table may not know .webmanifest
+		if path.Ext(name) == ".webmanifest" {
+			f.contentType = "application/manifest+json"
+		} else if f.contentType = mime.TypeByExtension(path.Ext(name)); f.contentType == "" {
 			f.contentType = http.DetectContentType(data)
 		}
 		sum := sha256.Sum256(data)

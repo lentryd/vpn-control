@@ -1,6 +1,6 @@
 // Production build: index.html → dist/ with relative asset URLs, so the same
 // build works at the domain root or under any BASE_PATH (e.g. /control/),
-// plus public/ (favicon, locales) copied as is.
+// plus public/ (favicon, locales, PWA manifest, icons, service worker) copied as is.
 import { cp, mkdir, readdir, rm } from 'node:fs/promises'
 import { basename, dirname, extname, resolve } from 'node:path'
 import { brotliCompressSync, constants, gzipSync } from 'node:zlib'
@@ -67,9 +67,19 @@ const vendorName = `assets/vendor-${Bun.hash(vendor.code).toString(36).slice(0, 
 await Bun.write(`${outdir}/${vendorName}`, vendor.code)
 
 // Before the app stylesheet, so our overrides still win the cascade.
-const html = await Bun.file(`${outdir}/index.html`).text()
+let html = await Bun.file(`${outdir}/index.html`).text()
 const link = `<link rel="stylesheet" crossorigin href="./${vendorName}">`
-await Bun.write(`${outdir}/index.html`, html.includes('<link rel="stylesheet"') ? html.replace('<link rel="stylesheet"', `${link}<link rel="stylesheet"`) : html.replace('</head>', `${link}</head>`))
+html = html.includes('<link rel="stylesheet"') ? html.replace('<link rel="stylesheet"', `${link}<link rel="stylesheet"`) : html.replace('</head>', `${link}</head>`)
+
+// Bun hashes the web manifest into assets/ like any other file, but its
+// start_url, scope and icons resolve against its own URL: it has to stay
+// next to index.html (copied from public/ below).
+const manifest = html.match(/\.\/(assets\/manifest-[\w-]+\.webmanifest)/)
+if (manifest) {
+    html = html.replace(manifest[0], './manifest.webmanifest')
+    await rm(`${outdir}/${manifest[1]}`)
+}
+await Bun.write(`${outdir}/index.html`, html)
 
 await cp(`${root}public`, outdir, { recursive: true })
 // tracked in git, so `go build` works (with an empty SPA) before a web build
@@ -84,7 +94,7 @@ console.log(`assets/files/  ${fonts.size} fonts (${[...new Set([...fonts.keys()]
 
 // Precompressed copies for the Go server to send as is (internal/api/static.go):
 // max-level brotli once at build time instead of a fast one on every request.
-const compressible = new Set(['.js', '.css', '.html', '.json', '.svg'])
+const compressible = new Set(['.js', '.css', '.html', '.json', '.webmanifest', '.svg'])
 let raw = 0
 let br = 0
 for (const entry of await readdir(outdir, { recursive: true, withFileTypes: true })) {

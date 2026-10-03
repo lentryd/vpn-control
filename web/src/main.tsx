@@ -22,6 +22,14 @@ import { LoadingScreen } from '@shared/ui/loading-screen'
 
 dayjs.extend(relativeTime)
 
+// PWA: installable app and offline shell (public/sw.js). Not in the dev
+// server, where a cached shell would only get in the way of reloads.
+if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch((err) => console.warn('service worker:', err))
+    })
+}
+
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: { staleTime: 15_000, refetchOnWindowFocus: true, retry: 1 }
