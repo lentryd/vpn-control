@@ -1,12 +1,12 @@
-import { SimpleGrid } from '@mantine/core'
 import dayjs from 'dayjs'
-import { PiCalendarCheckDuotone, PiCoinsDuotone, PiCreditCardDuotone, PiReceiptDuotone } from 'react-icons/pi'
+import { PiCreditCardDuotone } from 'react-icons/pi'
 import { useMemo } from 'react'
 
 import { usePayments } from '@/api/hooks'
 import { fmtMoney } from '@/components/format'
 import { paymentColumns, paymentTableProps } from '@/components/PaymentTable'
-import { PageHeader, StatCard } from '@/components/ui'
+import { PageHeader } from '@/components/ui'
+import { StatStrip } from '@shared/ui/stat-strip'
 import { Page } from '@shared/ui/page'
 import { DataTableCard } from '@shared/ui/table'
 import { useTranslation } from 'react-i18next'
@@ -31,17 +31,14 @@ export function PaymentsPage() {
                 icon={<PiCreditCardDuotone size={24} />}
                 title={t('menu.payments')}
             />
-            <SimpleGrid cols={{ base: 1, sm: 3 }} mb="md">
-                <StatCard color="teal" icon={PiCoinsDuotone} title={t('payments.total')} value={fmtMoney(stats.total, 2)} />
-                <StatCard
-                    color="cyan"
-                    hint={t('payments.count', { count: stats.monthCount })}
-                    icon={PiCalendarCheckDuotone}
-                    title={t('payments.for_month', { month: dayjs().format('MMMM') })}
-                    value={fmtMoney(stats.month, 2)}
-                />
-                <StatCard color="violet" icon={PiReceiptDuotone} title={t('payments.payments')} value={stats.count} />
-            </SimpleGrid>
+            <StatStrip
+                items={[
+                    { label: t('payments.total'), value: fmtMoney(stats.total, 2) },
+                    { label: t('payments.for_month', { month: dayjs().format('MMMM') }), value: fmtMoney(stats.month, 2), hint: t('payments.count', { count: stats.monthCount }) },
+                    { label: t('payments.payments'), value: stats.count }
+                ]}
+                mb="lg"
+            />
             <DataTableCard
                 {...paymentTableProps}
                 columns={columns}

@@ -1,6 +1,6 @@
 import type { MRT_ColumnDef } from '@kastov/mantine-react-table-open'
-import { ActionIcon, Badge, Button, Group, Menu, SimpleGrid, Tabs, Text, Tooltip } from '@mantine/core'
-import { PiArrowUDownLeft, PiArrowUDownLeftDuotone, PiArrowUpRight, PiBuildingsDuotone, PiPencilSimple, PiPlus, PiReceiptDuotone, PiTrash, PiWalletDuotone } from 'react-icons/pi'
+import { ActionIcon, Badge, Button, Group, Menu, Tabs, Text, Tooltip } from '@mantine/core'
+import { PiArrowUDownLeft, PiArrowUpRight, PiBuildingsDuotone, PiPencilSimple, PiPlus, PiReceiptDuotone, PiTrash } from 'react-icons/pi'
 import { TbDots } from 'react-icons/tb'
 import { useMemo } from 'react'
 
@@ -9,7 +9,8 @@ import { useExpenses, useInvalidateAll, useProviders } from '@/api/hooks'
 import type { Expense, ProviderTotals } from '@/api/types'
 import { fmtCurrency, fmtDate, fmtMoney, fmtNum, baseCurrency } from '@/components/format'
 import { notifyError } from '@/components/notify'
-import { Money, PageHeader, StatCard } from '@/components/ui'
+import { Money, PageHeader } from '@/components/ui'
+import { StatStrip } from '@shared/ui/stat-strip'
 import { openExpenseForm } from '@/modals/ExpenseModal'
 import { confirmDanger } from '@/modals/open'
 import { ProviderLabel } from '@shared/ui/infra/provider'
@@ -35,7 +36,7 @@ export function ExpensesPage() {
 
     const columns = useMemo<MRT_ColumnDef<Expense>[]>(
         () => [
-            { id: 'date', header: t('customer.col_date'), sortingFn: 'datetime', accessorFn: (r) => new Date(r.date), enableColumnFilter: false, Cell: ({ row }) => <Text ff="monospace" size="sm">{fmtDate(row.original.date)}</Text> },
+            { id: 'date', header: t('customer.col_date'), sortingFn: 'datetime', accessorFn: (r) => new Date(r.date), enableColumnFilter: false, Cell: ({ row }) => <Text className="num" size="sm">{fmtDate(row.original.date)}</Text> },
             {
                 accessorKey: 'provider',
                 header: t('expense_items.provider'),
@@ -53,11 +54,11 @@ export function ExpensesPage() {
                 mantineFilterSelectProps: { data: [{ value: 'charge', label: t('expenses.charge') }, { value: 'refund', label: t('expenses.refund') }] },
                 Cell: ({ row }) =>
                     row.original.kind === 'refund' ? (
-                        <Badge color="teal" leftSection={<PiArrowUDownLeft size={16} />} size="lg" variant="soft">
+                        <Badge color="teal" leftSection={<PiArrowUDownLeft size={13} />} size="md">
                             {t('expenses.refund_badge')}
                         </Badge>
                     ) : (
-                        <Badge color="orange" leftSection={<PiArrowUpRight size={16} />} size="lg" variant="soft">
+                        <Badge color="orange" leftSection={<PiArrowUpRight size={13} />} size="md">
                             {t('expenses.charge_badge')}
                         </Badge>
                     )
@@ -78,7 +79,7 @@ export function ExpensesPage() {
                                 .filter(Boolean)
                                 .join(' · ')}
                         >
-                            <Text ff="monospace" size="sm">
+                            <Text className="num" size="sm">
                                 {fmtCurrency(e.orig_amount, e.orig_currency)}
                             </Text>
                         </Tooltip>
@@ -126,14 +127,14 @@ export function ExpensesPage() {
             {
                 accessorKey: 'gross',
                 header: t('expenses.col_gross'),
-                Cell: ({ cell }) => <Text ff="monospace" size="sm">{fmtMoney(cell.getValue<number>(), 2)}</Text>
+                Cell: ({ cell }) => <Text className="num" size="sm">{fmtMoney(cell.getValue<number>(), 2)}</Text>
             },
             {
                 accessorKey: 'refunded',
                 header: t('expenses.col_refunded'),
                 Cell: ({ cell }) =>
                     cell.getValue<number>() ? (
-                        <Text c="teal" ff="monospace" size="sm">
+                        <Text c="teal" className="num" size="sm">
                             {fmtMoney(cell.getValue<number>(), 2)}
                         </Text>
                     ) : (
@@ -144,7 +145,7 @@ export function ExpensesPage() {
                 accessorKey: 'net',
                 header: t('expenses.col_net'),
                 Cell: ({ cell }) => (
-                    <Text ff="monospace" fw={700} size="sm">
+                    <Text className="num" fw={700} size="sm">
                         {fmtMoney(cell.getValue<number>(), 2)}
                     </Text>
                 )
@@ -155,7 +156,7 @@ export function ExpensesPage() {
                 header: t('expenses.col_last'),
                 sortingFn: 'datetime',
                 accessorFn: (r) => new Date(r.last),
-                Cell: ({ row }) => <Text ff="monospace" size="sm">{fmtDate(row.original.last)}</Text>
+                Cell: ({ row }) => <Text className="num" size="sm">{fmtDate(row.original.last)}</Text>
             }
         ],
         [t]
@@ -178,16 +179,19 @@ export function ExpensesPage() {
                 title={t('menu.expenses')}
                 description={t('expenses.description', { currency: baseCurrency() })}
                 actions={
-                    <Button color="teal" leftSection={<PiPlus size={16} />} onClick={() => openExpenseForm({})} variant="soft">
+                    <Button leftSection={<PiPlus size={16} />} onClick={() => openExpenseForm({})} variant="filled">
                         {t('expenses.expense')}
                     </Button>
                 }
             />
-            <SimpleGrid cols={{ base: 1, sm: 3 }} mb="md" spacing="xs">
-                <StatCard title={t('expenses.total_gross')} value={fmtMoney(totals.gross, 2)} hint={t('expenses.before_refunds')} icon={PiReceiptDuotone} color="orange" />
-                <StatCard title={t('expenses.col_refunded')} value={fmtMoney(totals.refunded, 2)} icon={PiArrowUDownLeftDuotone} color="teal" />
-                <StatCard title={t('expenses.total_net')} value={fmtMoney(totals.net, 2)} icon={PiWalletDuotone} />
-            </SimpleGrid>
+            <StatStrip
+                items={[
+                    { label: t('expenses.total_gross'), value: fmtMoney(totals.gross, 2), hint: t('expenses.before_refunds') },
+                    { label: t('expenses.col_refunded'), value: fmtMoney(totals.refunded, 2), color: totals.refunded ? 'teal' : undefined },
+                    { label: t('expenses.total_net'), value: fmtMoney(totals.net, 2) }
+                ]}
+                mb="lg"
+            />
             <Tabs defaultValue="journal">
                 <Tabs.List mb="md">
                     <Tabs.Tab value="journal">{t('expenses.journal')}</Tabs.Tab>

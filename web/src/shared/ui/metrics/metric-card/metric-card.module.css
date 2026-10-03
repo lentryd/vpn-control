@@ -1,48 +1,41 @@
-/* Adapted from remnawave/frontend (AGPL-3.0) */
+.card {
+    display: flex;
+    flex-direction: column;
+}
+
 .title {
-    color: var(--mantine-color-dimmed);
+    color: var(--app-text-muted);
     font-size: var(--mantine-font-size-sm);
     font-weight: 500;
-    line-height: 1.4;
-    letter-spacing: 0.01em;
-    max-width: 100%;
+    line-height: 1.35;
+    padding-top: 5px;
+    min-width: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .value {
-    font-weight: 700;
-    font-size: var(--mantine-font-size-xl);
-    line-height: 1.2;
+    margin-top: 6px;
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    color: var(--app-text-strong);
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
     overflow: hidden;
-    font-family: var(--mantine-font-family-monospace);
     text-overflow: ellipsis;
-    color: var(--mantine-color-white-5);
+
+    @media (max-width: $mantine-breakpoint-sm) {
+        font-size: 1.5rem;
+    }
 }
 
 .subtitle {
-    color: var(--mantine-color-dimmed);
+    margin-top: 6px;
+    color: var(--app-text-muted);
     font-size: var(--mantine-font-size-xs);
-    font-weight: 400;
-    white-space: nowrap;
-}
-
-.trendContainer {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: 2px;
-}
-
-.trendValue {
-    font-size: var(--mantine-font-size-xs);
-    font-weight: 600;
-}
-
-.trendText {
-    color: var(--mantine-color-dimmed);
-    font-size: var(--mantine-font-size-xs);
-    font-weight: 400;
+    line-height: 1.45;
 }

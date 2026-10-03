@@ -8,7 +8,7 @@ import { setFormat } from '@/components/format'
 import { LoginPage } from '@/pages/LoginPage'
 
 import { AuthLayout } from './layouts/auth'
-import { MainLayout } from './layouts/dashboard'
+import { MainLayout } from './layouts/main/main-layout'
 import { LoadingScreen } from '@shared/ui/loading-screen'
 
 // Pages load on demand, each in its own chunk; the layout's <Suspense> shows

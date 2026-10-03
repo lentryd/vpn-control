@@ -1,118 +1,37 @@
-// Adapted from remnawave/frontend (AGPL-3.0)
-import {
-    ActionIcon,
-    ActionIconProps,
-    Box,
-    CardSection,
-    CardSectionProps,
-    Group,
-    Stack,
-    Text,
-    Title
-} from '@mantine/core'
-import { motion } from 'motion/react'
-import { forwardRef, ReactNode } from 'react'
+import { Box, CardSection, Group, Text, type ActionIconProps, type CardSectionProps } from '@mantine/core'
+import { forwardRef, type ReactNode } from 'react'
 
 import classes from './table.module.css'
 
-export interface CardTitleProps extends Omit<CardSectionProps, 'c' | 'fw' | 'size' | 'tt'> {
+export interface CardTitleProps extends Omit<CardSectionProps, 'c' | 'fw' | 'size' | 'tt' | 'title'> {
     actions?: ReactNode
     description?: ReactNode
-    icon: ReactNode
+    icon?: ReactNode
     iconProps?: ActionIconProps
     title: ReactNode
 }
 
+// CardTitle is a card's header row: small muted icon, title, a hint under
+// it and actions on the right, over a hairline.
 export const CardTitle = forwardRef<HTMLDivElement, CardTitleProps>(
-    ({ title, description, style, actions, withBorder = true, icon, iconProps, ...props }, ref) => (
-        <CardSection
-            className={classes.card}
-            data-orientation="vertical"
-            inheritPadding
-            py="md"
-            ref={ref}
-            style={{
-                ...style
-            }}
-            withBorder={withBorder}
-            {...props}
-        >
-            <motion.div
-                animate={{ opacity: 1, y: 0 }}
-                initial={{ opacity: 0, y: -10 }}
-                style={{ position: 'relative', zIndex: 1 }}
-                transition={{ duration: 0.5, ease: [0, 0.71, 0.2, 1.01] }}
-            >
-                <Box className={classes.headerWrapper}>
-                    <Box className={classes.contentSection}>
-                        <Group align="center" gap="md" wrap="nowrap">
-                            <motion.div
-                                animate={{ opacity: 1, y: 0 }}
-                                initial={{ opacity: 0, y: -10 }}
-                                transition={{
-                                    duration: 0.5,
-                                    ease: [0, 0.71, 0.2, 1.01]
-                                }}
-                            >
-                                <ActionIcon
-                                    className={classes.actionIcon}
-                                    color="cyan"
-                                    size="input-md"
-                                    variant="soft"
-                                    {...iconProps}
-                                >
-                                    {icon}
-                                </ActionIcon>
-                            </motion.div>
-
-                            <Stack gap={0}>
-                                <motion.div
-                                    animate={{ opacity: 1, y: 0 }}
-                                    initial={{ opacity: 0, y: -10 }}
-                                    transition={{
-                                        duration: 0.5,
-                                        ease: [0, 0.71, 0.2, 1.01]
-                                    }}
-                                >
-                                    <Title order={4} pt={0}>
-                                        {title}
-                                    </Title>
-                                </motion.div>
-                                {description && (
-                                    <motion.div
-                                        animate={{ opacity: 1, y: 0 }}
-                                        initial={{ opacity: 0, y: -10 }}
-                                        transition={{
-                                            duration: 0.5,
-                                            ease: [0, 0.71, 0.2, 1.01]
-                                        }}
-                                    >
-                                        <Text c="dimmed" fz="sm">
-                                            {description}
-                                        </Text>
-                                    </motion.div>
-                                )}
-                            </Stack>
-                        </Group>
-                    </Box>
-
-                    {actions && (
-                        <motion.div
-                            animate={{ opacity: 1, y: 0 }}
-                            className={classes.actionsSection}
-                            initial={{ opacity: 0, y: -10 }}
-                            transition={{
-                                duration: 0.5,
-                                ease: [0, 0.71, 0.2, 1.01]
-                            }}
-                        >
-                            <Group align="flex-end" gap="sm" wrap="nowrap">
-                                {actions}
-                            </Group>
-                        </motion.div>
+    ({ title, description, actions, withBorder = true, icon, iconProps: _iconProps, className, ...props }, ref) => (
+        <CardSection className={`${classes.header} ${className ?? ''}`} data-with-border={withBorder || undefined} ref={ref} {...props}>
+            <Group align="center" gap="sm" miw={0} style={{ flex: '1 1 260px' }} wrap="nowrap">
+                {icon && <span className={classes.icon}>{icon}</span>}
+                <Box miw={0}>
+                    <Text className={classes.title}>{title}</Text>
+                    {description && (
+                        <Text c="dimmed" component="div" mt={2} size="xs">
+                            {description}
+                        </Text>
                     )}
                 </Box>
-            </motion.div>
+            </Group>
+            {actions && (
+                <Group className={classes.actions} gap="xs" wrap="wrap">
+                    {actions}
+                </Group>
+            )}
         </CardSection>
     )
 )

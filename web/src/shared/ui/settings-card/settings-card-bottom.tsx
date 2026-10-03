@@ -1,20 +1,10 @@
-// Adapted from remnawave/frontend (AGPL-3.0)
 import { Divider } from '@mantine/core'
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
-interface SettingsCardBottomProps {
-    children: ReactNode
-}
-
-export function SettingsCardBottom({ children }: SettingsCardBottomProps) {
+export function SettingsCardBottom({ children }: { children: ReactNode }) {
     return (
         <>
-            <Divider
-                mt="lg"
-                style={{
-                    opacity: 0.3
-                }}
-            />
+            <Divider mt="md" />
             {children}
         </>
     )

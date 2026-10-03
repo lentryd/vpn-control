@@ -1,0 +1,11 @@
+/* Library styles. The production build bundles this file on its own with
+   lightningcss for modern browsers (scripts/build.ts): Bun's CSS bundler
+   targets Chrome 80 and blows Mantine's logical properties up into
+   :lang(ar, he, …) selector triples, nearly doubling the stylesheet. */
+@import '@mantine/core/styles.css';
+@import '@mantine/dates/styles.css';
+@import '@mantine/charts/styles.css';
+@import '@mantine/notifications/styles.css';
+@import '@mantine/nprogress/styles.css';
+@import '@mantine/spotlight/styles.css';
+@import '@kastov/mantine-react-table-open/styles.css';

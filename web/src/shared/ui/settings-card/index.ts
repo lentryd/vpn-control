@@ -1,4 +1,3 @@
-// Adapted from remnawave/frontend (AGPL-3.0)
 import { SettingsCardBottom } from './settings-card-bottom'
 import { SettingsCardContainer } from './settings-card-container'
 import { SettingsCardContent } from './settings-card-content'

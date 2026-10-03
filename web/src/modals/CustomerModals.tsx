@@ -1,8 +1,5 @@
-// Create/edit layout follows remnawave/frontend (AGPL-3.0):
-// shared/_modals/users/create-user-modal and its forms-components cards.
-import { NumberInput, Switch, Textarea, TextInput } from '@mantine/core'
+import { NumberInput, Stack, Switch, Text, Textarea, TextInput } from '@mantine/core'
 import { useForm } from '@mantine/form'
-import { HiIdentification } from 'react-icons/hi'
 import {
     PiArchiveDuotone,
     PiNotePencil,
@@ -12,14 +9,14 @@ import {
     PiUserDuotone,
     PiUsersThreeDuotone
 } from 'react-icons/pi'
-import { TbAffiliate, TbMail, TbNotes, TbUser, TbUserPlus } from 'react-icons/tb'
+import { TbUser, TbUserPlus } from 'react-icons/tb'
 import { useNavigate } from 'react-router'
 
 import { api } from '@/api/client'
 import { useApiMutation, useCustomers } from '@/api/hooks'
 import type { Customer } from '@/api/types'
 import { notifyError, notifyOk } from '@/components/notify'
-import { FormColumns, FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
+import { FieldGroup, FormFooter } from '@shared/ui/forms/form-section'
 
 import { openModal } from './open'
 import { SearchSelect } from '@shared/ui/forms/search-select'
@@ -31,10 +28,10 @@ import { useTranslation } from 'react-i18next'
 export function openCustomerForm(customer?: Customer, onCreated?: (id: number) => void) {
     openModal(
         customer
-            ? { icon: TbUser, color: 'teal', title: i18n.t('sub.customer'), subtitle: customer.name }
-            : { icon: TbUserPlus, color: 'teal', title: i18n.t('customers.new') },
+            ? { icon: TbUser, color: 'brand', title: i18n.t('sub.customer'), subtitle: customer.name }
+            : { icon: TbUserPlus, color: 'brand', title: i18n.t('customers.new') },
         (close) => <CustomerForm customer={customer} onCreated={onCreated} onDone={close} />,
-        '1000px'
+        '560px'
     )
 }
 
@@ -80,73 +77,56 @@ function CustomerForm({ customer, onDone, onCreated }: { customer?: Customer; on
                 })
             )}
         >
-            <FormColumns
-                left={
-                    <>
-                        <FormSection color="blue" icon={HiIdentification} title={t('sub.customer')}>
-                            <TextInput
-                                data-autofocus
-                                description={t('customers.name_hint')}
-                                label={t('customers.name')}
-                                leftSection={<PiUserDuotone size={16} />}
-                                required
-                                {...form.getInputProps('name')}
-                            />
-                            {customer && (
-                                <Switch
-                                    description={t('customers.archived_hint')}
-                                    label={t('customers.archived')}
-                                    thumbIcon={<PiArchiveDuotone size={10} />}
-                                    {...form.getInputProps('archived', { type: 'checkbox' })}
-                                />
-                            )}
-                        </FormSection>
-                        <FormSection color="teal" icon={TbMail} title={t('customers.contacts')}>
-                            <TextInput
-                                label={t('customers.contact')}
-                                leftSection={<PiTelegramLogoDuotone size={16} />}
-                                placeholder={t('customers.contact_placeholder')}
-                                {...form.getInputProps('contact')}
-                            />
-                        </FormSection>
-                    </>
-                }
-                right={
-                    <>
-                        <FormSection color="indigo" icon={TbAffiliate} title={t('dashboard.referrals')}>
-                            <SearchSelect
-                                allowDeselect
-                                clearable
-                                data={(customers.data ?? []).filter((c) => c.id !== customer?.id).map((c) => ({ value: String(c.id), label: c.name }))}
-                                description={t('dashboard.referrals_hint')}
-                                label={t('customers.referrer')}
-                                leftSection={<PiUsersThreeDuotone size={16} />}
-                                placeholder={t('customers.no_referrer')}
-                                {...form.getInputProps('referrer_id')}
-                            />
-                            <NumberInput
-                                decimalScale={2}
-                                description={t('customers.ref_percent_hint')}
-                                label={t('customers.ref_percent')}
-                                leftSection={<PiPercentDuotone size={16} />}
-                                max={100}
-                                min={0}
-                                {...form.getInputProps('referral_percent')}
-                            />
-                        </FormSection>
-                        <FormSection color="orange" icon={TbNotes} title={t('expense_items.notes')}>
-                            <Textarea
-                                label={t('tariffs.description_label')}
-                                minRows={3}
-                                placeholder={t('customers.notes_placeholder')}
-                                resize="vertical"
-                                {...form.getInputProps('notes')}
-                            />
-                        </FormSection>
-                    </>
-                }
-            />
-            <FormFooter loading={m.isPending} submitLabel={customer ? t('common.save') : t('common.create')} />
+            <Stack gap={0}>
+                <FieldGroup title={t('sub.customer')}>
+                    <TextInput
+                        data-autofocus
+                        description={t('customers.name_hint')}
+                        label={t('customers.name')}
+                        leftSection={<PiUserDuotone size={16} />}
+                        required
+                        {...form.getInputProps('name')}
+                    />
+                    <TextInput
+                        label={t('customers.contact')}
+                        leftSection={<PiTelegramLogoDuotone size={16} />}
+                        placeholder={t('customers.contact_placeholder')}
+                        {...form.getInputProps('contact')}
+                    />
+                    {customer && (
+                        <Switch
+                            description={t('customers.archived_hint')}
+                            label={t('customers.archived')}
+                            thumbIcon={<PiArchiveDuotone size={10} />}
+                            {...form.getInputProps('archived', { type: 'checkbox' })}
+                        />
+                    )}
+                </FieldGroup>
+                <FieldGroup description={t('dashboard.referrals_hint')} title={t('dashboard.referrals')}>
+                    <SearchSelect
+                            allowDeselect
+                            clearable
+                            data={(customers.data ?? []).filter((c) => c.id !== customer?.id).map((c) => ({ value: String(c.id), label: c.name }))}
+                            label={t('customers.referrer')}
+                            leftSection={<PiUsersThreeDuotone size={16} />}
+                            placeholder={t('customers.no_referrer')}
+                            {...form.getInputProps('referrer_id')}
+                        />
+                        <NumberInput
+                            decimalScale={2}
+                            description={t('customers.ref_percent_hint')}
+                            label={t('customers.ref_percent')}
+                            leftSection={<PiPercentDuotone size={16} />}
+                            max={100}
+                            min={0}
+                            {...form.getInputProps('referral_percent')}
+                        />
+                </FieldGroup>
+                <FieldGroup title={t('expense_items.notes')}>
+                    <Textarea autosize minRows={3} placeholder={t('customers.notes_placeholder')} {...form.getInputProps('notes')} />
+                </FieldGroup>
+            </Stack>
+            <FormFooter loading={m.isPending} onCancel={onDone} submitLabel={customer ? t('common.save') : t('common.create')} />
         </form>
     )
 }
@@ -171,12 +151,13 @@ function AdjustForm({ id, onDone }: { id: number; onDone: () => void }) {
                 })
             )}
         >
-            <FormStack>
-                <FormSection icon={PiScalesDuotone} color="yellow" title={t('customer.ledger.adjustment')} description={t('customers.adjust_hint')}>
+            <Stack gap="md">
+                <Text c="dimmed" size="sm">
+                    {t('customers.adjust_hint')}
+                </Text>
                     <NumberInput label={t('common.amount_in', { currency: currencySymbol() })} leftSection={<CurrencyIcon size={16} />} decimalScale={2} {...form.getInputProps('amount')} />
                     <TextInput label={t('customers.reason')} leftSection={<PiNotePencil size={16} />} required {...form.getInputProps('note')} />
-                </FormSection>
-            </FormStack>
+            </Stack>
             <FormFooter loading={m.isPending} onCancel={onDone} submitLabel={t('customers.apply')} />
         </form>
     )

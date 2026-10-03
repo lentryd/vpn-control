@@ -1,0 +1,132 @@
+.canvas {
+    height: max(520px, calc(100dvh - 330px));
+    overflow: hidden;
+
+    & :global(.react-flow) {
+        --xy-background-color: var(--app-surface-2);
+        --xy-background-pattern-color: var(--app-border-strong);
+        --xy-edge-stroke: var(--app-border-strong);
+        --xy-edge-stroke-width: 1.5;
+        --xy-controls-button-background-color: var(--app-surface);
+        --xy-controls-button-background-color-hover: var(--app-surface-raised);
+        --xy-controls-button-color: var(--app-text-muted);
+        --xy-controls-button-color-hover: var(--app-text-strong);
+        --xy-controls-button-border-color: var(--app-border);
+        --xy-controls-box-shadow: var(--app-shadow-card);
+        --xy-minimap-background-color: var(--app-surface);
+        --xy-minimap-mask-background-color: color-mix(in srgb, var(--app-bg) 55%, transparent);
+        --xy-minimap-node-background-color: var(--app-border-strong);
+        --xy-attribution-background-color: transparent;
+        font-family: inherit;
+    }
+
+    & :global(.react-flow__minimap-node) {
+        stroke: none;
+    }
+
+    & :global(.react-flow__controls) {
+        border: 1px solid var(--app-border);
+        border-radius: var(--mantine-radius-md);
+        overflow: hidden;
+    }
+
+    & :global(.react-flow__minimap) {
+        border: 1px solid var(--app-border);
+        border-radius: var(--mantine-radius-md);
+        overflow: hidden;
+    }
+
+    & :global(.react-flow__attribution) {
+        display: none;
+    }
+}
+
+.node {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    width: 236px;
+    height: 76px;
+    padding: 8px 10px 8px 12px;
+    border-radius: var(--mantine-radius-lg);
+    background: var(--app-surface);
+    border: 1px solid var(--app-border-strong);
+    box-shadow: var(--app-shadow-card);
+    cursor: pointer;
+    transition:
+        border-color 140ms var(--app-ease),
+        box-shadow 140ms var(--app-ease);
+
+    &:hover {
+        border-color: var(--mantine-primary-color-filled);
+        box-shadow: 0 0 0 3px var(--mantine-primary-color-light);
+    }
+
+    &[data-root] {
+        border-color: color-mix(in srgb, var(--mantine-primary-color-filled) 45%, var(--app-border-strong));
+    }
+
+    &[data-archived] {
+        opacity: 0.6;
+    }
+}
+
+.name {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--mantine-font-size-sm);
+    font-weight: 600;
+    color: var(--app-text-strong);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.line {
+    font-size: 12px;
+    color: var(--app-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
+}
+
+.branch {
+    color: var(--mantine-primary-color-light-color);
+    font-weight: 500;
+}
+
+.toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: var(--mantine-radius-sm);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--app-text-muted);
+    background: var(--app-fill);
+    font-variant-numeric: tabular-nums;
+
+    &:hover {
+        background: var(--app-fill-hover);
+        color: var(--app-text-strong);
+    }
+}
+
+.handle {
+    width: 7px;
+    height: 7px;
+    min-width: 0;
+    min-height: 0;
+    border: 1.5px solid var(--app-surface);
+    background: var(--app-text-faint);
+}
+
+
+.active :global(path.react-flow__edge-path) {
+    stroke: var(--mantine-primary-color-filled);
+    stroke-opacity: 0.75;
+}

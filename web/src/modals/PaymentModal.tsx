@@ -9,13 +9,11 @@ import {
     PiCheck,
     PiCheckCircleDuotone,
     PiClockDuotone,
-    PiCoinsDuotone,
     PiCreditCardDuotone,
     PiHexagonDuotone,
     PiNotePencil,
     PiPuzzlePieceDuotone,
     PiTreeStructure,
-    PiWalletDuotone,
     PiX
 } from 'react-icons/pi'
 import { TbCalendar } from 'react-icons/tb'
@@ -28,7 +26,7 @@ import type { ExtensionResult, PaymentPreview, PlanItem, ReferralInfo } from '@/
 import { durationLabel, fmtDate, fmtMoney, currencySymbol, dateLayout } from '@/components/format'
 import { notifyError } from '@/components/notify'
 import { periodCost } from '@/components/pricing'
-import { StatCard } from '@/components/ui'
+import { StatStrip } from '@shared/ui/stat-strip'
 import { FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
 import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
 
@@ -193,11 +191,13 @@ function PaymentForm({ customerId, onDone }: { customerId: number; onDone: () =>
 
     return (
         <FormStack>
-            <SimpleGrid cols={{ base: 1, xs: 3 }} spacing="xs">
-                <StatCard icon={PiWalletDuotone} color="gray" title={t('payment.balance_before')} value={fmtMoney(preview.balance_before, 2)} />
-                <StatCard icon={PiCreditCardDuotone} color="teal" title={t('payment.after_payment')} value={fmtMoney(preview.balance_after_payment, 2)} />
-                <StatCard icon={PiCoinsDuotone} color={rest < 0 ? 'red' : 'cyan'} title={t('payment.remains')} value={fmtMoney(rest, 2)} />
-            </SimpleGrid>
+            <StatStrip
+                items={[
+                    { label: t('payment.balance_before'), value: fmtMoney(preview.balance_before, 2) },
+                    { label: t('payment.after_payment'), value: fmtMoney(preview.balance_after_payment, 2), color: 'teal' },
+                    { label: t('payment.remains'), value: fmtMoney(rest, 2), color: rest < 0 ? 'red' : undefined }
+                ]}
+            />
             {preview.referral && (
                 <Badge color="grape" leftSection={<PiTreeStructure size={14} />} size="lg" variant="soft">
                     {t('payment.ref_preview', { name: preview.referral.referrer_name, amount: fmtMoney(preview.referral.amount, 2), pct: preview.referral.percent })}
@@ -213,11 +213,11 @@ function PaymentForm({ customerId, onDone }: { customerId: number; onDone: () =>
                     const base = r.item.expire_at && dayjs(r.item.expire_at).isAfter(dayjs()) ? dayjs(r.item.expire_at) : dayjs()
                     const active = r.months + r.days > 0
                     return (
-                        <Paper bd="1px solid rgba(255,255,255,0.08)" bg="rgba(255,255,255,0.02)" key={r.key} p="sm" radius="md">
+                        <Paper bd="1px solid var(--app-border)" bg="var(--app-surface-2)" key={r.key} p="sm" radius="md">
                             <Stack gap="xs">
                                 <Group justify="space-between" wrap="nowrap">
                                     <BaseOverlayHeader
-                                        iconColor={r.item.kind === 'addon' ? 'grape' : 'cyan'}
+                                        iconColor={r.item.kind === 'addon' ? 'grape' : 'brand'}
                                         IconComponent={r.item.kind === 'addon' ? PiPuzzlePieceDuotone : PiHexagonDuotone}
                                         subtitle={t('payment.item_subtitle', { monthly: fmtMoney(r.item.monthly), date: fmtDate(r.item.expire_at) })}
                                         title={r.item.title}

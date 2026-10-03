@@ -7,7 +7,8 @@ import { useNavigate } from 'react-router'
 import { useCustomers } from '@/api/hooks'
 import type { Customer } from '@/api/types'
 import { ExpireCell } from '@/components/badges'
-import { fmtDate } from '@/components/format'
+import { daysLeft, fmtDate, fmtMoney } from '@/components/format'
+import { StatStrip } from '@shared/ui/stat-strip'
 import { Money, PageHeader } from '@/components/ui'
 import { Page } from '@shared/ui/page'
 import { DataTableCard } from '@shared/ui/table'
@@ -19,6 +20,7 @@ export function CustomersPage() {
     const { t } = useTranslation()
     const { data, isFetching } = useCustomers()
     const navigate = useNavigate()
+    const active = useMemo(() => (data ?? []).filter((c) => !c.archived), [data])
     const [scope, setScope] = useState('active')
     const rows = useMemo(
         () => (data ?? []).filter((c) => (scope === 'all' ? true : scope === 'archived' ? c.archived : !c.archived)),
@@ -91,10 +93,27 @@ export function CustomersPage() {
                 title={t('menu.customers')}
                 description={t('customers.description')}
                 actions={
-                    <Button color="teal" leftSection={<PiUserPlus size={16} />} onClick={() => openCustomerForm()} variant="soft">
+                    <Button leftSection={<PiUserPlus size={16} />} onClick={() => openCustomerForm()} variant="filled">
                         {t('customers.new')}
                     </Button>
                 }
+            />
+            <StatStrip
+                items={[
+                    { label: t('customers.scope_active'), value: data ? active.length : '—', hint: t('customers.stat_total', { count: data?.length ?? 0 }) },
+                    { label: t('sub.per_month'), value: data ? fmtMoney(active.reduce((n, c) => n + c.monthly, 0)) : '—' },
+                    {
+                        label: t('customers.stat_expiring'),
+                        value: data ? active.filter((c) => { const d = daysLeft(c.nearest_expire_at); return d !== null && d >= 0 && d <= 7 }).length : '—',
+                        color: 'orange'
+                    },
+                    {
+                        label: t('customers.stat_debtors'),
+                        value: data ? active.filter((c) => c.balance < 0).length : '—',
+                        hint: data ? fmtMoney(active.filter((c) => c.balance < 0).reduce((n, c) => n + c.balance, 0), 2) : undefined
+                    }
+                ]}
+                mb="lg"
             />
             <DataTableCard
                 storageKey="customers"
@@ -120,14 +139,13 @@ export function CustomersPage() {
                 renderRowActions={({ row }) => (
                     <Group gap={6} wrap="nowrap">
                         <Tooltip label={t('common.edit')} withArrow>
-                            <ActionIcon color="gray" size="md" variant="soft" onClick={() => openCustomerForm(row.original)}>
+                            <ActionIcon size="md" variant="default" onClick={() => openCustomerForm(row.original)}>
                                 <PiPencilSimple size={14} />
                             </ActionIcon>
                         </Tooltip>
                         <Button
-                            color="teal"
-                            size="compact-xs"
-                            variant="soft"
+                            size="compact-sm"
+                            variant="default"
                             leftSection={<PiCreditCard size={14} />}
                             onClick={() => openPaymentModal({ customerId: row.original.id, name: row.original.name })}
                         >

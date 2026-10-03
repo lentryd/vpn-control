@@ -1,14 +1,9 @@
-// Adapted from remnawave/frontend (AGPL-3.0)
-import { Card, CardProps, Flex } from '@mantine/core'
+import { Card, Flex, type CardProps } from '@mantine/core'
 
-import classes from './settings-card.module.css'
-
-type SettingsCardContainerProps = CardProps
-
-export function SettingsCardContainer({ children, ...props }: SettingsCardContainerProps) {
+export function SettingsCardContainer({ children, ...props }: CardProps) {
     return (
-        <Card className={classes.container} padding="md" shadow="xl" withBorder {...props}>
-            <Flex direction="column" gap="xs">
+        <Card padding="lg" {...props}>
+            <Flex direction="column" gap="sm">
                 {children}
             </Flex>
         </Card>

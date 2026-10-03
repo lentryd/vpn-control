@@ -7,18 +7,17 @@ package web
 import (
 	"embed"
 	"io/fs"
-	"net/http"
 )
 
 //go:embed all:dist
 var distFS embed.FS
 
-// StaticFS is the dist/ directory rooted at "/", ready to hand to a static
-// file server.
-var StaticFS = func() http.FileSystem {
+// Dist is the dist/ directory as the root of the file system: the SPA
+// files plus their precompressed .br/.gz copies.
+var Dist = func() fs.FS {
 	sub, err := fs.Sub(distFS, "dist")
 	if err != nil {
 		panic(err)
 	}
-	return http.FS(sub)
+	return sub
 }()

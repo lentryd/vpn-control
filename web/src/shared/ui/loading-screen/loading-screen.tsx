@@ -1,30 +1,19 @@
-// Adapted from remnawave/frontend (AGPL-3.0)
-import { Center, Progress, Stack, Text } from '@mantine/core'
+import { Center, Loader, Stack, Text } from '@mantine/core'
 
-export function LoadingScreen({
-    height = '100dvh',
-    text = undefined,
-    value = 100
-}: {
-    height?: string
-    text?: string
-    value?: number
-}) {
+import { Logo } from '../logo'
+
+// LoadingScreen fills the viewport (or a given height) while data loads.
+export function LoadingScreen({ height = '100dvh', text }: { height?: string; text?: string; value?: number }) {
+    const full = height === '100dvh'
     return (
-        // the header var exists only inside AppShell; without the fallback the
-        // whole calc() is invalid and the bar sticks to the top (first load, modals)
-        <Center style={{ height: `calc(${height} - var(--app-shell-header-height, 0px) - 20px)` }}>
-            <Stack align="center" gap="xs" w="100%">
-                {text && <Text size="lg">{text}</Text>}
-                <Progress
-                    animated
-                    color="cyan"
-                    maw="32rem"
-                    radius="xs"
-                    striped
-                    value={value}
-                    w="80%"
-                />
+        <Center style={{ height: full ? height : `max(240px, calc(${height} - 80px))` }}>
+            <Stack align="center" gap="md">
+                {full ? <Logo size={36} style={{ animation: 'vpnc-pulse 1.4s ease-in-out infinite' }} /> : <Loader size="sm" />}
+                {text && (
+                    <Text c="dimmed" size="sm">
+                        {text}
+                    </Text>
+                )}
             </Stack>
         </Center>
     )

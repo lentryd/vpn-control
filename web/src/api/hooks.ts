@@ -47,11 +47,12 @@ export const qk = {
 export const useMe = () =>
     useQuery({ queryKey: qk.me, queryFn: () => api.get<{ username: string }>('auth/me'), retry: false, staleTime: 60_000 })
 export const useDashboard = () => useQuery({ queryKey: qk.dashboard, queryFn: () => api.get<Dashboard>('dashboard') })
-export const useCustomers = () => useQuery({ queryKey: qk.customers, queryFn: () => api.get<Customer[]>('customers') })
+export const useCustomers = (enabled = true) =>
+    useQuery({ queryKey: qk.customers, queryFn: () => api.get<Customer[]>('customers'), enabled })
 export const useCustomer = (id: number) =>
     useQuery({ queryKey: qk.customer(id), queryFn: () => api.get<CustomerDetail>(`customers/${id}`), enabled: id > 0 })
-export const useSubscriptions = () =>
-    useQuery({ queryKey: qk.subscriptions, queryFn: () => api.get<Subscription[]>('subscriptions') })
+export const useSubscriptions = (enabled = true) =>
+    useQuery({ queryKey: qk.subscriptions, queryFn: () => api.get<Subscription[]>('subscriptions'), enabled })
 export const usePayments = () => useQuery({ queryKey: qk.payments, queryFn: () => api.get<Payment[]>('payments') })
 export const useTariffs = () => useQuery({ queryKey: qk.tariffs, queryFn: () => api.get<Tariff[]>('tariffs') })
 export const useAddons = () => useQuery({ queryKey: qk.addons, queryFn: () => api.get<Addon[]>('addons') })

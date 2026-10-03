@@ -23,7 +23,6 @@ i18n.use(initReactI18next)
             convertDetectedLanguage: (lng) => (lng.includes('-') ? lng.split('-')[0] : lng)
         },
         load: 'languageOnly',
-        preload: LANGUAGES.map((l) => l.value),
         // relative to the page, so it works under any BASE_PATH
         backend: { loadPath: 'locales/{{lng}}/{{ns}}.json' },
         interpolation: { escapeValue: false },

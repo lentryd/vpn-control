@@ -1,4 +1,3 @@
-// Adapted from remnawave/frontend (AGPL-3.0)
 import { Box, BoxProps } from '@mantine/core'
 import { ReactNode, Ref } from 'react'
 

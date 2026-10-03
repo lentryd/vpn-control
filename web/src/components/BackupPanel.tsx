@@ -1,5 +1,5 @@
 import type { MRT_ColumnDef } from '@kastov/mantine-react-table-open'
-import { ActionIcon, Alert, Anchor, Badge, Button, Checkbox, FileButton, Group, NumberInput, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core'
+import { ActionIcon, Alert, Anchor, Badge, Box, Button, Checkbox, FileButton, Group, NumberInput, SimpleGrid, Stack, Text, ThemeIcon, Tooltip } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import {
@@ -17,12 +17,13 @@ import {
 
 import { api } from '@/api/client'
 import { useApiMutation, useInvalidateAll, useSettings } from '@/api/hooks'
-import { fmtBytes, fmtDateTime } from '@/components/format'
+import { fmtBytes, fmtDateTime, fromNow } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { confirmDanger, openModal } from '@/modals/open'
 import { FormFooter } from '@shared/ui/forms/form-section'
 import { DataTableCard } from '@shared/ui/table'
-import { SettingsCardShared } from '@shared/ui/settings-card'
+import { SettingsGroup, SettingsRow } from '@shared/ui/settings-row'
+import { StatStrip } from '@shared/ui/stat-strip'
 import { useTranslation } from 'react-i18next'
 
 interface BackupCategory {
@@ -143,6 +144,28 @@ function CategoryPicker({
     )
 }
 
+// Pane is one half of the transfer card: a titled column of controls.
+function Pane({ icon: Icon, color, title, description, children }: { icon: React.ComponentType<{ size: number }>; color: string; title: string; description: string; children: React.ReactNode }) {
+    return (
+        <Stack className="backup-pane" gap="md">
+            <Group align="flex-start" gap="sm" wrap="nowrap">
+                <ThemeIcon color={color} radius="md" size={32}>
+                    <Icon size={17} />
+                </ThemeIcon>
+                <Box miw={0}>
+                    <Text fw={600} size="sm">
+                        {title}
+                    </Text>
+                    <Text c="dimmed" size="xs">
+                        {description}
+                    </Text>
+                </Box>
+            </Group>
+            {children}
+        </Stack>
+    )
+}
+
 function ExportCard({ categories, counts }: { categories: BackupCategory[]; counts: Record<string, number> }) {
     const { t } = useTranslation()
     const [selected, setSelected] = useState(() => categories.map((c) => c.key))
@@ -160,33 +183,20 @@ function ExportCard({ categories, counts }: { categories: BackupCategory[]; coun
     }
 
     return (
-        <SettingsCardShared.Container>
-            <SettingsCardShared.Header
-                description={t('backup.export_hint')}
-                icon={<PiDownloadSimpleDuotone size={24} />}
-                iconColor="teal"
-                iconVariant="soft"
-                title={t('backup.export')}
-            />
-            <SettingsCardShared.Content>
-                <CategoryPicker categories={categories} counts={(c) => counts[c.key] ?? 0} value={selected} onChange={setSelected} />
-            </SettingsCardShared.Content>
-            <SettingsCardShared.Bottom>
-                <Group justify="flex-end">
+        <Pane color="teal" description={t('backup.export_hint')} icon={PiDownloadSimpleDuotone} title={t('backup.export')}>
+            <CategoryPicker categories={categories} counts={(c) => counts[c.key] ?? 0} value={selected} onChange={setSelected} />
+            <Group justify="flex-end" mt="auto">
                     <Button
-                        color="teal"
                         disabled={selected.length === 0}
                         leftSection={<PiArchiveDuotone size={16} />}
                         loading={busy}
-                        mt="md"
-                        variant="soft"
+                        variant="filled"
                         onClick={run}
                     >
                         {t('backup.download_archive')}
                     </Button>
-                </Group>
-            </SettingsCardShared.Bottom>
-        </SettingsCardShared.Container>
+            </Group>
+        </Pane>
     )
 }
 
@@ -249,20 +259,12 @@ function ImportCard({ categories }: { categories: BackupCategory[] }) {
     }
 
     return (
-        <SettingsCardShared.Container>
-            <SettingsCardShared.Header
-                description={t('backup.import_hint')}
-                icon={<PiUploadSimpleDuotone size={24} />}
-                iconColor="orange"
-                iconVariant="soft"
-                title={t('backup.import')}
-            />
-            <SettingsCardShared.Content>
+        <Pane color="orange" description={t('backup.import_hint')} icon={PiUploadSimpleDuotone} title={t('backup.import')}>
                 <Stack>
                     <Group>
                         <FileButton accept=".zip,application/zip" onChange={pick}>
                             {(props) => (
-                                <Button {...props} color="gray" leftSection={<PiArchiveDuotone size={16} />} loading={inspecting} variant="soft">
+                                <Button {...props} leftSection={<PiArchiveDuotone size={16} />} loading={inspecting} variant="default">
                                     {t('backup.choose_archive')}
                                 </Button>
                             )}
@@ -285,29 +287,25 @@ function ImportCard({ categories }: { categories: BackupCategory[] }) {
                                 value={selected}
                                 onChange={setSelected}
                             />
-                            <Alert color="yellow" icon={<PiWarningDuotone />} variant="soft">
+                            <Alert color="yellow" icon={<PiWarningDuotone />}>
                                 {t('backup.import_warning')}
                             </Alert>
                         </>
                     )}
                 </Stack>
-            </SettingsCardShared.Content>
-            <SettingsCardShared.Bottom>
-                <Group justify="flex-end">
+                <Group justify="flex-end" mt="auto">
                     <Button
                         color="orange"
                         disabled={!info || selected.length === 0}
                         leftSection={<PiUploadSimpleDuotone size={16} />}
                         loading={importMut.isPending}
-                        mt="md"
-                        variant="soft"
+                        variant="light"
                         onClick={run}
                     >
                         {t('backup.import_action')}
                     </Button>
                 </Group>
-            </SettingsCardShared.Bottom>
-        </SettingsCardShared.Container>
+        </Pane>
     )
 }
 
@@ -320,7 +318,7 @@ interface Snapshot {
     categories: string[]
 }
 
-const kindColor: Record<Snapshot['kind'], string> = { auto: 'cyan', manual: 'teal', 'pre-import': 'orange' }
+const kindColor: Record<Snapshot['kind'], string> = { auto: 'brand', manual: 'teal', 'pre-import': 'orange' }
 
 const useSnapshots = () =>
     useQuery({ queryKey: ['backup', 'snapshots'], queryFn: () => api.get<{ snapshots: Snapshot[] }>('backup/snapshots') })
@@ -376,12 +374,11 @@ function SnapshotsCard({ categories }: { categories: BackupCategory[] }) {
         <DataTableCard
             actions={
                 <Button
-                    color="teal"
                     leftSection={<PiPlus size={14} />}
                     loading={create.isPending}
                     onClick={() => create.mutate(undefined, { onSuccess: (sn) => notifyOk(t('backup.snapshot_created', { name: sn.name })), onError: (e) => notifyError(e) })}
                     size="xs"
-                    variant="soft"
+                    variant="default"
                 >
                     {t('backup.snapshot')}
                 </Button>
@@ -452,7 +449,7 @@ function RestoreSnapshotForm({ name, categories, onDone }: { name: string; categ
                     onChange={setSelected}
                 />
             )}
-            <Alert color="yellow" icon={<PiWarningDuotone />} variant="soft">
+            <Alert color="yellow" icon={<PiWarningDuotone />}>
                 {t('backup.restore_warning')}
             </Alert>
             <FormFooter
@@ -476,8 +473,8 @@ function RestoreSnapshotForm({ name, categories, onDone }: { name: string; categ
     )
 }
 
-// ScheduleCard sets how often automatic snapshots are taken and kept.
-function ScheduleCard() {
+// ScheduleGroup sets how often automatic snapshots are taken and kept.
+function ScheduleGroup() {
     const { t } = useTranslation()
     const settings = useSettings()
     const [hours, setHours] = useState<number | string>('')
@@ -487,51 +484,76 @@ function ScheduleCard() {
         setHours(Number(settings.data.snapshot_interval_hours))
         setKeep(Number(settings.data.snapshot_keep))
     }, [settings.data])
+    const dirty = !!settings.data && (String(hours) !== String(Number(settings.data.snapshot_interval_hours)) || String(keep) !== String(Number(settings.data.snapshot_keep)))
     const save = useApiMutation(() => api.put('settings', { snapshot_interval_hours: String(hours), snapshot_keep: String(keep) }))
     return (
-        <SettingsCardShared.Container>
-            <SettingsCardShared.Header
-                description={t('backup.schedule_hint')}
-                icon={<PiCameraDuotone size={24} />}
-                iconColor="cyan"
-                iconVariant="soft"
-                title={t('backup.schedule')}
-            />
-            <SettingsCardShared.Content>
-                <SimpleGrid cols={{ base: 1, xs: 2 }}>
-                    <NumberInput label={t('backup.every_hours')} description={t('backup.every_hours_hint')} min={0} value={hours} onChange={setHours} />
-                    <NumberInput label={t('backup.keep')} description={t('backup.keep_hint')} min={1} value={keep} onChange={setKeep} />
-                </SimpleGrid>
-            </SettingsCardShared.Content>
-            <SettingsCardShared.Bottom>
-                <Group justify="flex-end">
-                    <Button
-                        color="teal"
-                        leftSection={<PiFloppyDiskDuotone size={16} />}
-                        loading={save.isPending}
-                        mt="md"
-                        onClick={() => save.mutate(undefined, { onSuccess: () => notifyOk(t('common.saved')), onError: (e) => notifyError(e) })}
-                        variant="soft"
-                    >
-                        {t('common.save')}
-                    </Button>
-                </Group>
-            </SettingsCardShared.Bottom>
-        </SettingsCardShared.Container>
+        <SettingsGroup
+            actions={
+                <Button
+                    disabled={!dirty}
+                    leftSection={<PiFloppyDiskDuotone size={16} />}
+                    loading={save.isPending}
+                    onClick={() => save.mutate(undefined, { onSuccess: () => notifyOk(t('common.saved')), onError: (e) => notifyError(e) })}
+                    size="xs"
+                    variant={dirty ? 'filled' : 'default'}
+                >
+                    {t('common.save')}
+                </Button>
+            }
+            description={t('backup.schedule_hint')}
+            title={t('backup.schedule')}
+        >
+            <SettingsRow description={t('backup.every_hours_hint')} label={t('backup.every_hours')}>
+                <NumberInput min={0} onChange={setHours} suffix={t('backup.hours_suffix')} value={hours} />
+            </SettingsRow>
+            <SettingsRow description={t('backup.keep_hint')} label={t('backup.keep')}>
+                <NumberInput min={1} onChange={setKeep} value={keep} />
+            </SettingsRow>
+        </SettingsGroup>
+    )
+}
+
+// BackupSummary: when the last snapshot was taken, how many are kept and
+// what the schedule is.
+function BackupSummary() {
+    const { t } = useTranslation()
+    const q = useSnapshots()
+    const settings = useSettings()
+    const list = q.data?.snapshots ?? []
+    const last = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+    const hours = Number(settings.data?.snapshot_interval_hours ?? 0)
+    return (
+        <StatStrip
+            items={[
+                { label: t('backup.last_snapshot'), value: last ? fromNow(last.created_at) : t('backup.none_yet'), hint: last ? fmtDateTime(last.created_at) : undefined },
+                { label: t('backup.count'), value: list.length },
+                { label: t('backup.total_size'), value: fmtBytes(list.reduce((n, sn) => n + sn.size, 0)) },
+                {
+                    label: t('backup.schedule_state'),
+                    value: hours > 0 ? t('backup.schedule_on', { hours }) : t('backup.schedule_off'),
+                    hint: hours > 0 ? t('backup.keep_n', { keep: settings.data?.snapshot_keep }) : undefined,
+                    color: hours > 0 ? undefined : 'yellow'
+                }
+            ]}
+        />
     )
 }
 
 export function BackupPanel() {
+    const { t } = useTranslation()
     const q = useBackupCategories()
     if (!q.data) return null
     return (
-        <Stack gap="md">
+        <Stack gap="lg">
+            <BackupSummary />
             <SnapshotsCard categories={q.data.categories} />
-            <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="md">
-                <ScheduleCard />
-                <ExportCard categories={q.data.categories} counts={q.data.counts} />
-                <ImportCard categories={q.data.categories} />
-            </SimpleGrid>
+            <ScheduleGroup />
+            <SettingsGroup description={t('backup.transfer_hint')} title={t('backup.transfer')}>
+                <div className="backup-transfer">
+                    <ExportCard categories={q.data.categories} counts={q.data.counts} />
+                    <ImportCard categories={q.data.categories} />
+                </div>
+            </SettingsGroup>
         </Stack>
     )
 }

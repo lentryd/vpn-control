@@ -197,13 +197,12 @@ export function CreateApiTokenContent({ isMobile }: { isMobile: boolean }) {
                 </ActionIconGroup>
 
                 <Button
-                    color="teal"
                     disabled={!canCreate}
                     leftSection={<TbCookie size="24px" />}
                     loading={create.isPending}
                     onClick={handleSubmit}
                     size="md"
-                    variant="soft"
+                    variant="filled"
                 >
                     {t('common.create')}
                 </Button>
