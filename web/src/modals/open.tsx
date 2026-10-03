@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { PiWarningDuotone } from 'react-icons/pi'
 
 import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
+import { networkStore } from '@/api/client'
 import i18n from '@/app/i18n/i18n'
 
 export interface ModalHeader {
@@ -51,7 +52,7 @@ export function confirmDanger(title: string, text: ReactNode, onConfirm: () => v
             </>
         ),
         labels: { confirm: confirmLabel, cancel: i18n.t('common.cancel') },
-        confirmProps: { color: 'red', variant: 'filled' },
+        confirmProps: { color: 'red', variant: 'filled', disabled: networkStore.get().offline },
         cancelProps: { variant: 'default' },
         onConfirm
     })

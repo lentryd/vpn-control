@@ -148,7 +148,8 @@
             "other_addon_tariff": "The tariff belongs to another add-on",
             "tariff_rw_failed": "The tariff changed, but the panel wasn't updated: {{error}}",
             "included_partial_change": "The tariff changed, but not all of its add-ons were updated: {{error}}"
-        }
+        },
+        "offline": "No connection to the server, changes are unavailable"
     },
     "format": {
         "date": "MMM D, YYYY",
@@ -1056,5 +1057,13 @@
         "open_menu": "Open menu",
         "go_to": "Go to",
         "synced_ago": "Synced at {{time}}"
+    },
+    "offline": {
+        "title": "You're offline",
+        "cached": "data from {{time}}",
+        "no_cache": "no saved data",
+        "read_only": "changes are unavailable",
+        "restored": "Back online",
+        "blocked": "Offline — saving is unavailable"
     }
 }

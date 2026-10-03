@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react'
+
 export const API_BASE = '/api/'
 
 // ApiError carries the server's error code and params (translated by
@@ -13,6 +15,43 @@ export class ApiError extends Error {
     }
 }
 
+// Connection state for the offline banner: offline when the browser says so
+// or when the service worker had to answer from its cache (server
+// unreachable). cachedAt is the oldest data on screen since then.
+export type NetworkState = { offline: boolean; cachedAt: number | null }
+let network: NetworkState = { offline: typeof navigator !== 'undefined' && !navigator.onLine, cachedAt: null }
+const networkListeners = new Set<() => void>()
+
+function setNetwork(next: NetworkState) {
+    if (next.offline === network.offline && next.cachedAt === network.cachedAt) return
+    network = next
+    networkListeners.forEach((fn) => fn())
+}
+
+export const networkStore = {
+    get: () => network,
+    subscribe(fn: () => void) {
+        networkListeners.add(fn)
+        return () => networkListeners.delete(fn)
+    }
+}
+
+window.addEventListener('offline', () => setNetwork({ ...network, offline: true }))
+window.addEventListener('online', () => setNetwork({ offline: false, cachedAt: null }))
+
+function trackNetwork(res: Response) {
+    const stamp = res.headers.get('X-Cached-At')
+    if (!stamp) {
+        if (navigator.onLine) setNetwork({ offline: false, cachedAt: null })
+        return
+    }
+    const at = Date.parse(stamp)
+    setNetwork({ offline: true, cachedAt: network.cachedAt === null ? at : Math.min(network.cachedAt, at) })
+}
+
+// useOffline is true while there is no connection; changes are blocked then.
+export const useOffline = () => useSyncExternalStore(networkStore.subscribe, networkStore.get).offline
+
 let onUnauthorized: (() => void) | null = null
 
 export function setUnauthorizedHandler(fn: () => void) {
@@ -20,6 +59,11 @@ export function setUnauthorizedHandler(fn: () => void) {
 }
 
 async function send(method: string, path: string, body?: unknown): Promise<Response> {
+    // Offline, a change could only fail (or be answered from the cache), so
+    // refuse it up front. Logout still goes through: it only clears cookies.
+    if (method !== 'GET' && network.offline && path !== 'auth/logout') {
+        throw new ApiError(0, 'offline', 'offline')
+    }
     const isForm = body instanceof FormData
     const res = await fetch(API_BASE + path.replace(/^\//, ''), {
         method,
@@ -27,6 +71,7 @@ async function send(method: string, path: string, body?: unknown): Promise<Respo
         headers: body === undefined || isForm ? undefined : { 'Content-Type': 'application/json' },
         body: body === undefined ? undefined : isForm ? body : JSON.stringify(body)
     })
+    trackNetwork(res)
     if (res.status === 401 && !path.startsWith('auth/login')) {
         onUnauthorized?.()
     }

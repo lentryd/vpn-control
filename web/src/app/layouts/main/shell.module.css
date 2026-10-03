@@ -366,6 +366,58 @@
     }
 }
 
+/* ── Offline banner ────────────────────────────────────────────────────── */
+.offline {
+    --offline-color: var(--mantine-color-yellow-6);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 10px 14px;
+    border-radius: var(--mantine-radius-md);
+    border: 1px solid color-mix(in srgb, var(--offline-color) 35%, var(--app-border));
+    background: color-mix(in srgb, var(--offline-color) 8%, var(--app-surface));
+    transition:
+        background-color 200ms var(--app-ease),
+        border-color 200ms var(--app-ease);
+
+    &[data-restored] {
+        --offline-color: var(--mantine-color-teal-6);
+    }
+}
+
+.offlineIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    color: var(--offline-color);
+    background: color-mix(in srgb, var(--offline-color) 16%, transparent);
+}
+
+.offlineText {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 10px;
+    row-gap: 2px;
+    min-width: 0;
+}
+
+.offlineTitle {
+    font-size: var(--mantine-font-size-sm);
+    font-weight: 600;
+    color: var(--app-text-strong);
+}
+
+.offlineHint {
+    font-size: var(--mantine-font-size-xs);
+    color: var(--app-text-muted);
+}
+
 /* Spotlight */
 .spotlightAction {
     border-radius: var(--mantine-radius-md);

@@ -11,6 +11,7 @@ import { Logo } from '@shared/ui/logo'
 
 import { CommandPalette } from './command-palette'
 import { pageTitle } from './navigation'
+import { OfflineBanner } from './offline-banner'
 import classes from './shell.module.css'
 import { Sidebar } from './sidebar'
 
@@ -50,6 +51,7 @@ export function MainLayout() {
 
             <AppShell.Main className={classes.main}>
                 <div className={classes.content}>
+                    <OfflineBanner />
                     <Suspense fallback={<LoadingProgress />}>
                         <Outlet />
                     </Suspense>

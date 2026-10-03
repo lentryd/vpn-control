@@ -4,7 +4,7 @@ import { IconRefresh } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { api } from '@/api/client'
+import { api, useOffline } from '@/api/client'
 import { useDashboard, useInvalidateAll } from '@/api/hooks'
 import { fromNow } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
@@ -36,6 +36,7 @@ export function SyncStatus({ collapsed }: { collapsed: boolean }) {
     const { t } = useTranslation()
     const dashboard = useDashboard()
     const { sync, syncing } = useSync()
+    const offline = useOffline()
     const info = dashboard.data?.sync
     const color = syncing ? 'var(--mantine-color-yellow-5)' : info?.error ? 'var(--mantine-color-red-5)' : 'var(--mantine-color-teal-5)'
     const label = info?.error ? t('sync.error', { error: info.error }) : t('sync.synced', { ago: fromNow(info?.last_sync) })
@@ -46,7 +47,7 @@ export function SyncStatus({ collapsed }: { collapsed: boolean }) {
         <Tooltip label={label} maw={300} multiline position={collapsed ? 'right' : 'top-start'}>
             <button
                 className={classes.sync}
-                disabled={syncing}
+                disabled={syncing || offline}
                 onClick={sync}
                 style={{ '--sync-color': color } as React.CSSProperties}
                 type="button"

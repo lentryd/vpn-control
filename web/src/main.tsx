@@ -32,7 +32,12 @@ if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
 
 const queryClient = new QueryClient({
     defaultOptions: {
-        queries: { staleTime: 15_000, refetchOnWindowFocus: true, retry: 1 }
+        // offlineFirst: offline, still fire the request so the service
+        // worker can answer it from its cache of the last good responses.
+        queries: { staleTime: 15_000, refetchOnWindowFocus: true, retry: 1, networkMode: 'offlineFirst' },
+        // 'always': offline, a change fails at once (the client refuses it)
+        // instead of silently waiting for the network.
+        mutations: { networkMode: 'always' }
     }
 })
 

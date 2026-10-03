@@ -12,3 +12,19 @@
     -webkit-backdrop-filter: blur(8px);
     border-top: 1px solid var(--app-border);
 }
+
+.offline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: auto;
+    flex-grow: 0 !important;
+    font-size: var(--mantine-font-size-xs);
+    color: var(--mantine-color-yellow-6);
+}
+
+.footer[data-offline] button:not([data-variant='default'], [data-variant='subtle']) {
+    opacity: 0.45;
+    pointer-events: none;
+    filter: saturate(0.4);
+}
