@@ -252,7 +252,8 @@ func (h *Handlers) QuoteExtend(c *fiber.Ctx) error {
 		periods = append(periods, PeriodView{Months: p.Months, Days: p.Days, Price: money.ToMajor(p.Price)})
 	}
 	return c.JSON(fiber.Map{
-		"amount": money.ToMajor(q.Amount), "from": q.From, "to": q.To,
+		"customer_id": q.CustomerID,
+		"amount":      money.ToMajor(q.Amount), "from": q.From, "to": q.To,
 		"monthly": money.ToMajor(q.Monthly), "periods": periods, "balance": money.ToMajor(q.Balance),
 	})
 }

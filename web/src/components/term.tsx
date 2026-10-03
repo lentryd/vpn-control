@@ -1,10 +1,10 @@
 // Term and payment cards shared by the extend, provision and add-on
 // modals, styled after the panel's access-settings card (date + presets).
-import { Box, Button, Group, NumberInput, Paper, SimpleGrid, Stack, Switch, Text } from '@mantine/core'
-import { DatePickerInput } from '@mantine/dates'
+import { Autocomplete, Box, Button, Group, NumberInput, Paper, SegmentedControl, SimpleGrid, Stack, Switch, Text } from '@mantine/core'
+import { DateInput, DatePickerInput } from '@mantine/dates'
 import dayjs, { type Dayjs } from 'dayjs'
 import type { ReactNode } from 'react'
-import { PiCalendarDuotone, PiCalendarPlusDuotone, PiClockDuotone, PiWalletDuotone } from 'react-icons/pi'
+import { PiBank, PiCalendarDuotone, PiCalendarPlusDuotone, PiClockDuotone, PiCreditCardDuotone, PiWalletDuotone } from 'react-icons/pi'
 import { TbArrowRight } from 'react-icons/tb'
 
 import type { Period } from '@/api/types'
@@ -14,6 +14,7 @@ import { FormSection } from '@shared/ui/forms/form-section'
 import { CurrencyIcon } from '@shared/currencies'
 import { dateLayout } from './format'
 import { useTranslation } from 'react-i18next'
+import { paymentMethods } from '@/modals/PaymentEditModal'
 
 // Term is months+days from the base date; until pins the exact end (e.g.
 // "to the end of the subscription"), months/days then only price it.
@@ -176,6 +177,70 @@ function SummaryRow({ label, children }: { label: string; children: ReactNode })
     )
 }
 
+// Source is where an extension's money comes from: a payment the customer
+// just made (recorded together with the extension) or their balance.
+export type Source = 'paid' | 'balance'
+
+export function SourceSwitch({ value, onChange }: { value: Source; onChange: (v: Source) => void }) {
+    const { t } = useTranslation()
+    return (
+        <SegmentedControl
+            data={[
+                { value: 'paid', label: t('term.source_paid') },
+                { value: 'balance', label: t('term.source_balance') }
+            ]}
+            fullWidth
+            onChange={(v) => onChange(v as Source)}
+            value={value}
+        />
+    )
+}
+
+// Income is a payment recorded together with an extension.
+export interface Income {
+    amount: number
+    date: string | null
+    method: string
+}
+
+export const newIncome = (): Income => ({ amount: 0, date: dayjs().format('YYYY-MM-DD'), method: paymentMethods()[0] })
+
+// incomeFor is what the customer has to pay for a charge, given what the
+// balance already covers.
+export const incomeFor = (charge: number, balance: number) => Math.max(0, Math.round((charge - Math.max(balance, 0)) * 100) / 100)
+
+export function IncomeSection({ value, onChange }: { value: Income; onChange: (v: Income) => void }) {
+    const { t } = useTranslation()
+    return (
+        <FormSection color="teal" description={t('term.income_hint')} icon={PiCreditCardDuotone} title={t('payment.income')}>
+            <NumberInput
+                decimalScale={2}
+                label={t('common.amount_in', { currency: currencySymbol() })}
+                leftSection={<CurrencyIcon size={16} />}
+                min={0}
+                onChange={(v) => onChange({ ...value, amount: Number(v) || 0 })}
+                value={value.amount || ''}
+            />
+            <SimpleGrid cols={{ base: 1, xs: 2 }}>
+                <DateInput
+                    label={t('customer.col_date')}
+                    leftSection={<PiCalendarDuotone size={16} />}
+                    onChange={(d) => onChange({ ...value, date: d })}
+                    value={value.date}
+                    valueFormat={dateLayout()}
+                />
+                <Autocomplete
+                    data={paymentMethods()}
+                    label={t('payment.method')}
+                    leftSection={<PiBank size={16} />}
+                    onChange={(m) => onChange({ ...value, method: m })}
+                    value={value.method}
+                />
+            </SimpleGrid>
+        </FormSection>
+    )
+}
+
 export function PaymentSection({
     amount,
     onAmount,
@@ -183,6 +248,7 @@ export function PaymentSection({
     onAllowDebt,
     balance,
     monthly,
+    income,
     description
 }: {
     amount: number | null
@@ -191,10 +257,13 @@ export function PaymentSection({
     onAllowDebt: (v: boolean) => void
     balance?: number
     monthly?: number
+    // a payment recorded along with the charge: it lands on the balance
+    // first, and the charge may then take the balance below zero
+    income?: number
     description?: string
 }) {
     const { t } = useTranslation()
-    const after = balance === undefined ? undefined : balance - (amount ?? 0)
+    const after = balance === undefined ? undefined : balance + (income ?? 0) - (amount ?? 0)
     const short = after !== undefined && after < 0 && !allowDebt
     return (
         <FormSection color="orange" description={t('term.charged_hint')} icon={PiWalletDuotone} title={t('term.payment')}>
@@ -212,6 +281,13 @@ export function PaymentSection({
                     <Stack gap={6}>
                         {monthly !== undefined && <SummaryRow label={t('tariffs.monthly_price')}>{fmtMoney(monthly)}</SummaryRow>}
                         {balance !== undefined && <SummaryRow label={t('term.balance_now')}>{fmtMoney(balance, 2)}</SummaryRow>}
+                        {income !== undefined && (
+                            <SummaryRow label={t('payment.income')}>
+                                <Text c="teal.5" className="num" fw={600} size="sm">
+                                    +{fmtMoney(income, 2)}
+                                </Text>
+                            </SummaryRow>
+                        )}
                         {after !== undefined && (
                             <SummaryRow label={t('term.after_charge')}>
                                 <Text c={after < 0 ? 'red.5' : 'teal.5'} className="num" fw={600} size="sm">
@@ -222,13 +298,22 @@ export function PaymentSection({
                     </Stack>
                 </Paper>
             )}
-            <Switch
-                checked={allowDebt}
-                description={short ? t('term.short', { amount: fmtMoney(-after!, 2) }) : t('term.debt')}
-                label={t('term.allow_debt')}
-                onChange={(e) => onAllowDebt(e.currentTarget.checked)}
-                styles={short ? { description: { color: 'var(--mantine-color-red-5)' } } : undefined}
-            />
+            {income === undefined ? (
+                <Switch
+                    checked={allowDebt}
+                    description={short ? t('term.short', { amount: fmtMoney(-after!, 2) }) : t('term.debt')}
+                    label={t('term.allow_debt')}
+                    onChange={(e) => onAllowDebt(e.currentTarget.checked)}
+                    styles={short ? { description: { color: 'var(--mantine-color-red-5)' } } : undefined}
+                />
+            ) : (
+                after !== undefined &&
+                after < 0 && (
+                    <Text c="orange.5" size="xs">
+                        {t('term.income_short', { amount: fmtMoney(-after, 2) })}
+                    </Text>
+                )
+            )}
         </FormSection>
     )
 }

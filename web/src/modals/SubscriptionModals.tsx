@@ -27,9 +27,22 @@ import { useApiMutation, useCustomers, useRwUsers, useTariffs } from '@/api/hook
 import type { RwUserRow, Subscription, Tariff, TariffQuote } from '@/api/types'
 import { expiryColor, StatusBadge } from '@/components/badges'
 import { daysLeft, fmtBytes, fmtDate, fmtMoney, isUnlimited, currencySymbol } from '@/components/format'
-import { notifyError, notifyOk } from '@/components/notify'
+import { errorText, notifyError, notifyOk } from '@/components/notify'
 import { periodCost } from '@/components/pricing'
-import { PaymentSection, tariffPresets, type Term, termBetween, type TermPreset, TermSection } from '@/components/term'
+import {
+    type Income,
+    IncomeSection,
+    incomeFor,
+    newIncome,
+    PaymentSection,
+    type Source,
+    SourceSwitch,
+    tariffPresets,
+    type Term,
+    termBetween,
+    type TermPreset,
+    TermSection
+} from '@/components/term'
 import { FormColumns, FormFooter, FormSection } from '@shared/ui/forms/form-section'
 
 import { openModal } from './open'
@@ -252,13 +265,28 @@ function ProvisionForm({ customerId, onDone }: { customerId: number; onDone: () 
     const [term, setTerm] = useState<Term>({ months: 1, days: 0, until: null })
     const [amount, setAmount] = useState(0)
     const [allowDebt, setAllowDebt] = useState(false)
+    const [picked, setPicked] = useState<Source | null>(null)
+    const [income, setIncome] = useState<Income>(newIncome)
+    const [incomeTouched, setIncomeTouched] = useState(false)
     const eligible = (tariffs.data ?? []).filter((t) => t.kind === 'base' && t.manage_rw && t.active)
     const tariff = eligible.find((t) => String(t.id) === tariffId)
+    const balance = customers.data?.find((c) => c.id === customerId)?.balance
+    // Unless picked by hand: the balance pays if it covers the term.
+    const source: Source = picked ?? (balance !== undefined && amount > 0 && balance >= amount ? 'balance' : 'paid')
+    const paid = source === 'paid'
     useEffect(() => {
         if (tariff) setAmount(periodCost(tariff.monthly_price, tariff.periods, term.months, term.days))
     }, [tariff, term])
-    const m = useApiMutation(() =>
-        api.post('subscriptions/provision', {
+    useEffect(() => {
+        if (!incomeTouched) setIncome((v) => ({ ...v, amount: incomeFor(amount, balance ?? 0) }))
+    }, [amount, balance, incomeTouched])
+    // A payment goes on the balance first, then the subscription is bought
+    // from it; if the panel refuses, the money stays on the balance.
+    const m = useApiMutation(async () => {
+        if (paid) {
+            await api.post(`customers/${customerId}/payments`, { amount: income.amount, date: income.date, method: income.method ?? '', note: '', allocations: [] })
+        }
+        const body = {
             customer_id: customerId,
             tariff_id: Number(tariffId),
             username,
@@ -266,9 +294,14 @@ function ProvisionForm({ customerId, onDone }: { customerId: number; onDone: () 
             months: term.months,
             days: term.days,
             amount,
-            allow_debt: allowDebt
-        })
-    )
+            allow_debt: paid || allowDebt
+        }
+        try {
+            return await api.post('subscriptions/provision', body)
+        } catch (e) {
+            throw paid ? new Error(t('sub.paid_not_created', { amount: fmtMoney(income.amount, 2), error: errorText(e) })) : e
+        }
+    })
     return (
         <>
             {eligible.length === 0 && (
@@ -314,18 +347,31 @@ function ProvisionForm({ customerId, onDone }: { customerId: number; onDone: () 
                     </>
                 }
                 right={
-                    <PaymentSection
-                        allowDebt={allowDebt}
-                        amount={amount}
-                        balance={customers.data?.find((c) => c.id === customerId)?.balance}
-                        monthly={tariff?.monthly_price}
-                        onAllowDebt={setAllowDebt}
-                        onAmount={setAmount}
-                    />
+                    <>
+                        <SourceSwitch onChange={setPicked} value={source} />
+                        {paid && (
+                            <IncomeSection
+                                onChange={(v) => {
+                                    setIncomeTouched(true)
+                                    setIncome(v)
+                                }}
+                                value={income}
+                            />
+                        )}
+                        <PaymentSection
+                            allowDebt={allowDebt}
+                            amount={amount}
+                            balance={balance}
+                            income={paid ? income.amount : undefined}
+                            monthly={tariff?.monthly_price}
+                            onAllowDebt={setAllowDebt}
+                            onAmount={setAmount}
+                        />
+                    </>
                 }
             />
             <FormFooter
-                disabled={!tariffId || username.length < 3 || term.months + term.days <= 0}
+                disabled={!tariffId || username.length < 3 || term.months + term.days <= 0 || (paid && (income.amount <= 0 || !income.date))}
                 loading={m.isPending}
                 onCancel={onDone}
                 onSubmit={() =>

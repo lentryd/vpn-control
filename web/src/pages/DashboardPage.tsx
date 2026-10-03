@@ -1,6 +1,6 @@
 import type { MRT_ColumnDef } from '@kastov/mantine-react-table-open'
 import { BarChart } from '@mantine/charts'
-import { Alert, Anchor, Badge, Box, Button, Card, Group, RingProgress, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core'
+import { ActionIcon, Alert, Anchor, Badge, Box, Button, Card, Group, RingProgress, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core'
 import {
     IconAffiliate,
     IconCalendarDue,
@@ -10,6 +10,7 @@ import {
     IconChartLine,
     IconClockExclamation,
     IconCoins,
+    IconCreditCard,
     IconGauge,
     IconReceipt2,
     IconUserPlus,
@@ -29,6 +30,8 @@ import { MeteredCard } from '@/components/MeteredCard'
 import { Money, PageHeader, StatCard } from '@/components/ui'
 import { openCustomerForm } from '@/modals/CustomerModals'
 import { openExtendModal } from '@/modals/ExtendModal'
+import { openExpenseForm } from '@/modals/ExpenseModal'
+import { openPaymentModal } from '@/modals/PaymentModal'
 import { openViewAddonModal, openViewSubscriptionModal } from '@/modals/ViewItemModal'
 import { NodeLabel } from '@shared/ui/infra/node'
 import { ProviderLabel } from '@shared/ui/infra/provider'
@@ -108,13 +111,18 @@ export function DashboardPage() {
         <Page title={t('menu.home')}>
             <PageHeader
                 actions={
-                    <Button
-                        leftSection={<IconUserPlus size={16} />}
-                        onClick={() => openCustomerForm(undefined, (id) => navigate(`/customers/${id}`))}
-                        variant="filled"
-                    >
-                        {t('dashboard.new_customer')}
-                    </Button>
+                    <>
+                        <Button leftSection={<IconCreditCard size={16} />} onClick={() => openPaymentModal()} variant="default">
+                            {t('customer.record_payment')}
+                        </Button>
+                        <Button
+                            leftSection={<IconUserPlus size={16} />}
+                            onClick={() => openCustomerForm(undefined, (id) => navigate(`/customers/${id}`))}
+                            variant="filled"
+                        >
+                            {t('dashboard.new_customer')}
+                        </Button>
+                    </>
                 }
                 description={today.charAt(0).toUpperCase() + today.slice(1)}
                 icon={null}
@@ -257,16 +265,34 @@ function DueSoon({ items }: { items: Dashboard['due_soon'] }) {
                                         {d.node_uuid && <NodeLabel size="xs" uuid={d.node_uuid} />}
                                     </Group>
                                 </Stack>
-                                <Stack align="flex-end" gap={2}>
-                                    <Badge color={expiryColor(days)} size="md">
-                                        {fmtDate(d.next_due_date)}
-                                    </Badge>
-                                    {d.monthly_rub !== undefined && (
-                                        <Text c="dimmed" className="num" size="xs">
-                                            {fmtMoney(d.monthly_rub)}
-                                        </Text>
-                                    )}
-                                </Stack>
+                                <Group gap="xs" wrap="nowrap">
+                                    <Stack align="flex-end" gap={2}>
+                                        <Badge color={expiryColor(days)} size="md">
+                                            {fmtDate(d.next_due_date)}
+                                        </Badge>
+                                        {d.monthly_rub !== undefined && (
+                                            <Text c="dimmed" className="num" size="xs">
+                                                {fmtMoney(d.monthly_rub)}
+                                            </Text>
+                                        )}
+                                    </Stack>
+                                    <Tooltip label={t('expense_items.pay')}>
+                                        <ActionIcon
+                                            aria-label={t('expense_items.pay')}
+                                            onClick={() =>
+                                                openExpenseForm({
+                                                    itemId: d.id || undefined,
+                                                    name: d.name,
+                                                    provider: d.provider ? { name: d.provider, uuid: d.provider_uuid } : undefined
+                                                })
+                                            }
+                                            size="lg"
+                                            variant="default"
+                                        >
+                                            <IconReceipt2 size={16} />
+                                        </ActionIcon>
+                                    </Tooltip>
+                                </Group>
                             </Group>
                         )
                     })}

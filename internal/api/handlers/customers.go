@@ -371,12 +371,13 @@ type allocationView struct {
 }
 
 type planItemView struct {
-	Kind     string       `json:"kind"`
-	ID       int          `json:"id"`
-	Title    string       `json:"title"`
-	Monthly  float64      `json:"monthly"`
-	ExpireAt *time.Time   `json:"expire_at"`
-	Periods  []PeriodView `json:"periods"`
+	Kind       string       `json:"kind"`
+	ID         int          `json:"id"`
+	Title      string       `json:"title"`
+	Monthly    float64      `json:"monthly"`
+	ExpireAt   *time.Time   `json:"expire_at"`
+	Periods    []PeriodView `json:"periods"`
+	AutoExtend bool         `json:"auto_extend"`
 }
 
 func (h *Handlers) PreviewPayment(c *fiber.Ctx) error {
@@ -398,7 +399,7 @@ func (h *Handlers) PreviewPayment(c *fiber.Ctx) error {
 	}
 	items := make([]planItemView, 0, len(p.Items))
 	for _, it := range p.Items {
-		v := planItemView{Kind: it.Kind, ID: it.ID, Title: it.Title, Monthly: money.ToMajor(it.Monthly), ExpireAt: it.ExpireAt}
+		v := planItemView{Kind: it.Kind, ID: it.ID, Title: it.Title, Monthly: money.ToMajor(it.Monthly), ExpireAt: it.ExpireAt, AutoExtend: it.AutoExtend}
 		for _, per := range it.Periods {
 			v.Periods = append(v.Periods, PeriodView{Months: per.Months, Days: per.Days, Price: money.ToMajor(per.Price)})
 		}

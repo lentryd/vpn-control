@@ -446,6 +446,8 @@ export interface PlanItem {
     monthly: number
     expire_at: string | null
     periods: Period[] | null
+    // a payment is spread over auto-extended items; the rest are manual
+    auto_extend: boolean
 }
 
 export interface ReferralInfo {

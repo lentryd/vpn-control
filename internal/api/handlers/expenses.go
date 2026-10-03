@@ -89,6 +89,7 @@ type expenseRequest struct {
 	SharePercent float64  `json:"share_percent"`
 	RefundOfID   *int     `json:"refund_of_id"`
 	Note         string   `json:"note"`
+	AdvanceDue   bool     `json:"advance_due"`
 }
 
 func (r expenseRequest) input() expenses.ExpenseInput {
@@ -100,6 +101,7 @@ func (r expenseRequest) input() expenses.ExpenseInput {
 		Date: d, Provider: strings.TrimSpace(r.Provider), ProviderUUID: r.ProviderUUID, ItemID: r.ItemID, Kind: r.Kind,
 		OrigAmount: money.FromMajor(r.OrigAmount), Currency: r.OrigCurrency, FxRate: r.FxRate,
 		FeePercent: r.FeePercent, SharePercent: r.SharePercent, RefundOfID: r.RefundOfID, Note: r.Note,
+		AdvanceDue: r.AdvanceDue,
 	}
 }
 

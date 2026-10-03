@@ -36,6 +36,7 @@ import {
     PiPencilSimpleDuotone,
     PiPercent,
     PiPlus,
+    PiReceipt,
     PiTextAa,
     PiTrash,
     PiUsersDuotone
@@ -50,6 +51,7 @@ import { baseCurrency, currencySymbol, dateLayout, fmtCurrency, fmtDate, fmtMone
 import { notifyError, notifyOk, codedText } from '@/components/notify'
 import { PageHeader } from '@/components/ui'
 import { confirmDanger, openModal } from '@/modals/open'
+import { openExpenseForm } from '@/modals/ExpenseModal'
 import { MeteredCard } from '@/components/MeteredCard'
 import { FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
 import { NodeLabel, NodeSelect } from '@shared/ui/infra/node'
@@ -263,6 +265,7 @@ function ExpenseItemCard({ item: it, onEdit, onMetered }: { item: ExpenseItem; o
                 </>
             }
             menu={[
+                { label: t('expense_items.pay'), icon: PiReceipt, onClick: () => openExpenseForm({ itemId: it.id, name: it.name }) },
                 ...(metered
                     ? [
                           { label: t('expense_items.traffic_forecast'), icon: PiChartBar, onClick: onMetered },

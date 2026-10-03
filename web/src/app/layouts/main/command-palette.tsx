@@ -1,6 +1,6 @@
 import { useComputedColorScheme, useMantineColorScheme } from '@mantine/core'
 import { Spotlight, type SpotlightActionGroupData } from '@mantine/spotlight'
-import { IconContrast, IconLanguage, IconReceipt2, IconRefresh, IconSearch, IconStack2, IconUser, IconUserPlus } from '@tabler/icons-react'
+import { IconContrast, IconCreditCard, IconLanguage, IconReceipt2, IconRefresh, IconSearch, IconStack2, IconUser, IconUserPlus } from '@tabler/icons-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -23,6 +23,7 @@ const icon = (Icon: React.ComponentType<{ size?: number; stroke?: number }>) => 
 const modals = {
     customer: () => import('@/modals/CustomerModals'),
     expense: () => import('@/modals/ExpenseModal'),
+    payment: () => import('@/modals/PaymentModal'),
     view: () => import('@/modals/ViewItemModal')
 }
 
@@ -47,6 +48,7 @@ export function CommandPalette() {
             onClick: () => navigate(item.to)
         }))
         const quick = [
+            { id: 'act:payment', label: t('customer.record_payment'), leftSection: icon(IconCreditCard), onClick: () => void modals.payment().then((m) => m.openPaymentModal()) },
             { id: 'act:customer', label: t('customers.new'), leftSection: icon(IconUserPlus), onClick: () => void modals.customer().then((m) => m.openCustomerForm(undefined, (id) => navigate(`/customers/${id}`))) },
             { id: 'act:expense', label: t('expense_modal.new'), leftSection: icon(IconReceipt2), onClick: () => void modals.expense().then((m) => m.openExpenseForm({})) },
             { id: 'act:sync', label: t('shell.sync_now'), leftSection: icon(IconRefresh), onClick: () => void sync() },

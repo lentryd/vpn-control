@@ -16,6 +16,11 @@ import { openCustomerForm } from '@/modals/CustomerModals'
 import { openPaymentModal } from '@/modals/PaymentModal'
 import { useTranslation } from 'react-i18next'
 
+const expiringSoon = (c: Customer) => {
+    const d = daysLeft(c.nearest_expire_at)
+    return d !== null && d >= 0 && d <= 7
+}
+
 export function CustomersPage() {
     const { t } = useTranslation()
     const { data, isFetching } = useCustomers()
@@ -23,9 +28,18 @@ export function CustomersPage() {
     const active = useMemo(() => (data ?? []).filter((c) => !c.archived), [data])
     const [scope, setScope] = useState('active')
     const rows = useMemo(
-        () => (data ?? []).filter((c) => (scope === 'all' ? true : scope === 'archived' ? c.archived : !c.archived)),
+        () =>
+            (data ?? []).filter((c) => {
+                if (scope === 'all') return true
+                if (scope === 'archived') return c.archived
+                if (scope === 'expiring') return !c.archived && expiringSoon(c)
+                if (scope === 'debtors') return !c.archived && c.balance < 0
+                return !c.archived
+            }),
         [data, scope]
     )
+    // a stat tile filters the table, a second click goes back to all active
+    const tileScope = (key: string) => ({ onClick: () => setScope(scope === key ? 'active' : key), active: scope === key })
 
     const columns = useMemo<MRT_ColumnDef<Customer>[]>(
         () => [
@@ -100,17 +114,24 @@ export function CustomersPage() {
             />
             <StatStrip
                 items={[
-                    { label: t('customers.scope_active'), value: data ? active.length : '—', hint: t('customers.stat_total', { count: data?.length ?? 0 }) },
+                    {
+                        label: t('customers.scope_active'),
+                        value: data ? active.length : '—',
+                        hint: t('customers.stat_total', { count: data?.length ?? 0 }),
+                        ...tileScope('active')
+                    },
                     { label: t('sub.per_month'), value: data ? fmtMoney(active.reduce((n, c) => n + c.monthly, 0)) : '—' },
                     {
                         label: t('customers.stat_expiring'),
-                        value: data ? active.filter((c) => { const d = daysLeft(c.nearest_expire_at); return d !== null && d >= 0 && d <= 7 }).length : '—',
-                        color: 'orange'
+                        value: data ? active.filter(expiringSoon).length : '—',
+                        color: 'orange',
+                        ...tileScope('expiring')
                     },
                     {
                         label: t('customers.stat_debtors'),
                         value: data ? active.filter((c) => c.balance < 0).length : '—',
-                        hint: data ? fmtMoney(active.filter((c) => c.balance < 0).reduce((n, c) => n + c.balance, 0), 2) : undefined
+                        hint: data ? fmtMoney(active.filter((c) => c.balance < 0).reduce((n, c) => n + c.balance, 0), 2) : undefined,
+                        ...tileScope('debtors')
                     }
                 ]}
                 mb="lg"
@@ -126,6 +147,8 @@ export function CustomersPage() {
                         onChange={setScope}
                         data={[
                             { value: 'active', label: t('customers.scope_active') },
+                            { value: 'expiring', label: t('customers.scope_expiring') },
+                            { value: 'debtors', label: t('customers.stat_debtors') },
                             { value: 'archived', label: t('customers.scope_archived') },
                             { value: 'all', label: t('common.all') }
                         ]}

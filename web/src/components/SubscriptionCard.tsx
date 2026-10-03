@@ -1,8 +1,9 @@
-import { Badge, Box, Card, Group, Text, ThemeIcon, Tooltip, UnstyledButton } from '@mantine/core'
-import { IconPuzzle, IconRepeat, IconStack2 } from '@tabler/icons-react'
+import { Badge, Box, Button, Card, Group, Text, ThemeIcon, Tooltip, UnstyledButton } from '@mantine/core'
+import { IconCalendarPlus, IconPuzzle, IconRepeat, IconStack2 } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 
 import type { RwUser, Subscription } from '@/api/types'
+import { openExtendModal } from '@/modals/ExtendModal'
 import { openViewAddonModal, openViewSubscriptionModal } from '@/modals/ViewItemModal'
 
 import { ExpireCell, OnlineCell, StatusBadge, TrafficCell, TrafficMini, trafficHint, trafficResetColor } from './badges'
@@ -67,6 +68,16 @@ export function SubscriptionCard({ sub }: { sub: Subscription }) {
                 <Group gap="sm" wrap="nowrap">
                     <AutoIcon on={sub.auto_extend} />
                     <StatusBadge user={sub.rw_user} />
+                    {sub.rw_user && !sub.rw_user.unlimited && (
+                        <Button
+                            leftSection={<IconCalendarPlus size={14} />}
+                            onClick={() => openExtendModal({ kind: 'subscription', id: sub.id, title: sub.title })}
+                            size="compact-sm"
+                            variant="default"
+                        >
+                            {t('dashboard.extend')}
+                        </Button>
+                    )}
                     <SubscriptionActions sub={sub} />
                 </Group>
             </div>

@@ -463,7 +463,8 @@
         "stat_total_many": "of {{count}} items",
         "stat_total_other": "of {{count}} items",
         "per_gb_unit": "per GB",
-        "monthly_net": "Net per month"
+        "monthly_net": "Net per month",
+        "pay": "Record payment"
     },
     "sub": {
         "tariff_label": "{{name}} — {{price}}/mo",
@@ -536,7 +537,8 @@
         "clear_override": "Reset the custom price",
         "clear_override_hint": "Use the new tariff's price",
         "tariff_changed": "Tariff changed",
-        "change": "Change"
+        "change": "Change",
+        "paid_not_created": "Payment of {{amount}} is on the balance, but the subscription was not created: {{error}}"
     },
     "customer": {
         "ledger": {
@@ -752,18 +754,16 @@
         "comment": "Comment",
         "rest_to_days": "Remainder into days",
         "rest_to_days_hint": "Turn an amount that doesn't cover a whole month into subscription days",
-        "calculate": "Calculate extension",
         "balance_before": "Balance before",
         "after_payment": "After the payment",
         "remains": "Remains",
         "ref_preview": "{{name}} gets {{amount}} ({{pct}}%) — bookkeeping",
         "renewal_hint": "Months, days and amount can be adjusted per item",
-        "no_items": "The customer has no linked auto-renewing subscriptions — the payment just goes to the balance.",
+        "no_items": "The customer has no linked subscriptions — the payment just goes to the balance.",
         "item_subtitle": "{{monthly}}/mo · now until {{date}}",
         "no_extension": "no extension",
         "debt_warning": "More is allocated than the balance has — the customer goes into debt by {{amount}}.",
         "commit": "Record and extend",
-        "back": "Back",
         "methods": [
             "Bank transfer",
             "Card",
@@ -777,7 +777,9 @@
         "edit_effects": "The balance credit changes too. The referral accrual is recalculated unless already paid out. Extensions already made stay as they are.",
         "import_badge": "import",
         "delete": "Delete the payment?",
-        "delete_hint": "The income, its balance credit and referral accrual are deleted. Extensions already made stay."
+        "delete_hint": "The income, its balance credit and referral accrual are deleted. Extensions already made stay.",
+        "pick_customer": "Pick a customer",
+        "manual": "no auto-renewal"
     },
     "payments": {
         "description": "Income from customers. Click a row to edit a payment",
@@ -822,7 +824,10 @@
         "stat_total_one": "{{count}} in total",
         "stat_total_other": "{{count}} in total",
         "stat_expiring": "Expiring this week",
-        "stat_debtors": "In debt"
+        "stat_debtors": "In debt",
+        "then_subscription": "Create a subscription next",
+        "then_subscription_hint": "After saving, the new panel subscription form opens",
+        "scope_expiring": "Expiring"
     },
     "referrals": {
         "expand": "Expand",
@@ -901,7 +906,9 @@
         "rate_hint": "on the date, can be changed",
         "fee_hint": "Card markup for the currency",
         "total": "Total in {{currency}} (will be fixed)",
-        "note_placeholder": "E.g. the invoice number"
+        "note_placeholder": "E.g. the invoice number",
+        "advance_due": "Move the next payment date",
+        "advance_due_hint": "{{from}} → {{to}}"
     },
     "actions": {
         "enabled": "Enabled in the panel",
@@ -994,7 +1001,11 @@
         "debt": "The customer's balance will go negative (debt)",
         "allow_debt": "Allow a negative balance",
         "from": "Now until",
-        "to": "Will be until"
+        "to": "Will be until",
+        "source_paid": "Customer paid",
+        "source_balance": "From balance",
+        "income_hint": "The payment is recorded and goes straight to this renewal",
+        "income_short": "The payment falls short — the customer will owe {{amount}}"
     },
     "sync": {
         "done": "Panel data refreshed",
@@ -1004,7 +1015,9 @@
     },
     "extend": {
         "done": "Extended until {{date}}",
-        "submit": "Extend in the panel"
+        "submit": "Extend in the panel",
+        "paid_done": "Payment of {{amount}} recorded, renewed until {{date}}",
+        "paid_failed": "Payment of {{amount}} is on the balance, but the renewal failed: {{error}}"
     },
     "infra": {
         "providers_unavailable": "Panel providers unavailable: the token needs access to Infra Billing",

@@ -1,4 +1,4 @@
-import { Alert, Group, NumberInput, Paper, Select, SimpleGrid, Text, TextInput } from '@mantine/core'
+import { Alert, Group, NumberInput, Paper, Select, SimpleGrid, Switch, Text, TextInput } from '@mantine/core'
 import {
     PiArrowUDownLeft,
     PiArrowUpRight,
@@ -14,12 +14,12 @@ import { DateInput } from '@mantine/dates'
 import { useForm } from '@mantine/form'
 import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 import { api } from '@/api/client'
 import { useApiMutation, useExpenseItems, useExpenses, useSettings } from '@/api/hooks'
-import type { Expense } from '@/api/types'
-import { fmtMoney, baseCurrency, dateLayout } from '@/components/format'
+import type { Expense, ExpenseItem } from '@/api/types'
+import { fmtDate, fmtMoney, baseCurrency, dateLayout } from '@/components/format'
 import { notifyError, notifyOk } from '@/components/notify'
 import { FormColumns, FormFooter, FormSection } from '@shared/ui/forms/form-section'
 import { ProviderInput } from '@shared/ui/infra/provider'
@@ -31,13 +31,30 @@ import i18n from '@/app/i18n/i18n'
 import { useTranslation } from 'react-i18next'
 
 
-export function openExpenseForm(p: { expense?: Expense; refundOf?: Expense }) {
+// ExpensePrefill starts a new expense as the payment of a recurring item
+// (itemId) or of a panel provider.
+interface ExpensePrefill {
+    itemId?: number
+    provider?: { name: string; uuid?: string }
+    name?: string
+}
+
+export function openExpenseForm(p: { expense?: Expense; refundOf?: Expense } & ExpensePrefill) {
     const title = p.expense ? i18n.t('expenses.expense') : p.refundOf ? i18n.t('expense_modal.refund') : i18n.t('expense_modal.new')
-    const subtitle = p.expense ? `${p.expense.provider} · ${dayjs(p.expense.date).format(dateLayout())}` : p.refundOf?.provider
+    const subtitle = p.expense ? `${p.expense.provider} · ${dayjs(p.expense.date).format(dateLayout())}` : (p.refundOf?.provider ?? p.name)
     openModal({ icon: PiReceiptDuotone, color: 'orange', title, subtitle }, (close) => <ExpenseForm {...p} onDone={close} />, '1000px')
 }
 
-function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundOf?: Expense; onDone: () => void }) {
+// nextDue is an item's payment date after one more period.
+const nextDue = (it: ExpenseItem) => dayjs(it.next_due_date).add(1, it.period === 'year' ? 'year' : 'month').toISOString()
+
+function ExpenseForm({
+    expense,
+    refundOf,
+    itemId,
+    provider,
+    onDone
+}: { expense?: Expense; refundOf?: Expense; onDone: () => void } & ExpensePrefill) {
     const { t } = useTranslation()
     const items = useExpenseItems()
     const all = useExpenses()
@@ -46,9 +63,9 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
     const form = useForm({
         initialValues: {
             date: expense ? dayjs(expense.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-            provider: src?.provider ?? '',
-            provider_uuid: src?.provider_uuid ?? '',
-            expense_item_id: src?.expense_item_id ? String(src.expense_item_id) : null,
+            provider: src?.provider ?? provider?.name ?? '',
+            provider_uuid: src?.provider_uuid ?? provider?.uuid ?? '',
+            expense_item_id: src?.expense_item_id ? String(src.expense_item_id) : itemId ? String(itemId) : null,
             kind: expense?.kind ?? (refundOf ? 'refund' : 'charge'),
             orig_amount: expense?.orig_amount ?? 0,
             orig_currency: src?.orig_currency ?? baseCurrency(),
@@ -56,10 +73,31 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
             fee_percent: src?.fee_percent ?? 0,
             share_percent: src?.share_percent ?? 100,
             refund_of_id: expense?.refund_of_id ?? refundOf?.id ?? null,
-            note: expense?.note ?? ''
+            note: expense?.note ?? '',
+            advance_due: true
         }
     })
     const v = form.values
+    const item = items.data?.items.find((i) => String(i.id) === v.expense_item_id)
+    // paying a dated item can move its next payment date one period on
+    const canAdvance = !expense && v.kind === 'charge' && !!item?.next_due_date
+    // a new expense for an item takes its price, currency and provider
+    const fromItem = (it: ExpenseItem, cur: typeof v) => ({
+        orig_currency: it.currency,
+        fee_percent: it.fee_percent,
+        share_percent: it.share_percent,
+        provider: cur.provider || it.provider,
+        provider_uuid: cur.provider ? cur.provider_uuid : it.provider_uuid,
+        orig_amount: cur.orig_amount || it.amount
+    })
+    const prefilled = useRef(false)
+    useEffect(() => {
+        if (prefilled.current || !itemId || !items.data) return
+        prefilled.current = true
+        const it = items.data.items.find((i) => i.id === itemId)
+        if (it) form.setValues(fromItem(it, form.getValues()))
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [items.data, itemId])
     const rate = useQuery({
         queryKey: ['fx', v.orig_currency, v.date],
         enabled: v.orig_currency !== baseCurrency() && !!v.date,
@@ -84,7 +122,8 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
         const body = {
             ...vals,
             expense_item_id: vals.expense_item_id ? Number(vals.expense_item_id) : null,
-            fx_rate: vals.fx_rate === '' ? null : Number(vals.fx_rate)
+            fx_rate: vals.fx_rate === '' ? null : Number(vals.fx_rate),
+            advance_due: canAdvance && vals.advance_due
         }
         return expense ? api.put(`expenses/${expense.id}`, body) : api.post('expenses', body)
     })
@@ -134,18 +173,16 @@ function ExpenseForm({ expense, refundOf, onDone }: { expense?: Expense; refundO
                             onChange={(val) => {
                                 form.setFieldValue('expense_item_id', val)
                                 const it = items.data?.items.find((i) => String(i.id) === val)
-                                if (it && !expense) {
-                                    form.setValues({
-                                        orig_currency: it.currency,
-                                        fee_percent: it.fee_percent,
-                                        share_percent: it.share_percent,
-                                        provider: v.provider || it.provider,
-                                        provider_uuid: v.provider ? v.provider_uuid : it.provider_uuid,
-                                        orig_amount: v.orig_amount || it.amount
-                                    })
-                                }
+                                if (it && !expense) form.setValues(fromItem(it, v))
                             }}
                         />
+                        {canAdvance && (
+                            <Switch
+                                description={t('expense_modal.advance_due_hint', { from: fmtDate(item!.next_due_date), to: fmtDate(nextDue(item!)) })}
+                                label={t('expense_modal.advance_due')}
+                                {...form.getInputProps('advance_due', { type: 'checkbox' })}
+                            />
+                        )}
                         {v.kind === 'refund' && (
                             <SearchSelect
                                 label={t('expense_modal.refund_of')}

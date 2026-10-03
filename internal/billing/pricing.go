@@ -95,6 +95,8 @@ type PlanItem struct {
 	// subscription: it's never extended past it (see addonSlack).
 	ParentID       int        `json:"parent_id,omitempty"`
 	ParentExpireAt *time.Time `json:"-"`
+	// AutoExtend items get a share of a payment by default.
+	AutoExtend bool `json:"auto_extend"`
 }
 
 // Allocation is how much of a payment goes to one item.

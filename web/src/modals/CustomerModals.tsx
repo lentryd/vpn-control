@@ -10,6 +10,7 @@ import {
     PiUsersThreeDuotone
 } from 'react-icons/pi'
 import { TbUser, TbUserPlus } from 'react-icons/tb'
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
 
 import { api } from '@/api/client'
@@ -19,24 +20,39 @@ import { notifyError, notifyOk } from '@/components/notify'
 import { FieldGroup, FormFooter } from '@shared/ui/forms/form-section'
 
 import { openModal } from './open'
+import { openProvisionModal } from './SubscriptionModals'
 import { SearchSelect } from '@shared/ui/forms/search-select'
 import { CurrencyIcon } from '@shared/currencies'
 import { currencySymbol } from '@/components/format'
 import i18n from '@/app/i18n/i18n'
 import { useTranslation } from 'react-i18next'
 
-export function openCustomerForm(customer?: Customer, onCreated?: (id: number) => void) {
+// openCustomerForm edits a customer or creates one; a new customer can go
+// straight on to a new subscription (provision: false when the caller has
+// its own next step, e.g. linking an existing panel user).
+export function openCustomerForm(customer?: Customer, onCreated?: (id: number) => void, opts: { provision?: boolean } = {}) {
     openModal(
         customer
             ? { icon: TbUser, color: 'brand', title: i18n.t('sub.customer'), subtitle: customer.name }
             : { icon: TbUserPlus, color: 'brand', title: i18n.t('customers.new') },
-        (close) => <CustomerForm customer={customer} onCreated={onCreated} onDone={close} />,
+        (close) => <CustomerForm customer={customer} offerProvision={!customer && opts.provision !== false} onCreated={onCreated} onDone={close} />,
         '560px'
     )
 }
 
-function CustomerForm({ customer, onDone, onCreated }: { customer?: Customer; onDone: () => void; onCreated?: (id: number) => void }) {
+function CustomerForm({
+    customer,
+    offerProvision,
+    onDone,
+    onCreated
+}: {
+    customer?: Customer
+    offerProvision: boolean
+    onDone: () => void
+    onCreated?: (id: number) => void
+}) {
     const { t } = useTranslation()
+    const [provision, setProvision] = useState(true)
     const customers = useCustomers()
     const navigate = useNavigate()
     const form = useForm({
@@ -71,6 +87,7 @@ function CustomerForm({ customer, onDone, onCreated }: { customer?: Customer; on
                         if (!customer && id) {
                             if (onCreated) onCreated(id)
                             else navigate(`/customers/${id}`)
+                            if (offerProvision && provision) openProvisionModal({ id, name: v.name.trim() })
                         }
                     },
                     onError: (e) => notifyError(e)
@@ -126,6 +143,15 @@ function CustomerForm({ customer, onDone, onCreated }: { customer?: Customer; on
                     <Textarea autosize minRows={3} placeholder={t('customers.notes_placeholder')} {...form.getInputProps('notes')} />
                 </FieldGroup>
             </Stack>
+            {offerProvision && (
+                <Switch
+                    checked={provision}
+                    description={t('customers.then_subscription_hint')}
+                    label={t('customers.then_subscription')}
+                    mt="md"
+                    onChange={(e) => setProvision(e.currentTarget.checked)}
+                />
+            )}
             <FormFooter loading={m.isPending} onCancel={onDone} submitLabel={customer ? t('common.save') : t('common.create')} />
         </form>
     )

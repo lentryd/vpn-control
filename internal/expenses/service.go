@@ -56,6 +56,9 @@ type ExpenseInput struct {
 	SharePercent float64
 	RefundOfID   *int
 	Note         string
+	// AdvanceDue moves the item's next payment date one period on: the
+	// expense pays for it (new charges only).
+	AdvanceDue bool
 }
 
 func (s *Service) prepare(ctx context.Context, in *ExpenseInput) (int64, float64, error) {
@@ -107,7 +110,29 @@ func (s *Service) Create(ctx context.Context, in ExpenseInput) (*ent.Expense, er
 		SetRubAmount(rub).SetNillableRefundOfID(in.RefundOfID).SetNote(in.Note).
 		Save(ctx)
 	audit.Log(ctx, s.db, "expense.create", "expense", idOf(e), in, err)
-	return e, err
+	if err != nil {
+		return nil, err
+	}
+	if in.AdvanceDue && in.ItemID != nil && in.Kind == "charge" {
+		if err := s.advanceDue(ctx, *in.ItemID); err != nil {
+			return e, err
+		}
+	}
+	return e, nil
+}
+
+// advanceDue moves an item's next payment date one period on; items
+// without a date (or dated by the panel) are left alone.
+func (s *Service) advanceDue(ctx context.Context, itemID int) error {
+	it, err := s.db.ExpenseItem.Get(ctx, itemID)
+	if err != nil || it.NextDueDate == nil {
+		return err
+	}
+	next := it.NextDueDate.AddDate(0, 1, 0)
+	if it.Period == expenseitem.PeriodYear {
+		next = it.NextDueDate.AddDate(1, 0, 0)
+	}
+	return s.db.ExpenseItem.UpdateOneID(itemID).SetNextDueDate(next).Exec(ctx)
 }
 
 func (s *Service) Update(ctx context.Context, id int, in ExpenseInput) (*ent.Expense, error) {

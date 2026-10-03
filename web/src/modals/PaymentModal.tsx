@@ -1,9 +1,9 @@
-import { Alert, Badge, Button, Group, NumberInput, Paper, SimpleGrid, Stack, Switch, Text, TextInput, ThemeIcon, Autocomplete } from '@mantine/core'
+import { Alert, Badge, Group, Loader, NumberInput, Paper, SimpleGrid, Stack, Switch, Text, TextInput, ThemeIcon, Autocomplete } from '@mantine/core'
 import { DateInput } from '@mantine/dates'
+import { useDebouncedValue } from '@mantine/hooks'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
-    PiArrowLeft,
     PiBank,
-    PiCalculator,
     PiCalendarDuotone,
     PiCalendarPlusDuotone,
     PiCheck,
@@ -14,14 +14,15 @@ import {
     PiNotePencil,
     PiPuzzlePieceDuotone,
     PiTreeStructure,
+    PiUser,
     PiX
 } from 'react-icons/pi'
 import { TbCalendar } from 'react-icons/tb'
 import dayjs from 'dayjs'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { api } from '@/api/client'
-import { useApiMutation } from '@/api/hooks'
+import { useApiMutation, useCustomers } from '@/api/hooks'
 import type { ExtensionResult, PaymentPreview, PlanItem, ReferralInfo } from '@/api/types'
 import { durationLabel, fmtDate, fmtMoney, currencySymbol, dateLayout } from '@/components/format'
 import { notifyError } from '@/components/notify'
@@ -29,6 +30,7 @@ import { periodCost } from '@/components/pricing'
 import { StatStrip } from '@shared/ui/stat-strip'
 import { FormFooter, FormSection, FormStack } from '@shared/ui/forms/form-section'
 import { BaseOverlayHeader } from '@shared/ui/overlays/base-overlay-header'
+import { SearchSelect } from '@shared/ui/forms/search-select'
 
 import { openModal } from './open'
 import { CurrencyIcon } from '@shared/currencies'
@@ -36,8 +38,14 @@ import i18n from '@/app/i18n/i18n'
 import { paymentMethods } from '@/modals/PaymentEditModal'
 import { useTranslation } from 'react-i18next'
 
-export function openPaymentModal(p: { customerId: number; name: string }) {
-    openModal({ icon: PiCreditCardDuotone, color: 'teal', title: i18n.t('payment.title'), subtitle: p.name }, (close) => <PaymentForm customerId={p.customerId} onDone={close} />, 'xl')
+// openPaymentModal records a customer's payment and spreads it over their
+// subscriptions. Without a customer the form starts by picking one.
+export function openPaymentModal(p: { customerId?: number; name?: string } = {}) {
+    openModal(
+        { icon: PiCreditCardDuotone, color: 'teal', title: i18n.t('payment.title'), subtitle: p.name },
+        (close) => <PaymentForm customerId={p.customerId} onDone={close} />,
+        'xl'
+    )
 }
 
 interface Row {
@@ -48,58 +56,54 @@ interface Row {
     amount: number
 }
 
-function PaymentForm({ customerId, onDone }: { customerId: number; onDone: () => void }) {
+function PaymentForm({ customerId: fixedCustomer, onDone }: { customerId?: number; onDone: () => void }) {
     const { t } = useTranslation()
+    const customers = useCustomers(!fixedCustomer)
+    const [picked, setPicked] = useState<string | null>(null)
+    const customerId = fixedCustomer ?? (picked ? Number(picked) : null)
     const [amount, setAmount] = useState<number>(0)
     const [date, setDate] = useState<string | null>(dayjs().format('YYYY-MM-DD'))
     const [method, setMethod] = useState<string>(() => paymentMethods()[0])
     const [note, setNote] = useState('')
     const [toDays, setToDays] = useState(false)
-    const [preview, setPreview] = useState<PaymentPreview | null>(null)
     const [rows, setRows] = useState<Row[]>([])
     const [results, setResults] = useState<{ ext: ExtensionResult[]; balance: number; ref: ReferralInfo | null } | null>(null)
-    const [loading, setLoading] = useState(false)
+    const [debouncedAmount] = useDebouncedValue(amount, 300)
 
-    const loadPreview = async () => {
-        setLoading(true)
-        try {
-            const p = await api.post<PaymentPreview>(`customers/${customerId}/payments/preview`, {
-                amount,
-                remainder_to_days: toDays
-            })
-            setPreview(p)
-            setRows(
-                p.items.map((it) => {
-                    const a = p.allocations.find((x) => x.kind === it.kind && x.id === it.id)
-                    return {
-                        key: `${it.kind}-${it.id}`,
-                        item: it,
-                        months: a?.months ?? 0,
-                        days: a?.days ?? 0,
-                        amount: a?.amount ?? 0
-                    }
+    // The split is recalculated as the amount changes; edits to the rows
+    // hold until the next recalculation.
+    const preview = useQuery({
+        queryKey: ['payment-preview', customerId, debouncedAmount, toDays],
+        queryFn: () => api.post<PaymentPreview>(`customers/${customerId}/payments/preview`, { amount: debouncedAmount, remainder_to_days: toDays }),
+        enabled: !!customerId && debouncedAmount > 0,
+        placeholderData: keepPreviousData,
+        staleTime: Infinity,
+        gcTime: 0
+    })
+    const p = customerId && amount > 0 ? preview.data : undefined
+    useEffect(() => {
+        if (!preview.data) return
+        const d = preview.data
+        setRows(
+            [...d.items]
+                .sort((a, b) => Number(b.auto_extend) - Number(a.auto_extend))
+                .map((it) => {
+                    const a = d.allocations.find((x) => x.kind === it.kind && x.id === it.id)
+                    return { key: `${it.kind}-${it.id}`, item: it, months: a?.months ?? 0, days: a?.days ?? 0, amount: a?.amount ?? 0 }
                 })
-            )
-        } catch (e) {
-            notifyError(e)
-        } finally {
-            setLoading(false)
-        }
-    }
+        )
+    }, [preview.data])
 
     const commit = useApiMutation(() =>
-        api.post<{ extensions: ExtensionResult[]; balance: number; referral: ReferralInfo | null }>(
-            `customers/${customerId}/payments`,
-            {
-                amount,
-                date,
-                method: method ?? '',
-                note,
-                allocations: rows
-                    .filter((r) => r.months + r.days > 0)
-                    .map((r) => ({ kind: r.item.kind, id: r.item.id, months: r.months, days: r.days, amount: r.amount }))
-            }
-        )
+        api.post<{ extensions: ExtensionResult[]; balance: number; referral: ReferralInfo | null }>(`customers/${customerId}/payments`, {
+            amount,
+            date,
+            method: method ?? '',
+            note,
+            allocations: rows
+                .filter((r) => r.months + r.days > 0)
+                .map((r) => ({ kind: r.item.kind, id: r.item.id, months: r.months, days: r.days, amount: r.amount }))
+        })
     )
 
     const update = (key: string, patch: Partial<Row>) =>
@@ -143,131 +147,84 @@ function PaymentForm({ customerId, onDone }: { customerId: number; onDone: () =>
         )
     }
 
-    if (!preview) {
-        return (
-            <FormStack>
-                <FormSection icon={PiCreditCardDuotone} color="teal" title={t('payment.income')} description={t('payment.income_hint')}>
-                    <SimpleGrid cols={{ base: 1, xs: 2 }}>
-                        <NumberInput
-                            label={t('common.amount_in', { currency: currencySymbol() })}
-                            leftSection={<CurrencyIcon size={16} />}
-                            min={0}
-                            decimalScale={2}
-                            value={amount || ''}
-                            onChange={(v) => setAmount(Number(v) || 0)}
-                            data-autofocus
-                        />
-                        <DateInput label={t('customer.col_date')} leftSection={<PiCalendarDuotone size={16} />} value={date} onChange={setDate} valueFormat={dateLayout()} />
-                        <Autocomplete
-                            label={t('payment.method')}
-                            leftSection={<PiBank size={16} />}
-                            data={paymentMethods()}
-                            value={method}
-                            onChange={setMethod}
-                        />
-                        <TextInput label={t('payment.comment')} leftSection={<PiNotePencil size={16} />} value={note} onChange={(e) => setNote(e.currentTarget.value)} />
-                    </SimpleGrid>
-                    <Switch
-                        label={t('payment.rest_to_days')}
-                        description={t('payment.rest_to_days_hint')}
-                        checked={toDays}
-                        onChange={(e) => setToDays(e.currentTarget.checked)}
-                    />
-                </FormSection>
-                <FormFooter
-                    disabled={amount <= 0}
-                    loading={loading}
-                    onCancel={onDone}
-                    onSubmit={loadPreview}
-                    submitIcon={<PiCalculator size={16} />}
-                    submitLabel={t('payment.calculate')}
-                />
-            </FormStack>
-        )
-    }
-
     const allocated = rows.reduce((s, r) => s + r.amount, 0)
-    const rest = Math.round((preview.balance_after_payment - allocated) * 100) / 100
+    const rest = p ? Math.round((p.balance_after_payment - allocated) * 100) / 100 : 0
+    // the shown split must match the amount being recorded
+    const settled = !!p && debouncedAmount === amount && !preview.isFetching
 
     return (
         <FormStack>
-            <StatStrip
-                items={[
-                    { label: t('payment.balance_before'), value: fmtMoney(preview.balance_before, 2) },
-                    { label: t('payment.after_payment'), value: fmtMoney(preview.balance_after_payment, 2), color: 'teal' },
-                    { label: t('payment.remains'), value: fmtMoney(rest, 2), color: rest < 0 ? 'red' : undefined }
-                ]}
-            />
-            {preview.referral && (
-                <Badge color="grape" leftSection={<PiTreeStructure size={14} />} size="lg" variant="soft">
-                    {t('payment.ref_preview', { name: preview.referral.referrer_name, amount: fmtMoney(preview.referral.amount, 2), pct: preview.referral.percent })}
-                </Badge>
-            )}
-            <FormSection icon={PiCalendarPlusDuotone} color="teal" title={t('sub.renewal')} description={t('payment.renewal_hint')}>
-                {rows.length === 0 && (
-                    <Alert color="yellow" variant="soft">
-                        {t('payment.no_items')}
-                    </Alert>
+            <FormSection icon={PiCreditCardDuotone} color="teal" title={t('payment.income')} description={t('payment.income_hint')}>
+                {!fixedCustomer && (
+                    <SearchSelect
+                        data={(customers.data ?? []).filter((c) => !c.archived).map((c) => ({ value: String(c.id), label: c.name }))}
+                        data-autofocus
+                        label={t('sub.customer')}
+                        leftSection={<PiUser size={16} />}
+                        onChange={setPicked}
+                        placeholder={t('payment.pick_customer')}
+                        value={picked}
+                    />
                 )}
-                {rows.map((r) => {
-                    const base = r.item.expire_at && dayjs(r.item.expire_at).isAfter(dayjs()) ? dayjs(r.item.expire_at) : dayjs()
-                    const active = r.months + r.days > 0
-                    return (
-                        <Paper bd="1px solid var(--app-border)" bg="var(--app-surface-2)" key={r.key} p="sm" radius="md">
-                            <Stack gap="xs">
-                                <Group justify="space-between" wrap="nowrap">
-                                    <BaseOverlayHeader
-                                        iconColor={r.item.kind === 'addon' ? 'grape' : 'brand'}
-                                        IconComponent={r.item.kind === 'addon' ? PiPuzzlePieceDuotone : PiHexagonDuotone}
-                                        subtitle={t('payment.item_subtitle', { monthly: fmtMoney(r.item.monthly), date: fmtDate(r.item.expire_at) })}
-                                        title={r.item.title}
-                                        titleOrder={6}
-                                    />
-                                    <Badge color={active ? 'teal' : 'gray'} leftSection={<TbCalendar size={14} />} size="lg" variant="soft">
-                                        {active ? fmtDate(base.add(r.months, 'month').add(r.days, 'day').toISOString()) : t('payment.no_extension')}
-                                    </Badge>
-                                </Group>
-                                <SimpleGrid cols={3} spacing="xs">
-                                    <NumberInput
-                                        label={t('tariffs.months')}
-                                        leftSection={<PiCalendarDuotone size={14} />}
-                                        min={0}
-                                        max={36}
-                                        size="xs"
-                                        value={r.months}
-                                        onChange={(v) => update(r.key, { months: Number(v) || 0 })}
-                                    />
-                                    <NumberInput
-                                        label={t('tariffs.days')}
-                                        leftSection={<PiClockDuotone size={14} />}
-                                        min={0}
-                                        max={365}
-                                        size="xs"
-                                        value={r.days}
-                                        onChange={(v) => update(r.key, { days: Number(v) || 0 })}
-                                    />
-                                    <NumberInput
-                                        label={t('common.amount_in', { currency: currencySymbol() })}
-                                        leftSection={<CurrencyIcon size={14} />}
-                                        min={0}
-                                        decimalScale={2}
-                                        size="xs"
-                                        value={r.amount}
-                                        onChange={(v) => update(r.key, { amount: Number(v) || 0 })}
-                                    />
-                                </SimpleGrid>
-                            </Stack>
-                        </Paper>
-                    )
-                })}
-                {rest < 0 && (
-                    <Alert color="orange" variant="soft">
-                        {t('payment.debt_warning', { amount: fmtMoney(-rest, 2) })}
-                    </Alert>
-                )}
+                <SimpleGrid cols={{ base: 1, xs: 2 }}>
+                    <NumberInput
+                        label={t('common.amount_in', { currency: currencySymbol() })}
+                        leftSection={<CurrencyIcon size={16} />}
+                        rightSection={preview.isFetching ? <Loader size={14} /> : undefined}
+                        min={0}
+                        decimalScale={2}
+                        value={amount || ''}
+                        onChange={(v) => setAmount(Number(v) || 0)}
+                        data-autofocus={fixedCustomer ? true : undefined}
+                    />
+                    <DateInput label={t('customer.col_date')} leftSection={<PiCalendarDuotone size={16} />} value={date} onChange={setDate} valueFormat={dateLayout()} />
+                    <Autocomplete label={t('payment.method')} leftSection={<PiBank size={16} />} data={paymentMethods()} value={method} onChange={setMethod} />
+                    <TextInput label={t('payment.comment')} leftSection={<PiNotePencil size={16} />} value={note} onChange={(e) => setNote(e.currentTarget.value)} />
+                </SimpleGrid>
+                <Switch
+                    label={t('payment.rest_to_days')}
+                    description={t('payment.rest_to_days_hint')}
+                    checked={toDays}
+                    onChange={(e) => setToDays(e.currentTarget.checked)}
+                />
             </FormSection>
+
+            {p && (
+                <>
+                    <StatStrip
+                        items={[
+                            { label: t('payment.balance_before'), value: fmtMoney(p.balance_before, 2) },
+                            { label: t('payment.after_payment'), value: fmtMoney(p.balance_after_payment, 2), color: 'teal' },
+                            { label: t('payment.remains'), value: fmtMoney(rest, 2), color: rest < 0 ? 'red' : undefined }
+                        ]}
+                    />
+                    {p.referral && (
+                        <Badge color="grape" leftSection={<PiTreeStructure size={14} />} size="lg" variant="soft">
+                            {t('payment.ref_preview', { name: p.referral.referrer_name, amount: fmtMoney(p.referral.amount, 2), pct: p.referral.percent })}
+                        </Badge>
+                    )}
+                    <FormSection icon={PiCalendarPlusDuotone} color="teal" title={t('sub.renewal')} description={t('payment.renewal_hint')}>
+                        {rows.length === 0 && (
+                            <Alert color="yellow" variant="soft">
+                                {t('payment.no_items')}
+                            </Alert>
+                        )}
+                        {rows.map((r) => (
+                            <AllocationRow key={r.key} onChange={(patch) => update(r.key, patch)} row={r} />
+                        ))}
+                        {rest < 0 && (
+                            <Alert color="orange" variant="soft">
+                                {t('payment.debt_warning', { amount: fmtMoney(-rest, 2) })}
+                            </Alert>
+                        )}
+                    </FormSection>
+                </>
+            )}
+
             <FormFooter
+                disabled={!customerId || amount <= 0 || !date || !settled}
                 loading={commit.isPending}
+                onCancel={onDone}
                 onSubmit={() =>
                     commit.mutate(undefined, {
                         onSuccess: (r) => setResults({ ext: r.extensions, balance: r.balance, ref: r.referral }),
@@ -276,11 +233,67 @@ function PaymentForm({ customerId, onDone }: { customerId: number; onDone: () =>
                 }
                 submitIcon={<PiCheck size={16} />}
                 submitLabel={t('payment.commit')}
-            >
-                <Button color="gray" leftSection={<PiArrowLeft size={16} />} mr="auto" onClick={() => setPreview(null)} size="md" variant="subtle">
-                    {t('payment.back')}
-                </Button>
-            </FormFooter>
+            />
         </FormStack>
+    )
+}
+
+function AllocationRow({ row: r, onChange }: { row: Row; onChange: (patch: Partial<Row>) => void }) {
+    const { t } = useTranslation()
+    const base = r.item.expire_at && dayjs(r.item.expire_at).isAfter(dayjs()) ? dayjs(r.item.expire_at) : dayjs()
+    const active = r.months + r.days > 0
+    return (
+        <Paper bd="1px solid var(--app-border)" bg="var(--app-surface-2)" p="sm" radius="md" style={{ opacity: active || r.item.auto_extend ? 1 : 0.75 }}>
+            <Stack gap="xs">
+                <Group justify="space-between" wrap="nowrap">
+                    <BaseOverlayHeader
+                        iconColor={r.item.kind === 'addon' ? 'grape' : 'brand'}
+                        IconComponent={r.item.kind === 'addon' ? PiPuzzlePieceDuotone : PiHexagonDuotone}
+                        subtitle={t('payment.item_subtitle', { monthly: fmtMoney(r.item.monthly), date: fmtDate(r.item.expire_at) })}
+                        title={r.item.title}
+                        titleOrder={6}
+                    />
+                    <Group gap={6} wrap="nowrap">
+                        {!r.item.auto_extend && (
+                            <Badge color="gray" size="sm" variant="soft">
+                                {t('payment.manual')}
+                            </Badge>
+                        )}
+                        <Badge color={active ? 'teal' : 'gray'} leftSection={<TbCalendar size={14} />} size="lg" variant="soft">
+                            {active ? fmtDate(base.add(r.months, 'month').add(r.days, 'day').toISOString()) : t('payment.no_extension')}
+                        </Badge>
+                    </Group>
+                </Group>
+                <SimpleGrid cols={3} spacing="xs">
+                    <NumberInput
+                        label={t('tariffs.months')}
+                        leftSection={<PiCalendarDuotone size={14} />}
+                        min={0}
+                        max={36}
+                        size="xs"
+                        value={r.months}
+                        onChange={(v) => onChange({ months: Number(v) || 0 })}
+                    />
+                    <NumberInput
+                        label={t('tariffs.days')}
+                        leftSection={<PiClockDuotone size={14} />}
+                        min={0}
+                        max={365}
+                        size="xs"
+                        value={r.days}
+                        onChange={(v) => onChange({ days: Number(v) || 0 })}
+                    />
+                    <NumberInput
+                        label={t('common.amount_in', { currency: currencySymbol() })}
+                        leftSection={<CurrencyIcon size={14} />}
+                        min={0}
+                        decimalScale={2}
+                        size="xs"
+                        value={r.amount}
+                        onChange={(v) => onChange({ amount: Number(v) || 0 })}
+                    />
+                </SimpleGrid>
+            </Stack>
+        </Paper>
     )
 }

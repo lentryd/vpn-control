@@ -202,14 +202,15 @@ func SubscriptionTitle(sub *ent.Subscription) string {
 	return fmt.Sprintf("#%d", sub.ID)
 }
 
-// planItems lists a customer's auto-extended, linked, paid items.
+// planItems lists a customer's linked, paid items; AutoExtend marks the
+// ones a payment is spread over by default.
 func (s *Service) planItems(ctx context.Context, customerID int) ([]PlanItem, error) {
 	subs, err := s.db.Subscription.Query().
-		Where(subscription.CustomerID(customerID), subscription.AutoExtend(true), subscription.RwUserIDNotNil()).
+		Where(subscription.CustomerID(customerID), subscription.RwUserIDNotNil()).
 		WithTariff(func(q *ent.TariffQuery) { q.WithPeriods() }).
 		WithRwUser().WithCustomer().
 		WithAddons(func(q *ent.SubscriptionAddonQuery) {
-			q.Where(subscriptionaddon.AutoExtend(true), subscriptionaddon.RwUserIDNotNil()).
+			q.Where(subscriptionaddon.RwUserIDNotNil()).
 				WithTariff(func(q *ent.TariffQuery) { q.WithPeriods() }).
 				WithRwUser().WithAddon()
 		}).
@@ -221,6 +222,7 @@ func (s *Service) planItems(ctx context.Context, customerID int) ([]PlanItem, er
 	var items []PlanItem
 	for _, sub := range subs {
 		if it := toPlanItem(subTarget(sub)); !Unlimited(it.ExpireAt) {
+			it.AutoExtend = sub.AutoExtend
 			items = append(items, it)
 		}
 		var subExpire *time.Time
@@ -237,6 +239,7 @@ func (s *Service) planItems(ctx context.Context, customerID int) ([]PlanItem, er
 				continue
 			}
 			it.ParentID, it.ParentExpireAt = sub.ID, subExpire
+			it.AutoExtend = sa.AutoExtend
 			items = append(items, it)
 		}
 	}
@@ -296,7 +299,15 @@ func (s *Service) PreviewPayment(ctx context.Context, customerID int, amount int
 	if err != nil {
 		return nil, err
 	}
-	alloc, rest := Plan(bal+amount, items, s.now(), remainderToDays)
+	// The money is spread over auto-extended items only; the rest are listed
+	// for a manual pick.
+	var auto []PlanItem
+	for _, it := range items {
+		if it.AutoExtend {
+			auto = append(auto, it)
+		}
+	}
+	alloc, rest := Plan(bal+amount, auto, s.now(), remainderToDays)
 	ref, err := s.referralFor(ctx, c, amount)
 	if err != nil {
 		return nil, err
@@ -435,12 +446,13 @@ func (s *Service) Extend(ctx context.Context, in ExtendInput) (*ExtensionResult,
 // ExtendQuote is the default price of an extension plus what the form
 // needs around it: the term's dates, the tariff's prices and the balance.
 type ExtendQuote struct {
-	Amount  int64
-	From    time.Time
-	To      time.Time
-	Monthly int64
-	Periods []Period
-	Balance int64
+	CustomerID int
+	Amount     int64
+	From       time.Time
+	To         time.Time
+	Monthly    int64
+	Periods    []Period
+	Balance    int64
 }
 
 // QuoteExtend is the default price of extending a target by months+days.
@@ -458,8 +470,9 @@ func (s *Service) QuoteExtend(ctx context.Context, kind string, id, months, days
 	}
 	from := ExtendFrom(s.now(), t.expireAt)
 	return &ExtendQuote{
-		Amount: TermCost(t.monthly, t.periods, months, days),
-		From:   from, To: from.AddDate(0, months, days),
+		CustomerID: t.customerID,
+		Amount:     TermCost(t.monthly, t.periods, months, days),
+		From:       from, To: from.AddDate(0, months, days),
 		Monthly: t.monthly, Periods: t.periods, Balance: bal,
 	}, nil
 }

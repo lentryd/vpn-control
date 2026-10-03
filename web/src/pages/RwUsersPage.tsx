@@ -124,7 +124,7 @@ function LinkMenu({ user }: { user: RwUserRow }) {
                 </Menu.Item>
                 <Menu.Item
                     leftSection={<PiUserPlus size={15} />}
-                    onClick={() => openCustomerForm(undefined, (id) => openSubscriptionForm({ customerId: id, rwUserId: user.id }))}
+                    onClick={() => openCustomerForm(undefined, (id) => openSubscriptionForm({ customerId: id, rwUserId: user.id }), { provision: false })}
                 >
                     {t('customers.new')}
                 </Menu.Item>

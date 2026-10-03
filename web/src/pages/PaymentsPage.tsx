@@ -1,11 +1,13 @@
+import { Button } from '@mantine/core'
 import dayjs from 'dayjs'
-import { PiCreditCardDuotone } from 'react-icons/pi'
+import { PiCreditCardDuotone, PiPlus } from 'react-icons/pi'
 import { useMemo } from 'react'
 
 import { usePayments } from '@/api/hooks'
 import { fmtMoney } from '@/components/format'
 import { paymentColumns, paymentTableProps } from '@/components/PaymentTable'
 import { PageHeader } from '@/components/ui'
+import { openPaymentModal } from '@/modals/PaymentModal'
 import { StatStrip } from '@shared/ui/stat-strip'
 import { Page } from '@shared/ui/page'
 import { DataTableCard } from '@shared/ui/table'
@@ -27,6 +29,11 @@ export function PaymentsPage() {
     return (
         <Page title={t('menu.payments')}>
             <PageHeader
+                actions={
+                    <Button leftSection={<PiPlus size={16} />} onClick={() => openPaymentModal()} variant="filled">
+                        {t('customer.record_payment')}
+                    </Button>
+                }
                 description={t('payments.description')}
                 icon={<PiCreditCardDuotone size={24} />}
                 title={t('menu.payments')}
