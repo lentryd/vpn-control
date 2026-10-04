@@ -16,8 +16,8 @@ import (
 	"vpn-control/ent"
 	"vpn-control/ent/apitoken"
 	"vpn-control/ent/ledgerentry"
-	"vpn-control/ent/referralaccrual"
 	"vpn-control/ent/migrate"
+	"vpn-control/ent/referralaccrual"
 )
 
 func init() {

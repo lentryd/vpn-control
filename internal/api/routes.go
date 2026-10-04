@@ -1,8 +1,12 @@
 package api
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 
+	"vpn-control/internal/api/handlers"
 	appmiddleware "vpn-control/internal/api/middleware"
 	"vpn-control/web"
 )
@@ -21,12 +25,7 @@ func RegisterRoutes(app *fiber.App, deps *Deps) {
 
 	// Public API for other services, authorized by API tokens. Registered
 	// before the session group, whose middleware covers all of /api.
-	token := func(scope string) fiber.Handler { return appmiddleware.RequireToken(h.DB, scope) }
-	v1 := api.Group("/v1")
-	v1.Get("/addons", token(appmiddleware.ScopeAddonsList), h.PublicAddons)
-	v1.Get("/backups", token(appmiddleware.ScopeBackupsList), h.ListSnapshots)
-	v1.Get("/backups/:name", token(appmiddleware.ScopeBackupsDownload), h.DownloadSnapshot)
-	v1.Post("/backups", token(appmiddleware.ScopeBackupsCreate), h.CreateAndSendSnapshot)
+	registerPublic(api.Group("/v1"), h)
 
 	a := api.Group("", appmiddleware.RequireSession(h.Config.JWTSecret))
 	a.Get("/auth/me", h.Me)
@@ -131,4 +130,95 @@ func RegisterRoutes(app *fiber.App, deps *Deps) {
 		panic(err)
 	}
 	app.Use(static)
+}
+
+// registerPublic wires every endpoint of the token scope catalog to the
+// handler serving it; the admin handlers are reused as they are.
+func registerPublic(v1 fiber.Router, h *handlers.Handlers) {
+	byKey := map[string]fiber.Handler{
+		"customers:list":            h.ListCustomers,
+		"customers:get":             h.GetCustomer,
+		"customers:create":          h.CreateCustomer,
+		"customers:update":          h.UpdateCustomer,
+		"customers:delete":          h.DeleteCustomer,
+		"customers:payment_preview": h.PreviewPayment,
+		"customers:pay":             h.CommitPayment,
+		"customers:adjust":          h.AdjustBalance,
+
+		"payments:list":   h.ListPayments,
+		"payments:update": h.UpdatePayment,
+		"payments:delete": h.DeletePayment,
+
+		"subscriptions:list":          h.ListSubscriptions,
+		"subscriptions:create":        h.CreateSubscription,
+		"subscriptions:provision":     h.ProvisionSubscription,
+		"subscriptions:update":        h.UpdateSubscription,
+		"subscriptions:delete":        h.DeleteSubscription,
+		"subscriptions:connect_addon": h.ConnectAddon,
+		"subscriptions:update_addon":  h.UpdateSubscriptionAddon,
+		"subscriptions:delete_addon":  h.DeleteSubscriptionAddon,
+
+		"items:quote":        h.QuoteExtend,
+		"items:extend":       h.Extend,
+		"items:tariff_quote": h.QuoteTariff,
+		"items:tariff":       h.ChangeTariff,
+		"items:enable":       h.SetEnabled(true),
+		"items:disable":      h.SetEnabled(false),
+
+		"tariffs:list":          h.ListTariffs,
+		"tariffs:create":        h.CreateTariff,
+		"tariffs:update":        h.UpdateTariff,
+		"tariffs:delete":        h.DeleteTariff,
+		"tariffs:sync_included": h.SyncIncluded,
+
+		"addons:list":   h.PublicAddons,
+		"addons:full":   h.ListAddons,
+		"addons:create": h.CreateAddon,
+		"addons:update": h.UpdateAddon,
+		"addons:delete": h.DeleteAddon,
+
+		"referrals:tree":     h.ReferralTree,
+		"referrals:accruals": h.ListAccruals,
+
+		"expenses:list":              h.ListExpenses,
+		"expenses:create":            h.CreateExpense,
+		"expenses:update":            h.UpdateExpense,
+		"expenses:delete":            h.DeleteExpense,
+		"expenses:providers":         h.ProviderReport,
+		"expenses:items":             h.ListExpenseItems,
+		"expenses:item_create":       h.CreateExpenseItem,
+		"expenses:item_update":       h.UpdateExpenseItem,
+		"expenses:item_delete":       h.DeleteExpenseItem,
+		"expenses:item_metered":      h.MeteredSummary,
+		"expenses:item_close_period": h.ClosePeriod,
+		"expenses:traffic_sync":      h.SyncTraffic,
+
+		"remnawave:users":       h.ListRwUsers,
+		"remnawave:squads":      h.ListSquads,
+		"remnawave:nodes":       h.ListNodes,
+		"remnawave:infra":       h.ListInfra,
+		"remnawave:sync_status": h.SyncStatus,
+		"remnawave:sync":        h.SyncNow,
+
+		"stats:dashboard": h.Dashboard,
+		"stats:fx_rate":   h.FxRate,
+		"stats:settings":  h.GetSettings,
+		"stats:audit":     h.ListAudit,
+
+		"backups:list":     h.ListSnapshots,
+		"backups:download": h.DownloadSnapshot,
+		"backups:create":   h.CreateAndSendSnapshot,
+	}
+	for _, r := range appmiddleware.ScopeCatalog {
+		for _, ep := range r.Endpoints {
+			handler, ok := byKey[ep.Key]
+			if !ok {
+				panic(fmt.Sprintf("public API: no handler for %s", ep.Key))
+			}
+			// "/api/v1/customers/{id}" -> "/customers/:id"
+			path := strings.TrimPrefix(ep.Path, "/api/v1")
+			path = strings.NewReplacer("{", ":", "}", "").Replace(path)
+			v1.Add(ep.Method, path, appmiddleware.RequireToken(h.DB, ep.Key), handler)
+		}
+	}
 }

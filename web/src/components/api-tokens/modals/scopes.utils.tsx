@@ -1,6 +1,6 @@
 // Adapted from remnawave/frontend (AGPL-3.0): api-tokens-card/modals/scopes.utils
 import { createElement, ReactNode } from 'react'
-import { TbApi, TbDatabase, TbPuzzle } from 'react-icons/tb'
+import { TbAffiliate, TbApi, TbChartBar, TbCreditCard, TbDatabase, TbPackage, TbPuzzle, TbReceipt, TbRefresh, TbServer, TbTag, TbUsers } from 'react-icons/tb'
 
 export interface ScopeEndpoint {
     key: string
@@ -18,7 +18,16 @@ export interface ScopeResource {
 export type KindState = 'none' | 'off' | 'on' | 'partial'
 
 const RESOURCE_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
+    customers: TbUsers,
+    payments: TbCreditCard,
+    subscriptions: TbPackage,
+    items: TbRefresh,
+    tariffs: TbTag,
     addons: TbPuzzle,
+    referrals: TbAffiliate,
+    expenses: TbReceipt,
+    remnawave: TbServer,
+    stats: TbChartBar,
     backups: TbDatabase
 }
 

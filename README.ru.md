@@ -174,7 +174,7 @@ docker compose pull && docker compose up -d
 
 Базовый тариф может **включать аддоны** — выберите у тарифа их тарифы аддонов. При изменении списка его можно сразу применить к текущим подписчикам, иначе он применится при следующей смене тарифа. Если подписка переходит на тариф без какого-то из включённых аддонов, вы выбираете: отключить его или оставить платным.
 
-Другие сервисы могут читать каталог. Создайте токен в **Настройки → API-токены** — как в панели: название, срок действия в днях и права по ресурсам (Read/Write или отдельные эндпоинты; пресеты: только чтение, полный доступ, subpage). Токен показывается один раз, хранится только его хеш. Затем обращайтесь к API:
+Публичный API покрывает всё, что умеет интерфейс: клиенты, платежи и баланс, подписки и аддоны, продления и смена тарифа, тарифы, рефералы, расходы, данные Remnawave и статистика — на его основе можно делать ботов и другие интеграции. Создайте токен в **Настройки → API-токены** — как в панели: название, срок действия в днях и права по ресурсам (Read/Write или отдельные эндпоинты; пресеты: только чтение, полный доступ, subpage). Токен показывается один раз, хранится только его хеш. Затем обращайтесь к API:
 
 ```bash
 curl -H "Authorization: Bearer vpc_…" https://control.example.com/api/v1/addons              # JSON
@@ -183,12 +183,72 @@ curl -H "Authorization: Bearer vpc_…" "https://control.example.com/api/v1/addo
 
 | Эндпоинт | Ключ эндпоинта | |
 |---|---|---|
+| `GET /api/v1/customers` | `customers:list` | Список клиентов |
+| `GET /api/v1/customers/{id}` | `customers:get` | Клиент: баланс, история, подписки и платежи |
+| `POST /api/v1/customers` | `customers:create` | Создать клиента |
+| `PUT /api/v1/customers/{id}` | `customers:update` | Изменить клиента |
+| `DELETE /api/v1/customers/{id}` | `customers:delete` | Удалить (архивировать) клиента |
+| `POST /api/v1/customers/{id}/payments/preview` | `customers:payment_preview` | Предпросмотр платежа: разбивка, реферал, итоговый баланс |
+| `POST /api/v1/customers/{id}/payments` | `customers:pay` | Записать платёж (на баланс и/или продления) |
+| `POST /api/v1/customers/{id}/adjust` | `customers:adjust` | Скорректировать баланс |
+| `GET /api/v1/payments` | `payments:list` | Список платежей |
+| `PUT /api/v1/payments/{id}` | `payments:update` | Изменить платёж |
+| `DELETE /api/v1/payments/{id}` | `payments:delete` | Удалить платёж |
+| `GET /api/v1/subscriptions` | `subscriptions:list` | Список подписок |
+| `POST /api/v1/subscriptions` | `subscriptions:create` | Привязать пользователя Remnawave как подписку |
+| `POST /api/v1/subscriptions/provision` | `subscriptions:provision` | Создать пользователя в Remnawave и подписку |
+| `PUT /api/v1/subscriptions/{id}` | `subscriptions:update` | Изменить подписку |
+| `DELETE /api/v1/subscriptions/{id}` | `subscriptions:delete` | Отвязать подписку |
+| `POST /api/v1/subscriptions/{id}/addons` | `subscriptions:connect_addon` | Подключить аддон |
+| `PUT /api/v1/subscription-addons/{id}` | `subscriptions:update_addon` | Изменить подключённый аддон |
+| `DELETE /api/v1/subscription-addons/{id}` | `subscriptions:delete_addon` | Отвязать подключённый аддон |
+| `GET /api/v1/items/{kind}/{id}/quote` | `items:quote` | Расчёт продления (kind: subscription | addon) |
+| `POST /api/v1/items/{kind}/{id}/extend` | `items:extend` | Продлить с баланса |
+| `GET /api/v1/items/{kind}/{id}/tariff-quote` | `items:tariff_quote` | Расчёт смены тарифа |
+| `POST /api/v1/items/{kind}/{id}/tariff` | `items:tariff` | Сменить тариф |
+| `POST /api/v1/items/{kind}/{id}/enable` | `items:enable` | Включить в Remnawave |
+| `POST /api/v1/items/{kind}/{id}/disable` | `items:disable` | Отключить в Remnawave |
+| `GET /api/v1/tariffs` | `tariffs:list` | Список тарифов |
+| `POST /api/v1/tariffs` | `tariffs:create` | Создать тариф |
+| `PUT /api/v1/tariffs/{id}` | `tariffs:update` | Изменить тариф |
+| `DELETE /api/v1/tariffs/{id}` | `tariffs:delete` | Удалить тариф |
+| `POST /api/v1/tariffs/{id}/sync-included` | `tariffs:sync_included` | Синхронизировать включённые аддоны в подписках |
 | `GET /api/v1/addons` | `addons:list` | Каталог аддонов; `?format=yaml` отдаёт файл в формате subpage |
+| `GET /api/v1/addons/full` | `addons:full` | Аддоны со всеми полями |
+| `POST /api/v1/addons` | `addons:create` | Создать аддон |
+| `PUT /api/v1/addons/{id}` | `addons:update` | Изменить аддон |
+| `DELETE /api/v1/addons/{id}` | `addons:delete` | Удалить аддон |
+| `GET /api/v1/referrals/tree` | `referrals:tree` | Дерево рефералов |
+| `GET /api/v1/referrals/accruals` | `referrals:accruals` | Реферальные начисления |
+| `GET /api/v1/expenses` | `expenses:list` | Список расходов |
+| `POST /api/v1/expenses` | `expenses:create` | Создать расход |
+| `PUT /api/v1/expenses/{id}` | `expenses:update` | Изменить расход |
+| `DELETE /api/v1/expenses/{id}` | `expenses:delete` | Удалить расход |
+| `GET /api/v1/expenses/providers` | `expenses:providers` | Траты по провайдерам |
+| `GET /api/v1/expense-items` | `expenses:items` | Статьи расходов |
+| `POST /api/v1/expense-items` | `expenses:item_create` | Создать статью |
+| `PUT /api/v1/expense-items/{id}` | `expenses:item_update` | Изменить статью |
+| `DELETE /api/v1/expense-items/{id}` | `expenses:item_delete` | Удалить статью |
+| `GET /api/v1/expense-items/{id}/metered` | `expenses:item_metered` | Потребление по статье |
+| `POST /api/v1/expense-items/{id}/close-period` | `expenses:item_close_period` | Закрыть период |
+| `POST /api/v1/traffic/sync` | `expenses:traffic_sync` | Синхронизировать трафик |
+| `GET /api/v1/rw/users` | `remnawave:users` | Пользователи Remnawave |
+| `GET /api/v1/rw/squads` | `remnawave:squads` | Сквады |
+| `GET /api/v1/rw/nodes` | `remnawave:nodes` | Ноды |
+| `GET /api/v1/rw/infra` | `remnawave:infra` | Инфраструктура |
+| `GET /api/v1/rw/sync` | `remnawave:sync_status` | Статус синхронизации |
+| `POST /api/v1/rw/sync` | `remnawave:sync` | Синхронизировать сейчас |
+| `GET /api/v1/dashboard` | `stats:dashboard` | Показатели дашборда |
+| `GET /api/v1/fx/rate` | `stats:fx_rate` | Курс валют |
+| `GET /api/v1/settings` | `stats:settings` | Настройки (только чтение) |
+| `GET /api/v1/audit` | `stats:audit` | Журнал действий |
 | `GET /api/v1/backups` | `backups:list` | Список снапшотов |
 | `GET /api/v1/backups/{name}` | `backups:download` | Скачать снапшот |
-| `POST /api/v1/backups` | `backups:create` | Сделать снапшот и сразу получить его в ответе |
+| `POST /api/v1/backups` | `backups:create` | Сделать снапшот и сразу скачать его |
 
 Права записываются как в панели: `*`, `<ресурс>:*`, `<ресурс>:read`, `<ресурс>:write` или ключ эндпоинта из таблицы.
+
+Запросы и ответы — тот же JSON, что использует интерфейс (суммы в основных единицах валюты). Ошибки приходят как `{"message", "code", "params"}`; без токена или с истёкшим — `401`, без нужного права — `403`. Действия через токен попадают в журнал как `token:<название>`.
 
 ## Резервные копии
 

@@ -174,7 +174,7 @@ Add-ons come from two sources:
 
 A base tariff can **include add-ons**: pick their add-on tariffs on the tariff. When you change the list, you can apply it to current subscribers right away. Otherwise it applies on their next tariff change. When a subscription moves to a tariff without one of its included add-ons, you choose whether to disable the add-on or keep it as a paid one.
 
-Other services can read the catalog. Create a token in **Settings → API tokens**, as in the panel: a name, an expiry in days and scopes per resource (Read/Write or single endpoints; presets: read only, full access, subpage). A token is shown once, and only a hash of it is stored. Then call the API:
+The public API covers everything the UI does — customers, payments and balance, subscriptions and add-ons, extensions and tariff changes, tariffs, referrals, expenses, Remnawave data and stats — so you can build bots and other integrations on it. Create a token in **Settings → API tokens**, as in the panel: a name, an expiry in days and scopes per resource (Read/Write or single endpoints; presets: read only, full access, subpage). A token is shown once, and only a hash of it is stored. Then call the API:
 
 ```bash
 curl -H "Authorization: Bearer vpc_…" https://control.example.com/api/v1/addons              # JSON
@@ -183,12 +183,72 @@ curl -H "Authorization: Bearer vpc_…" "https://control.example.com/api/v1/addo
 
 | Endpoint | Endpoint key | |
 |---|---|---|
+| `GET /api/v1/customers` | `customers:list` | List customers |
+| `GET /api/v1/customers/{id}` | `customers:get` | Customer with balance, ledger, subscriptions and payments |
+| `POST /api/v1/customers` | `customers:create` | Create a customer |
+| `PUT /api/v1/customers/{id}` | `customers:update` | Update a customer |
+| `DELETE /api/v1/customers/{id}` | `customers:delete` | Delete (archive) a customer |
+| `POST /api/v1/customers/{id}/payments/preview` | `customers:payment_preview` | Preview a payment: split, referral, resulting balance |
+| `POST /api/v1/customers/{id}/payments` | `customers:pay` | Record a payment (to balance and/or extensions) |
+| `POST /api/v1/customers/{id}/adjust` | `customers:adjust` | Adjust the balance |
+| `GET /api/v1/payments` | `payments:list` | List payments |
+| `PUT /api/v1/payments/{id}` | `payments:update` | Update a payment |
+| `DELETE /api/v1/payments/{id}` | `payments:delete` | Delete a payment |
+| `GET /api/v1/subscriptions` | `subscriptions:list` | List subscriptions |
+| `POST /api/v1/subscriptions` | `subscriptions:create` | Link a Remnawave user as a subscription |
+| `POST /api/v1/subscriptions/provision` | `subscriptions:provision` | Create a Remnawave user and its subscription |
+| `PUT /api/v1/subscriptions/{id}` | `subscriptions:update` | Update a subscription |
+| `DELETE /api/v1/subscriptions/{id}` | `subscriptions:delete` | Unlink a subscription |
+| `POST /api/v1/subscriptions/{id}/addons` | `subscriptions:connect_addon` | Connect an add-on |
+| `PUT /api/v1/subscription-addons/{id}` | `subscriptions:update_addon` | Update a connected add-on |
+| `DELETE /api/v1/subscription-addons/{id}` | `subscriptions:delete_addon` | Unlink a connected add-on |
+| `GET /api/v1/items/{kind}/{id}/quote` | `items:quote` | Quote an extension (kind: subscription | addon) |
+| `POST /api/v1/items/{kind}/{id}/extend` | `items:extend` | Extend from the balance |
+| `GET /api/v1/items/{kind}/{id}/tariff-quote` | `items:tariff_quote` | Quote a tariff change |
+| `POST /api/v1/items/{kind}/{id}/tariff` | `items:tariff` | Change the tariff |
+| `POST /api/v1/items/{kind}/{id}/enable` | `items:enable` | Enable in Remnawave |
+| `POST /api/v1/items/{kind}/{id}/disable` | `items:disable` | Disable in Remnawave |
+| `GET /api/v1/tariffs` | `tariffs:list` | List tariffs |
+| `POST /api/v1/tariffs` | `tariffs:create` | Create a tariff |
+| `PUT /api/v1/tariffs/{id}` | `tariffs:update` | Update a tariff |
+| `DELETE /api/v1/tariffs/{id}` | `tariffs:delete` | Delete a tariff |
+| `POST /api/v1/tariffs/{id}/sync-included` | `tariffs:sync_included` | Sync included add-ons to subscriptions |
 | `GET /api/v1/addons` | `addons:list` | The add-on catalog; `?format=yaml` returns subpage's file format |
-| `GET /api/v1/backups` | `backups:list` | List of snapshots |
+| `GET /api/v1/addons/full` | `addons:full` | Add-ons with all fields |
+| `POST /api/v1/addons` | `addons:create` | Create an add-on |
+| `PUT /api/v1/addons/{id}` | `addons:update` | Update an add-on |
+| `DELETE /api/v1/addons/{id}` | `addons:delete` | Delete an add-on |
+| `GET /api/v1/referrals/tree` | `referrals:tree` | Referral tree |
+| `GET /api/v1/referrals/accruals` | `referrals:accruals` | Referral accruals |
+| `GET /api/v1/expenses` | `expenses:list` | List expenses |
+| `POST /api/v1/expenses` | `expenses:create` | Create an expense |
+| `PUT /api/v1/expenses/{id}` | `expenses:update` | Update an expense |
+| `DELETE /api/v1/expenses/{id}` | `expenses:delete` | Delete an expense |
+| `GET /api/v1/expenses/providers` | `expenses:providers` | Spending by provider |
+| `GET /api/v1/expense-items` | `expenses:items` | List expense items |
+| `POST /api/v1/expense-items` | `expenses:item_create` | Create an expense item |
+| `PUT /api/v1/expense-items/{id}` | `expenses:item_update` | Update an expense item |
+| `DELETE /api/v1/expense-items/{id}` | `expenses:item_delete` | Delete an expense item |
+| `GET /api/v1/expense-items/{id}/metered` | `expenses:item_metered` | Metered usage of an item |
+| `POST /api/v1/expense-items/{id}/close-period` | `expenses:item_close_period` | Close a metered period |
+| `POST /api/v1/traffic/sync` | `expenses:traffic_sync` | Sync traffic now |
+| `GET /api/v1/rw/users` | `remnawave:users` | Remnawave users |
+| `GET /api/v1/rw/squads` | `remnawave:squads` | Squads |
+| `GET /api/v1/rw/nodes` | `remnawave:nodes` | Nodes |
+| `GET /api/v1/rw/infra` | `remnawave:infra` | Infrastructure |
+| `GET /api/v1/rw/sync` | `remnawave:sync_status` | Sync status |
+| `POST /api/v1/rw/sync` | `remnawave:sync` | Sync now |
+| `GET /api/v1/dashboard` | `stats:dashboard` | Dashboard figures |
+| `GET /api/v1/fx/rate` | `stats:fx_rate` | Exchange rate |
+| `GET /api/v1/settings` | `stats:settings` | Settings (read only) |
+| `GET /api/v1/audit` | `stats:audit` | Audit log |
+| `GET /api/v1/backups` | `backups:list` | List snapshots |
 | `GET /api/v1/backups/{name}` | `backups:download` | Download a snapshot |
-| `POST /api/v1/backups` | `backups:create` | Take a snapshot and download it in the same response |
+| `POST /api/v1/backups` | `backups:create` | Take a snapshot and download it |
 
 Scopes follow the panel's grammar: `*`, `<resource>:*`, `<resource>:read`, `<resource>:write` or an endpoint key from the table.
+
+Requests and responses are the same JSON as the UI uses (money in major units). Errors come as `{"message", "code", "params"}`; a missing or expired token gives `401`, a token without the scope `403`. Actions made with a token show in the audit log as `token:<name>`.
 
 ## Backups
 
