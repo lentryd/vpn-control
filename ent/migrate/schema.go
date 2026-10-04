@@ -203,7 +203,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"payment", "charge", "adjustment", "refund"}},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"payment", "charge", "adjustment", "refund", "referral"}},
 		{Name: "amount", Type: field.TypeInt64},
 		{Name: "date", Type: field.TypeTime},
 		{Name: "payment_id", Type: field.TypeInt, Nullable: true},

@@ -98,7 +98,7 @@ export interface Payment {
 
 export interface LedgerEntry {
     id: number
-    type: 'payment' | 'charge' | 'adjustment' | 'refund'
+    type: 'payment' | 'charge' | 'adjustment' | 'refund' | 'referral'
     amount: number
     date: string
     note: string

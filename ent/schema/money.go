@@ -49,7 +49,7 @@ func (LedgerEntry) Mixin() []ent.Mixin { return []ent.Mixin{TimeMixin{}} }
 func (LedgerEntry) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int("customer_id"),
-		field.Enum("type").Values("payment", "charge", "adjustment", "refund"),
+		field.Enum("type").Values("payment", "charge", "adjustment", "refund", "referral"),
 		// Amount is signed, in kopecks: payments are positive, charges negative.
 		field.Int64("amount"),
 		field.Time("date").Default(time.Now),
@@ -65,7 +65,8 @@ func (LedgerEntry) Edges() []ent.Edge {
 }
 
 // ReferralAccrual records what a referrer earned from a referee's payment.
-// Bookkeeping only for now: it doesn't change anybody's balance.
+// The amount is credited to the referrer's balance via a "referral" ledger
+// entry linked to the same payment.
 type ReferralAccrual struct {
 	ent.Schema
 }

@@ -48,7 +48,7 @@ import { useTranslation } from 'react-i18next'
 
 const ledgerColor: Record<string, string> = { payment: 'teal', charge: 'orange', adjustment: 'blue', refund: 'grape' }
 const ledgerLabel = (type: string) =>
-    ['payment', 'charge', 'adjustment', 'refund'].includes(type) ? i18n.t(`customer.ledger.${type as 'payment'}`) : type
+    ['payment', 'charge', 'adjustment', 'refund', 'referral'].includes(type) ? i18n.t(`customer.ledger.${type as 'payment'}`) : type
 const extKind = (kind: string) =>
     ['extend', 'connect', 'tariff_change'].includes(kind) ? i18n.t(`customer.ext.${kind as 'extend'}`) : kind
 

@@ -15,6 +15,8 @@ import (
 
 	"vpn-control/ent"
 	"vpn-control/ent/apitoken"
+	"vpn-control/ent/ledgerentry"
+	"vpn-control/ent/referralaccrual"
 	"vpn-control/ent/migrate"
 )
 
@@ -64,6 +66,10 @@ func OpenDB(ctx context.Context, path string) (*ent.Client, *sql.DB, error) {
 	if err := backfillTokenUUIDs(ctx, client); err != nil {
 		_ = client.Close()
 		return nil, nil, fmt.Errorf("backfill token uuids: %w", err)
+	}
+	if err := creditReferralAccruals(ctx, client); err != nil {
+		_ = client.Close()
+		return nil, nil, fmt.Errorf("credit referral accruals: %w", err)
 	}
 	return client, db, nil
 }
@@ -121,4 +127,34 @@ func WithTx(ctx context.Context, client *ent.Client, fn func(tx *ent.Tx) error) 
 		return err
 	}
 	return tx.Commit()
+}
+
+// creditReferralAccruals puts accruals recorded before referrals reached the
+// balance onto their referrers' balances; credited ones are skipped.
+func creditReferralAccruals(ctx context.Context, client *ent.Client) error {
+	accruals, err := client.ReferralAccrual.Query().
+		Where(referralaccrual.StatusEQ(referralaccrual.StatusAccrued)).
+		WithPayment(func(q *ent.PaymentQuery) { q.WithCustomer() }).
+		All(ctx)
+	if err != nil || len(accruals) == 0 {
+		return err
+	}
+	return WithTx(ctx, client, func(tx *ent.Tx) error {
+		for _, a := range accruals {
+			note := fmt.Sprintf("%g%%", a.Percent)
+			if p := a.Edges.Payment; p != nil && p.Edges.Customer != nil {
+				note = fmt.Sprintf("%s (%g%%)", p.Edges.Customer.Name, a.Percent)
+			}
+			if err := tx.LedgerEntry.Create().
+				SetCustomerID(a.ReferrerID).SetType(ledgerentry.TypeReferral).SetAmount(a.Amount).
+				SetDate(a.Date).SetPaymentID(a.PaymentID).SetNote(note).
+				Exec(ctx); err != nil {
+				return err
+			}
+			if err := tx.ReferralAccrual.UpdateOne(a).SetStatus(referralaccrual.StatusCredited).Exec(ctx); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

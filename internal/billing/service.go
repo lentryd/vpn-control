@@ -10,6 +10,7 @@ import (
 	"vpn-control/ent"
 	"vpn-control/ent/customer"
 	"vpn-control/ent/ledgerentry"
+	"vpn-control/ent/referralaccrual"
 	"vpn-control/ent/subscription"
 	"vpn-control/ent/subscriptionaddon"
 	"vpn-control/internal/apperr"
@@ -394,9 +395,16 @@ func (s *Service) CommitPayment(ctx context.Context, in PaymentInput) (*PaymentR
 			return err
 		}
 		if ref != nil && ref.Amount > 0 {
+			if err := tx.LedgerEntry.Create().
+				SetCustomerID(ref.ReferrerID).SetType(ledgerentry.TypeReferral).SetAmount(ref.Amount).
+				SetDate(in.Date).SetPaymentID(p.ID).SetNote(fmt.Sprintf("%s (%g%%)", c.Name, ref.Percent)).
+				Exec(ctx); err != nil {
+				return err
+			}
 			return tx.ReferralAccrual.Create().
 				SetReferrerID(ref.ReferrerID).SetRefereeID(c.ID).SetPaymentID(p.ID).
 				SetPercent(ref.Percent).SetAmount(ref.Amount).SetDate(in.Date).
+				SetStatus(referralaccrual.StatusCredited).
 				Exec(ctx)
 		}
 		return nil

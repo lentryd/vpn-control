@@ -554,11 +554,15 @@ func (h *Handlers) UpdatePayment(c *fiber.Ctx) error {
 			return err
 		}
 		for _, a := range accs {
-			q := a.Update().SetDate(*date)
-			if a.Status == referralaccrual.StatusAccrued {
-				q.SetAmount(billing.ReferralAmount(amount, a.Percent))
+			share := billing.ReferralAmount(amount, a.Percent)
+			if err := a.Update().SetDate(*date).SetAmount(share).Exec(ctx); err != nil {
+				return err
 			}
-			if err := q.Exec(ctx); err != nil {
+			// the referrer's balance credit follows the accrual
+			if _, err := tx.LedgerEntry.Update().
+				Where(ledgerentry.PaymentID(id), ledgerentry.TypeEQ(ledgerentry.TypeReferral), ledgerentry.CustomerID(a.ReferrerID)).
+				SetAmount(share).SetDate(*date).
+				Save(ctx); err != nil {
 				return err
 			}
 		}
@@ -571,7 +575,8 @@ func (h *Handlers) UpdatePayment(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// DeletePayment removes a payment, its balance credit and referral accrual.
+// DeletePayment removes a payment, its balance credit and referral accrual
+// (with the referrer's credit).
 // Extensions bought with it stay (and so do their charges).
 func (h *Handlers) DeletePayment(c *fiber.Ctx) error {
 	id, err := paramID(c, "id")
@@ -579,7 +584,7 @@ func (h *Handlers) DeletePayment(c *fiber.Ctx) error {
 		return err
 	}
 	ctx := c.UserContext()
-	if _, err := h.DB.LedgerEntry.Delete().Where(ledgerentry.PaymentID(id), ledgerentry.TypeEQ(ledgerentry.TypePayment)).Exec(ctx); err != nil {
+	if _, err := h.DB.LedgerEntry.Delete().Where(ledgerentry.PaymentID(id), ledgerentry.TypeIn(ledgerentry.TypePayment, ledgerentry.TypeReferral)).Exec(ctx); err != nil {
 		return err
 	}
 	if _, err := h.DB.LedgerEntry.Update().Where(ledgerentry.PaymentID(id)).ClearPaymentID().Save(ctx); err != nil {
