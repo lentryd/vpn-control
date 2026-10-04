@@ -1,5 +1,5 @@
 import { AreaChart } from '@mantine/charts'
-import { Alert, Anchor, Badge, Box, Card, Group, Progress, SimpleGrid, Stack, Text } from '@mantine/core'
+import { Alert, Anchor, Badge, Box, Card, Group, Progress, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core'
 import { IconCloud } from '@tabler/icons-react'
 import dayjs from 'dayjs'
 import { useTranslation } from 'react-i18next'
@@ -146,6 +146,9 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                             <Text c="dimmed" size="xs">
                                 {m.squad_uuid ? t('metered.squad_share', { pct: fmtNum(m.squad_share_percent, 1) }) : t('metered.all_node_users')}
                             </Text>
+                            <Text c="dimmed" size="xs">
+                                {t('metered.consumers_legend', { forecast: fmtMoney(m.forecast_rub) })}
+                            </Text>
                         </Box>
                         {m.consumer_error && (
                             <Text c="red" size="xs">
@@ -177,9 +180,23 @@ export function MeteredCard({ m }: { m: MeteredSummary }) {
                                             </Anchor>
                                         )}
                                     </Group>
-                                    <Text c="dimmed" className="num" size="xs" style={{ whiteSpace: 'nowrap' }}>
-                                        {fmtNum(c.gb)} {gb} · {fmtNum(c.share_percent, 1)}% · ≈{fmtMoney(c.cost_rub)}
-                                    </Text>
+                                    <Tooltip
+                                        label={t('metered.consumer_hint', {
+                                            gb: `${fmtNum(c.gb)} ${gb}`,
+                                            pct: fmtNum(c.share_percent, 1),
+                                            cost: fmtMoney(c.cost_rub),
+                                            forecast: fmtMoney(m.forecast_rub),
+                                            scope: m.squad_uuid ? t('metered.scope_squad') : t('metered.scope_node'),
+                                        })}
+                                        multiline
+                                        style={{ whiteSpace: 'pre-line' }}
+                                        w={320}
+                                        withArrow
+                                    >
+                                        <Text c="dimmed" className="num" size="xs" style={{ whiteSpace: 'nowrap', cursor: 'help' }}>
+                                            {fmtNum(c.gb)} {gb} · {fmtNum(c.share_percent, 1)}% · ≈{fmtMoney(c.cost_rub)}
+                                        </Text>
+                                    </Tooltip>
                                 </Group>
                                 <Progress color="brand" mt={5} size={4} value={(c.gb / maxGb) * 100} />
                             </Box>

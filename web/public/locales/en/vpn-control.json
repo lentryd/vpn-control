@@ -274,7 +274,11 @@
         "avg_daily": "{{gb}} GB/day on average",
         "squad_share": "squad members — {{pct}}% of the node's traffic",
         "all_node_users": "all node users",
-        "top_consumers": "Top consumers"
+        "top_consumers": "Top consumers",
+        "consumers_legend": "period traffic · traffic share · share of {{forecast}} forecast",
+        "consumer_hint": "{{gb}} — traffic through the node since the period start.\n{{pct}}% — share of traffic of {{scope}}.\n≈{{cost}} — the same share of the node's forecast cost for the whole period ({{forecast}}), not of the amount accrued so far.\nThe bar is relative to the top consumer.",
+        "scope_squad": "squad members",
+        "scope_node": "all node users"
     },
     "tariffs": {
         "delete_addon": "Delete add-on «{{name}}»?",
