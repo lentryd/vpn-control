@@ -75,11 +75,11 @@ function PaymentEditForm({ payment, onDone }: { payment: Payment; onDone: () => 
                         <Autocomplete data={methods} label={t('payment.method')} leftSection={<PiBank size={16} />} {...form.getInputProps('method')} />
                         <TextInput label={t('payment.comment')} leftSection={<PiNotePencil size={16} />} {...form.getInputProps('note')} />
                     </SimpleGrid>
-                    <Alert color="gray" icon={<PiInfo size={18} />}>
-                        {payment.historical
-                            ? t('payment.historical')
-                            : t('payment.edit_effects')}
-                    </Alert>
+                    {!payment.historical && (
+                        <Alert color="gray" icon={<PiInfo size={18} />}>
+                            {t('payment.edit_effects')}
+                        </Alert>
+                    )}
                 <FormFooter loading={m.isPending} onCancel={onDone} />
             </Stack>
         </form>

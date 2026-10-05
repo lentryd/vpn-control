@@ -283,7 +283,6 @@ export function CustomerPage() {
                         storageKey="customer-ledger"
                         icon={<PiWalletDuotone size={24} />}
                         title={t('customer.ledger_title')}
-                        description={t('customer.ledger_hint')}
                         columns={cols.ledger}
                         data={c.ledger ?? []}
                         initialState={{ sorting: [{ id: 'date', desc: true }] }}

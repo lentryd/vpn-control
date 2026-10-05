@@ -95,11 +95,6 @@ export function paymentColumns(withCustomer: boolean): MRT_ColumnDef<Payment>[] 
             size: 300,
             Cell: ({ row }) => (
                 <Group gap="xs" wrap="nowrap">
-                    {row.original.historical && (
-                        <Badge color="gray" size="md" variant="soft">
-                            {i18n.t('payment.import_badge')}
-                        </Badge>
-                    )}
                     <Text c={row.original.note ? undefined : 'dimmed'} size="sm" truncate="end">
                         {row.original.note || '—'}
                     </Text>
