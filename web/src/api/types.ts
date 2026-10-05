@@ -69,6 +69,7 @@ export interface Customer {
     id: number
     name: string
     contact: string
+    telegram_id: number | null
     notes: string
     referrer_id: number | null
     referrer_name: string

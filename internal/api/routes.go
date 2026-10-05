@@ -137,6 +137,7 @@ func RegisterRoutes(app *fiber.App, deps *Deps) {
 func registerPublic(v1 fiber.Router, h *handlers.Handlers) {
 	byKey := map[string]fiber.Handler{
 		"customers:list":            h.ListCustomers,
+		"customers:lookup":          h.LookupCustomer,
 		"customers:get":             h.GetCustomer,
 		"customers:create":          h.CreateCustomer,
 		"customers:update":          h.UpdateCustomer,

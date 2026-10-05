@@ -807,6 +807,8 @@
         "contacts": "Contacts",
         "contact": "Contact",
         "contact_placeholder": "messenger, phone, email (optional)",
+        "telegram_id": "Telegram ID",
+        "telegram_id_hint": "Numeric id (optional). Synced with the panel users' Telegram ID",
         "referrer": "Referred by",
         "no_referrer": "Nobody, came on their own",
         "ref_percent_hint": "Empty — the global value from settings",

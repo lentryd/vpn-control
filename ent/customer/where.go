@@ -75,6 +75,11 @@ func Contact(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldContact, v))
 }
 
+// TelegramID applies equality check predicate on the "telegram_id" field. It's identical to TelegramIDEQ.
+func TelegramID(v int64) predicate.Customer {
+	return predicate.Customer(sql.FieldEQ(FieldTelegramID, v))
+}
+
 // Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
 func Notes(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldNotes, v))
@@ -313,6 +318,56 @@ func ContactEqualFold(v string) predicate.Customer {
 // ContactContainsFold applies the ContainsFold predicate on the "contact" field.
 func ContactContainsFold(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldContainsFold(FieldContact, v))
+}
+
+// TelegramIDEQ applies the EQ predicate on the "telegram_id" field.
+func TelegramIDEQ(v int64) predicate.Customer {
+	return predicate.Customer(sql.FieldEQ(FieldTelegramID, v))
+}
+
+// TelegramIDNEQ applies the NEQ predicate on the "telegram_id" field.
+func TelegramIDNEQ(v int64) predicate.Customer {
+	return predicate.Customer(sql.FieldNEQ(FieldTelegramID, v))
+}
+
+// TelegramIDIn applies the In predicate on the "telegram_id" field.
+func TelegramIDIn(vs ...int64) predicate.Customer {
+	return predicate.Customer(sql.FieldIn(FieldTelegramID, vs...))
+}
+
+// TelegramIDNotIn applies the NotIn predicate on the "telegram_id" field.
+func TelegramIDNotIn(vs ...int64) predicate.Customer {
+	return predicate.Customer(sql.FieldNotIn(FieldTelegramID, vs...))
+}
+
+// TelegramIDGT applies the GT predicate on the "telegram_id" field.
+func TelegramIDGT(v int64) predicate.Customer {
+	return predicate.Customer(sql.FieldGT(FieldTelegramID, v))
+}
+
+// TelegramIDGTE applies the GTE predicate on the "telegram_id" field.
+func TelegramIDGTE(v int64) predicate.Customer {
+	return predicate.Customer(sql.FieldGTE(FieldTelegramID, v))
+}
+
+// TelegramIDLT applies the LT predicate on the "telegram_id" field.
+func TelegramIDLT(v int64) predicate.Customer {
+	return predicate.Customer(sql.FieldLT(FieldTelegramID, v))
+}
+
+// TelegramIDLTE applies the LTE predicate on the "telegram_id" field.
+func TelegramIDLTE(v int64) predicate.Customer {
+	return predicate.Customer(sql.FieldLTE(FieldTelegramID, v))
+}
+
+// TelegramIDIsNil applies the IsNil predicate on the "telegram_id" field.
+func TelegramIDIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldTelegramID))
+}
+
+// TelegramIDNotNil applies the NotNil predicate on the "telegram_id" field.
+func TelegramIDNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldTelegramID))
 }
 
 // NotesEQ applies the EQ predicate on the "notes" field.

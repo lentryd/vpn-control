@@ -97,6 +97,7 @@ func (s *Service) ProvisionSubscription(ctx context.Context, in ProvisionInput) 
 	if err != nil {
 		return nil, err
 	}
+	req.TelegramID = c.TelegramID
 	u, err := s.rw.CreateUser(ctx, req)
 	audit.Log(ctx, s.db, "rw.create_user", "customer", c.ID, req, err)
 	if err != nil {
@@ -255,6 +256,7 @@ func (s *Service) connectAddonUser(ctx context.Context, sub *ent.Subscription, t
 		if err != nil {
 			return nil, to, err
 		}
+		req.TelegramID = sub.Edges.Customer.TelegramID
 		u, err = s.rw.CreateUser(ctx, req)
 		audit.Log(ctx, s.db, "rw.create_addon_user", "subscription", sub.ID, req, err)
 	}

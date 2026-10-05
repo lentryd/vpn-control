@@ -102,7 +102,8 @@ export function CustomersPage() {
                 enableColumnFilter: false,
                 Cell: ({ row }) => <Text size="sm">{fmtDate(row.original.last_payment_at)}</Text>
             },
-            { accessorKey: 'contact', header: t('customers.contact') }
+            { accessorKey: 'contact', header: t('customers.contact') },
+            { accessorKey: 'telegram_id', header: t('customers.telegram_id'), Cell: ({ cell }) => cell.getValue<number | null>() ?? '—' }
         ],
         [t]
     )
@@ -164,7 +165,7 @@ export function CustomersPage() {
                 columns={columns}
                 data={rows}
                 state={{ showProgressBars: isFetching, isLoading: !data }}
-                initialState={{ sorting: [{ id: 'nearest_expire_at', desc: false }], columnVisibility: { contact: false } }}
+                initialState={{ sorting: [{ id: 'nearest_expire_at', desc: false }], columnVisibility: { contact: false, telegram_id: false } }}
                 enableRowActions
                 renderRowActions={({ row }) => (
                     <Group gap={6} wrap="nowrap">

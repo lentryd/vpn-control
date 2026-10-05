@@ -87,7 +87,7 @@ func init() {
 	// customer.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	customer.NameValidator = customerDescName.Validators[0].(func(string) error)
 	// customerDescArchived is the schema descriptor for archived field.
-	customerDescArchived := customerFields[5].Descriptor()
+	customerDescArchived := customerFields[6].Descriptor()
 	// customer.DefaultArchived holds the default value on creation for the archived field.
 	customer.DefaultArchived = customerDescArchived.Default.(bool)
 	expenseMixin := schema.Expense{}.Mixin()

@@ -22,6 +22,8 @@ const (
 	FieldName = "name"
 	// FieldContact holds the string denoting the contact field in the database.
 	FieldContact = "contact"
+	// FieldTelegramID holds the string denoting the telegram_id field in the database.
+	FieldTelegramID = "telegram_id"
 	// FieldNotes holds the string denoting the notes field in the database.
 	FieldNotes = "notes"
 	// FieldReferrerID holds the string denoting the referrer_id field in the database.
@@ -80,6 +82,7 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldName,
 	FieldContact,
+	FieldTelegramID,
 	FieldNotes,
 	FieldReferrerID,
 	FieldReferralPercent,
@@ -135,6 +138,11 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 // ByContact orders the results by the contact field.
 func ByContact(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldContact, opts...).ToFunc()
+}
+
+// ByTelegramID orders the results by the telegram_id field.
+func ByTelegramID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTelegramID, opts...).ToFunc()
 }
 
 // ByNotes orders the results by the notes field.

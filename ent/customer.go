@@ -25,6 +25,8 @@ type Customer struct {
 	Name string `json:"name,omitempty"`
 	// Contact holds the value of the "contact" field.
 	Contact string `json:"contact,omitempty"`
+	// TelegramID holds the value of the "telegram_id" field.
+	TelegramID *int64 `json:"telegram_id,omitempty"`
 	// Notes holds the value of the "notes" field.
 	Notes string `json:"notes,omitempty"`
 	// ReferrerID holds the value of the "referrer_id" field.
@@ -112,7 +114,7 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case customer.FieldReferralPercent:
 			values[i] = new(sql.NullFloat64)
-		case customer.FieldID, customer.FieldReferrerID:
+		case customer.FieldID, customer.FieldTelegramID, customer.FieldReferrerID:
 			values[i] = new(sql.NullInt64)
 		case customer.FieldName, customer.FieldContact, customer.FieldNotes:
 			values[i] = new(sql.NullString)
@@ -162,6 +164,13 @@ func (_m *Customer) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field contact", values[i])
 			} else if value.Valid {
 				_m.Contact = value.String
+			}
+		case customer.FieldTelegramID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field telegram_id", values[i])
+			} else if value.Valid {
+				_m.TelegramID = new(int64)
+				*_m.TelegramID = value.Int64
 			}
 		case customer.FieldNotes:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -261,6 +270,11 @@ func (_m *Customer) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("contact=")
 	builder.WriteString(_m.Contact)
+	builder.WriteString(", ")
+	if v := _m.TelegramID; v != nil {
+		builder.WriteString("telegram_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("notes=")
 	builder.WriteString(_m.Notes)

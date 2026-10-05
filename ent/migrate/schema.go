@@ -71,6 +71,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "name", Type: field.TypeString},
 		{Name: "contact", Type: field.TypeString, Nullable: true},
+		{Name: "telegram_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "notes", Type: field.TypeString, Nullable: true},
 		{Name: "referral_percent", Type: field.TypeFloat64, Nullable: true},
 		{Name: "archived", Type: field.TypeBool, Default: false},
@@ -84,7 +85,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "customers_customers_referrals",
-				Columns:    []*schema.Column{CustomersColumns[8]},
+				Columns:    []*schema.Column{CustomersColumns[9]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

@@ -18,6 +18,9 @@ func (Customer) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name").NotEmpty(),
 		field.String("contact").Optional(),
+		// TelegramID is the numeric Telegram user id, kept in sync with the
+		// telegramId of the customer's panel users.
+		field.Int64("telegram_id").Optional().Nillable(),
 		field.String("notes").Optional(),
 		field.Int("referrer_id").Optional().Nillable(),
 		// ReferralPercent overrides the global referral percent for payments

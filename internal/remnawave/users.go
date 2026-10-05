@@ -2,6 +2,7 @@ package remnawave
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -89,6 +90,21 @@ type UpdateUserRequest struct {
 	Description          *string    `json:"description,omitempty"`
 	HwidDeviceLimit      *int       `json:"hwidDeviceLimit,omitempty"`
 	ActiveInternalSquads []string   `json:"activeInternalSquads,omitempty"`
+	TelegramID           *int64     `json:"telegramId,omitempty"`
+	// ClearTelegramID sends telegramId: null (omitempty can't express it).
+	ClearTelegramID bool `json:"-"`
+}
+
+// MarshalJSON adds an explicit telegramId null when ClearTelegramID is set.
+func (r UpdateUserRequest) MarshalJSON() ([]byte, error) {
+	type plain UpdateUserRequest
+	if !r.ClearTelegramID || r.TelegramID != nil {
+		return json.Marshal(plain(r))
+	}
+	return json.Marshal(struct {
+		plain
+		TelegramID *int64 `json:"telegramId"`
+	}{plain: plain(r)})
 }
 
 type streamPage struct {

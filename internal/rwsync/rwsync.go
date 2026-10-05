@@ -7,6 +7,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -15,7 +16,9 @@ import (
 
 	"vpn-control/ent"
 	"vpn-control/ent/addon"
+	"vpn-control/ent/customer"
 	"vpn-control/ent/rwuser"
+	"vpn-control/ent/subscription"
 	"vpn-control/ent/subscriptionaddon"
 	"vpn-control/ent/tariff"
 	"vpn-control/internal/addons"
@@ -90,6 +93,9 @@ func (s *Service) syncAll(ctx context.Context) error {
 	}
 	if err := s.linkAddonUsers(ctx); err != nil {
 		return fmt.Errorf("link addon users: %w", err)
+	}
+	if err := s.pullCustomerTelegram(ctx); err != nil {
+		return fmt.Errorf("pull customer telegram: %w", err)
 	}
 	slog.Debug("remnawave sync done", "users", len(users))
 	return nil
@@ -267,4 +273,71 @@ func deref(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+// customerRwUsers returns the cached panel users of a customer: the main
+// subscription users and their add-on users.
+func customerRwUsers(ctx context.Context, db *ent.Client, customerID int) ([]*ent.RwUser, error) {
+	return db.RwUser.Query().
+		Where(rwuser.Deleted(false), rwuser.Or(
+			rwuser.HasSubscriptionWith(subscription.CustomerID(customerID)),
+			rwuser.HasSubscriptionAddonWith(subscriptionaddon.HasSubscriptionWith(subscription.CustomerID(customerID))),
+		)).All(ctx)
+}
+
+// PushCustomerTelegram writes the customer's telegram id to every one of
+// their panel users that differs; nil clears it. Failures on single users
+// don't stop the rest, and are returned joined.
+func (s *Service) PushCustomerTelegram(ctx context.Context, customerID int, tgID *int64) error {
+	users, err := customerRwUsers(ctx, s.db, customerID)
+	if err != nil {
+		return err
+	}
+	var errs []error
+	for _, u := range users {
+		if sameInt64(u.TelegramID, tgID) {
+			continue
+		}
+		upd := remnawave.UpdateUserRequest{ID: u.ID, TelegramID: tgID, ClearTelegramID: tgID == nil}
+		got, err := s.rw.UpdateUser(ctx, upd)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("user %s: %w", u.Username, err))
+			continue
+		}
+		if err := Upsert(ctx, s.db, got); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// pullCustomerTelegram fills in the telegram id of customers that have none
+// from their panel users (the panel is where it is often set first).
+func (s *Service) pullCustomerTelegram(ctx context.Context) error {
+	customers, err := s.db.Customer.Query().Where(customer.TelegramIDIsNil()).All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, c := range customers {
+		users, err := customerRwUsers(ctx, s.db, c.ID)
+		if err != nil {
+			return err
+		}
+		for _, u := range users {
+			if u.TelegramID != nil {
+				if err := s.db.Customer.UpdateOneID(c.ID).SetTelegramID(*u.TelegramID).Exec(ctx); err != nil {
+					return err
+				}
+				break
+			}
+		}
+	}
+	return nil
+}
+
+func sameInt64(a, b *int64) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
 }

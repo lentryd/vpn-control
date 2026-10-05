@@ -184,6 +184,7 @@ curl -H "Authorization: Bearer vpc_…" "https://control.example.com/api/v1/addo
 | Эндпоинт | Ключ эндпоинта | |
 |---|---|---|
 | `GET /api/v1/customers` | `customers:list` | Список клиентов |
+| `GET /api/v1/customers/lookup?telegram_id=…` или `?short_uuid=…` | `customers:lookup` | Найти клиента по Telegram ID или short id подписки; ответ как у `customers:get` |
 | `GET /api/v1/customers/{id}` | `customers:get` | Клиент: баланс, история, подписки и платежи |
 | `POST /api/v1/customers` | `customers:create` | Создать клиента |
 | `PUT /api/v1/customers/{id}` | `customers:update` | Изменить клиента |

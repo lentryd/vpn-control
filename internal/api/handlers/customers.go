@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"log/slog"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,7 +14,9 @@ import (
 	"vpn-control/ent/ledgerentry"
 	"vpn-control/ent/payment"
 	"vpn-control/ent/referralaccrual"
+	"vpn-control/ent/rwuser"
 	"vpn-control/ent/subscription"
+	"vpn-control/ent/subscriptionaddon"
 	"vpn-control/internal/apperr"
 	"vpn-control/internal/audit"
 	"vpn-control/internal/billing"
@@ -24,6 +28,7 @@ type CustomerView struct {
 	ID                 int        `json:"id"`
 	Name               string     `json:"name"`
 	Contact            string     `json:"contact"`
+	TelegramID         *int64     `json:"telegram_id"`
 	Notes              string     `json:"notes"`
 	ReferrerID         *int       `json:"referrer_id"`
 	ReferrerName       string     `json:"referrer_name"`
@@ -90,7 +95,7 @@ func (h *Handlers) customerViews(c *fiber.Ctx, where ...func(*ent.CustomerQuery)
 	out := make([]CustomerView, 0, len(customers))
 	for _, cu := range customers {
 		v := CustomerView{
-			ID: cu.ID, Name: cu.Name, Contact: cu.Contact, Notes: cu.Notes,
+			ID: cu.ID, Name: cu.Name, Contact: cu.Contact, TelegramID: cu.TelegramID, Notes: cu.Notes,
 			ReferrerID: cu.ReferrerID, ReferralPercent: cu.ReferralPercent, Archived: cu.Archived,
 			Balance:    money.ToMajor(balances[cu.ID].Total()),
 			BalanceOwn: money.ToMajor(balances[cu.ID].Own), BalanceReferral: money.ToMajor(balances[cu.ID].Referral),
@@ -207,6 +212,42 @@ func (h *Handlers) GetCustomer(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	return h.customerDetail(c, id)
+}
+
+// LookupCustomer finds a customer by Telegram ID or by the short id of one of
+// their panel users (main subscription or add-on) and answers like GetCustomer.
+func (h *Handlers) LookupCustomer(c *fiber.Ctx) error {
+	ctx := c.UserContext()
+	var q *ent.CustomerQuery
+	switch {
+	case c.Query("telegram_id") != "":
+		tg, err := strconv.ParseInt(c.Query("telegram_id"), 10, 64)
+		if err != nil || tg <= 0 {
+			return apperr.Status(fiber.StatusBadRequest, "customer.bad_telegram_id", "telegram id must be a positive number")
+		}
+		q = h.DB.Customer.Query().Where(customer.TelegramID(tg))
+	case c.Query("short_uuid") != "":
+		short := c.Query("short_uuid")
+		q = h.DB.Customer.Query().Where(customer.Or(
+			customer.HasSubscriptionsWith(subscription.HasRwUserWith(rwuser.ShortUUID(short))),
+			customer.HasSubscriptionsWith(subscription.HasAddonsWith(subscriptionaddon.HasRwUserWith(rwuser.ShortUUID(short)))),
+		))
+	default:
+		return apperr.Status(fiber.StatusBadRequest, "customer.lookup_key", "pass telegram_id or short_uuid")
+	}
+	// Telegram IDs aren't unique; prefer an active customer, then the oldest.
+	cu, err := q.Order(ent.Asc(customer.FieldArchived), ent.Asc(customer.FieldID)).First(ctx)
+	if ent.IsNotFound(err) {
+		return apperr.Status(fiber.StatusNotFound, "customer.not_found", "customer not found")
+	}
+	if err != nil {
+		return err
+	}
+	return h.customerDetail(c, cu.ID)
+}
+
+func (h *Handlers) customerDetail(c *fiber.Ctx, id int) error {
 	ctx := c.UserContext()
 	views, err := h.customerViews(c, func(q *ent.CustomerQuery) {
 		q.Where(customer.Or(customer.ID(id), customer.ReferrerID(id)))
@@ -268,6 +309,7 @@ func (h *Handlers) GetCustomer(c *fiber.Ctx) error {
 type customerInput struct {
 	Name            string   `json:"name"`
 	Contact         string   `json:"contact"`
+	TelegramID      *int64   `json:"telegram_id"`
 	Notes           string   `json:"notes"`
 	ReferrerID      *int     `json:"referrer_id"`
 	ReferralPercent *float64 `json:"referral_percent"`
@@ -280,7 +322,7 @@ func (h *Handlers) CreateCustomer(c *fiber.Ctx) error {
 		return err
 	}
 	cu, err := h.DB.Customer.Create().
-		SetName(in.Name).SetContact(in.Contact).SetNotes(in.Notes).
+		SetName(in.Name).SetContact(in.Contact).SetNotes(in.Notes).SetNillableTelegramID(in.TelegramID).
 		SetNillableReferrerID(in.ReferrerID).SetNillableReferralPercent(in.ReferralPercent).
 		SetArchived(in.Archived).
 		Save(c.UserContext())
@@ -310,8 +352,16 @@ func (h *Handlers) UpdateCustomer(c *fiber.Ctx) error {
 	if in.ReferrerID != nil && *in.ReferrerID == id {
 		return apperr.New("customer.self_referral", "a customer can't refer themselves")
 	}
+	if in.TelegramID != nil && *in.TelegramID <= 0 {
+		return apperr.New("customer.bad_telegram_id", "telegram id must be a positive number")
+	}
 	q := h.DB.Customer.UpdateOneID(id).
 		SetName(in.Name).SetContact(in.Contact).SetNotes(in.Notes).SetArchived(in.Archived)
+	if in.TelegramID != nil {
+		q.SetTelegramID(*in.TelegramID)
+	} else {
+		q.ClearTelegramID()
+	}
 	if in.ReferrerID != nil {
 		q.SetReferrerID(*in.ReferrerID)
 	} else {
@@ -326,6 +376,13 @@ func (h *Handlers) UpdateCustomer(c *fiber.Ctx) error {
 	audit.Log(c.UserContext(), h.DB, "customer.update", "customer", id, in, err)
 	if err != nil {
 		return badRequest(err)
+	}
+	if h.Sync != nil {
+		perr := h.Sync.PushCustomerTelegram(c.UserContext(), id, in.TelegramID)
+		audit.Log(c.UserContext(), h.DB, "customer.push_telegram", "customer", id, in.TelegramID, perr)
+		if perr != nil {
+			slog.Warn("push customer telegram id to panel", "customer", id, "err", perr)
+		}
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }

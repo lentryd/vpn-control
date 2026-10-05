@@ -835,6 +835,8 @@
         "contacts": "Контакты",
         "contact": "Контакт",
         "contact_placeholder": "мессенджер, телефон, почта (необязательно)",
+        "telegram_id": "Telegram ID",
+        "telegram_id_hint": "Числовой ID (необязательно). Синхронизируется с Telegram ID пользователей панели",
         "referrer": "Кто привёл",
         "no_referrer": "Никто, пришёл сам",
         "ref_percent_hint": "Пусто — глобальное значение из настроек",

@@ -39,6 +39,7 @@ type ScopeResource struct {
 var ScopeCatalog = []ScopeResource{
 	{Resource: "customers", Endpoints: []ScopeEndpoint{
 		{Key: "customers:list", Method: "GET", Path: "/api/v1/customers", Description: "List customers", Kind: "read"},
+		{Key: "customers:lookup", Method: "GET", Path: "/api/v1/customers/lookup", Description: "Find a customer by ?telegram_id= or ?short_uuid= (subscription short id); same response as customers:get", Kind: "read"},
 		{Key: "customers:get", Method: "GET", Path: "/api/v1/customers/{id}", Description: "Customer with balance (balance = balance_own + balance_referral), ledger, subscriptions and payments", Kind: "read"},
 		{Key: "customers:create", Method: "POST", Path: "/api/v1/customers", Description: "Create a customer", Kind: "write"},
 		{Key: "customers:update", Method: "PUT", Path: "/api/v1/customers/{id}", Description: "Update a customer", Kind: "write"},

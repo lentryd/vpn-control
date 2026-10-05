@@ -2777,6 +2777,8 @@ type CustomerMutation struct {
 	updated_at            *time.Time
 	name                  *string
 	contact               *string
+	telegram_id           *int64
+	addtelegram_id        *int64
 	notes                 *string
 	referral_percent      *float64
 	addreferral_percent   *float64
@@ -3054,6 +3056,76 @@ func (m *CustomerMutation) ContactCleared() bool {
 func (m *CustomerMutation) ResetContact() {
 	m.contact = nil
 	delete(m.clearedFields, customer.FieldContact)
+}
+
+// SetTelegramID sets the "telegram_id" field.
+func (m *CustomerMutation) SetTelegramID(i int64) {
+	m.telegram_id = &i
+	m.addtelegram_id = nil
+}
+
+// TelegramID returns the value of the "telegram_id" field in the mutation.
+func (m *CustomerMutation) TelegramID() (r int64, exists bool) {
+	v := m.telegram_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTelegramID returns the old "telegram_id" field's value of the Customer entity.
+// If the Customer object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CustomerMutation) OldTelegramID(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTelegramID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTelegramID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTelegramID: %w", err)
+	}
+	return oldValue.TelegramID, nil
+}
+
+// AddTelegramID adds i to the "telegram_id" field.
+func (m *CustomerMutation) AddTelegramID(i int64) {
+	if m.addtelegram_id != nil {
+		*m.addtelegram_id += i
+	} else {
+		m.addtelegram_id = &i
+	}
+}
+
+// AddedTelegramID returns the value that was added to the "telegram_id" field in this mutation.
+func (m *CustomerMutation) AddedTelegramID() (r int64, exists bool) {
+	v := m.addtelegram_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearTelegramID clears the value of the "telegram_id" field.
+func (m *CustomerMutation) ClearTelegramID() {
+	m.telegram_id = nil
+	m.addtelegram_id = nil
+	m.clearedFields[customer.FieldTelegramID] = struct{}{}
+}
+
+// TelegramIDCleared returns if the "telegram_id" field was cleared in this mutation.
+func (m *CustomerMutation) TelegramIDCleared() bool {
+	_, ok := m.clearedFields[customer.FieldTelegramID]
+	return ok
+}
+
+// ResetTelegramID resets all changes to the "telegram_id" field.
+func (m *CustomerMutation) ResetTelegramID() {
+	m.telegram_id = nil
+	m.addtelegram_id = nil
+	delete(m.clearedFields, customer.FieldTelegramID)
 }
 
 // SetNotes sets the "notes" field.
@@ -3537,7 +3609,7 @@ func (m *CustomerMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CustomerMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, customer.FieldCreatedAt)
 	}
@@ -3549,6 +3621,9 @@ func (m *CustomerMutation) Fields() []string {
 	}
 	if m.contact != nil {
 		fields = append(fields, customer.FieldContact)
+	}
+	if m.telegram_id != nil {
+		fields = append(fields, customer.FieldTelegramID)
 	}
 	if m.notes != nil {
 		fields = append(fields, customer.FieldNotes)
@@ -3578,6 +3653,8 @@ func (m *CustomerMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case customer.FieldContact:
 		return m.Contact()
+	case customer.FieldTelegramID:
+		return m.TelegramID()
 	case customer.FieldNotes:
 		return m.Notes()
 	case customer.FieldReferrerID:
@@ -3603,6 +3680,8 @@ func (m *CustomerMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldName(ctx)
 	case customer.FieldContact:
 		return m.OldContact(ctx)
+	case customer.FieldTelegramID:
+		return m.OldTelegramID(ctx)
 	case customer.FieldNotes:
 		return m.OldNotes(ctx)
 	case customer.FieldReferrerID:
@@ -3648,6 +3727,13 @@ func (m *CustomerMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetContact(v)
 		return nil
+	case customer.FieldTelegramID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTelegramID(v)
+		return nil
 	case customer.FieldNotes:
 		v, ok := value.(string)
 		if !ok {
@@ -3684,6 +3770,9 @@ func (m *CustomerMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *CustomerMutation) AddedFields() []string {
 	var fields []string
+	if m.addtelegram_id != nil {
+		fields = append(fields, customer.FieldTelegramID)
+	}
 	if m.addreferral_percent != nil {
 		fields = append(fields, customer.FieldReferralPercent)
 	}
@@ -3695,6 +3784,8 @@ func (m *CustomerMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *CustomerMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case customer.FieldTelegramID:
+		return m.AddedTelegramID()
 	case customer.FieldReferralPercent:
 		return m.AddedReferralPercent()
 	}
@@ -3706,6 +3797,13 @@ func (m *CustomerMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *CustomerMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case customer.FieldTelegramID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTelegramID(v)
+		return nil
 	case customer.FieldReferralPercent:
 		v, ok := value.(float64)
 		if !ok {
@@ -3723,6 +3821,9 @@ func (m *CustomerMutation) ClearedFields() []string {
 	var fields []string
 	if m.FieldCleared(customer.FieldContact) {
 		fields = append(fields, customer.FieldContact)
+	}
+	if m.FieldCleared(customer.FieldTelegramID) {
+		fields = append(fields, customer.FieldTelegramID)
 	}
 	if m.FieldCleared(customer.FieldNotes) {
 		fields = append(fields, customer.FieldNotes)
@@ -3749,6 +3850,9 @@ func (m *CustomerMutation) ClearField(name string) error {
 	switch name {
 	case customer.FieldContact:
 		m.ClearContact()
+		return nil
+	case customer.FieldTelegramID:
+		m.ClearTelegramID()
 		return nil
 	case customer.FieldNotes:
 		m.ClearNotes()
@@ -3778,6 +3882,9 @@ func (m *CustomerMutation) ResetField(name string) error {
 		return nil
 	case customer.FieldContact:
 		m.ResetContact()
+		return nil
+	case customer.FieldTelegramID:
+		m.ResetTelegramID()
 		return nil
 	case customer.FieldNotes:
 		m.ResetNotes()

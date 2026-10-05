@@ -174,6 +174,7 @@ export function CustomerPage() {
                             <span>{t('customer.came_alone')}</span>
                         )}
                         {c.contact && <span>· {c.contact}</span>}
+                        {c.telegram_id && <span>· TG {c.telegram_id}</span>}
                     </Group>
                 }
                 actions={

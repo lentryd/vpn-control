@@ -73,6 +73,20 @@ func (_c *CustomerCreate) SetNillableContact(v *string) *CustomerCreate {
 	return _c
 }
 
+// SetTelegramID sets the "telegram_id" field.
+func (_c *CustomerCreate) SetTelegramID(v int64) *CustomerCreate {
+	_c.mutation.SetTelegramID(v)
+	return _c
+}
+
+// SetNillableTelegramID sets the "telegram_id" field if the given value is not nil.
+func (_c *CustomerCreate) SetNillableTelegramID(v *int64) *CustomerCreate {
+	if v != nil {
+		_c.SetTelegramID(*v)
+	}
+	return _c
+}
+
 // SetNotes sets the "notes" field.
 func (_c *CustomerCreate) SetNotes(v string) *CustomerCreate {
 	_c.mutation.SetNotes(v)
@@ -305,6 +319,10 @@ func (_c *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		_spec.SetField(customer.FieldContact, field.TypeString, value)
 		_node.Contact = value
 	}
+	if value, ok := _c.mutation.TelegramID(); ok {
+		_spec.SetField(customer.FieldTelegramID, field.TypeInt64, value)
+		_node.TelegramID = &value
+	}
 	if value, ok := _c.mutation.Notes(); ok {
 		_spec.SetField(customer.FieldNotes, field.TypeString, value)
 		_node.Notes = value
@@ -492,6 +510,30 @@ func (u *CustomerUpsert) ClearContact() *CustomerUpsert {
 	return u
 }
 
+// SetTelegramID sets the "telegram_id" field.
+func (u *CustomerUpsert) SetTelegramID(v int64) *CustomerUpsert {
+	u.Set(customer.FieldTelegramID, v)
+	return u
+}
+
+// UpdateTelegramID sets the "telegram_id" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateTelegramID() *CustomerUpsert {
+	u.SetExcluded(customer.FieldTelegramID)
+	return u
+}
+
+// AddTelegramID adds v to the "telegram_id" field.
+func (u *CustomerUpsert) AddTelegramID(v int64) *CustomerUpsert {
+	u.Add(customer.FieldTelegramID, v)
+	return u
+}
+
+// ClearTelegramID clears the value of the "telegram_id" field.
+func (u *CustomerUpsert) ClearTelegramID() *CustomerUpsert {
+	u.SetNull(customer.FieldTelegramID)
+	return u
+}
+
 // SetNotes sets the "notes" field.
 func (u *CustomerUpsert) SetNotes(v string) *CustomerUpsert {
 	u.Set(customer.FieldNotes, v)
@@ -655,6 +697,34 @@ func (u *CustomerUpsertOne) UpdateContact() *CustomerUpsertOne {
 func (u *CustomerUpsertOne) ClearContact() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearContact()
+	})
+}
+
+// SetTelegramID sets the "telegram_id" field.
+func (u *CustomerUpsertOne) SetTelegramID(v int64) *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetTelegramID(v)
+	})
+}
+
+// AddTelegramID adds v to the "telegram_id" field.
+func (u *CustomerUpsertOne) AddTelegramID(v int64) *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.AddTelegramID(v)
+	})
+}
+
+// UpdateTelegramID sets the "telegram_id" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateTelegramID() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateTelegramID()
+	})
+}
+
+// ClearTelegramID clears the value of the "telegram_id" field.
+func (u *CustomerUpsertOne) ClearTelegramID() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearTelegramID()
 	})
 }
 
@@ -999,6 +1069,34 @@ func (u *CustomerUpsertBulk) UpdateContact() *CustomerUpsertBulk {
 func (u *CustomerUpsertBulk) ClearContact() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearContact()
+	})
+}
+
+// SetTelegramID sets the "telegram_id" field.
+func (u *CustomerUpsertBulk) SetTelegramID(v int64) *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetTelegramID(v)
+	})
+}
+
+// AddTelegramID adds v to the "telegram_id" field.
+func (u *CustomerUpsertBulk) AddTelegramID(v int64) *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.AddTelegramID(v)
+	})
+}
+
+// UpdateTelegramID sets the "telegram_id" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateTelegramID() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateTelegramID()
+	})
+}
+
+// ClearTelegramID clears the value of the "telegram_id" field.
+func (u *CustomerUpsertBulk) ClearTelegramID() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.ClearTelegramID()
 	})
 }
 

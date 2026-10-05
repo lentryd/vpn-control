@@ -71,6 +71,33 @@ func (_u *CustomerUpdate) ClearContact() *CustomerUpdate {
 	return _u
 }
 
+// SetTelegramID sets the "telegram_id" field.
+func (_u *CustomerUpdate) SetTelegramID(v int64) *CustomerUpdate {
+	_u.mutation.ResetTelegramID()
+	_u.mutation.SetTelegramID(v)
+	return _u
+}
+
+// SetNillableTelegramID sets the "telegram_id" field if the given value is not nil.
+func (_u *CustomerUpdate) SetNillableTelegramID(v *int64) *CustomerUpdate {
+	if v != nil {
+		_u.SetTelegramID(*v)
+	}
+	return _u
+}
+
+// AddTelegramID adds value to the "telegram_id" field.
+func (_u *CustomerUpdate) AddTelegramID(v int64) *CustomerUpdate {
+	_u.mutation.AddTelegramID(v)
+	return _u
+}
+
+// ClearTelegramID clears the value of the "telegram_id" field.
+func (_u *CustomerUpdate) ClearTelegramID() *CustomerUpdate {
+	_u.mutation.ClearTelegramID()
+	return _u
+}
+
 // SetNotes sets the "notes" field.
 func (_u *CustomerUpdate) SetNotes(v string) *CustomerUpdate {
 	_u.mutation.SetNotes(v)
@@ -382,6 +409,15 @@ func (_u *CustomerUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.ContactCleared() {
 		_spec.ClearField(customer.FieldContact, field.TypeString)
 	}
+	if value, ok := _u.mutation.TelegramID(); ok {
+		_spec.SetField(customer.FieldTelegramID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedTelegramID(); ok {
+		_spec.AddField(customer.FieldTelegramID, field.TypeInt64, value)
+	}
+	if _u.mutation.TelegramIDCleared() {
+		_spec.ClearField(customer.FieldTelegramID, field.TypeInt64)
+	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(customer.FieldNotes, field.TypeString, value)
 	}
@@ -666,6 +702,33 @@ func (_u *CustomerUpdateOne) SetNillableContact(v *string) *CustomerUpdateOne {
 // ClearContact clears the value of the "contact" field.
 func (_u *CustomerUpdateOne) ClearContact() *CustomerUpdateOne {
 	_u.mutation.ClearContact()
+	return _u
+}
+
+// SetTelegramID sets the "telegram_id" field.
+func (_u *CustomerUpdateOne) SetTelegramID(v int64) *CustomerUpdateOne {
+	_u.mutation.ResetTelegramID()
+	_u.mutation.SetTelegramID(v)
+	return _u
+}
+
+// SetNillableTelegramID sets the "telegram_id" field if the given value is not nil.
+func (_u *CustomerUpdateOne) SetNillableTelegramID(v *int64) *CustomerUpdateOne {
+	if v != nil {
+		_u.SetTelegramID(*v)
+	}
+	return _u
+}
+
+// AddTelegramID adds value to the "telegram_id" field.
+func (_u *CustomerUpdateOne) AddTelegramID(v int64) *CustomerUpdateOne {
+	_u.mutation.AddTelegramID(v)
+	return _u
+}
+
+// ClearTelegramID clears the value of the "telegram_id" field.
+func (_u *CustomerUpdateOne) ClearTelegramID() *CustomerUpdateOne {
+	_u.mutation.ClearTelegramID()
 	return _u
 }
 
@@ -1009,6 +1072,15 @@ func (_u *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err 
 	}
 	if _u.mutation.ContactCleared() {
 		_spec.ClearField(customer.FieldContact, field.TypeString)
+	}
+	if value, ok := _u.mutation.TelegramID(); ok {
+		_spec.SetField(customer.FieldTelegramID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedTelegramID(); ok {
+		_spec.AddField(customer.FieldTelegramID, field.TypeInt64, value)
+	}
+	if _u.mutation.TelegramIDCleared() {
+		_spec.ClearField(customer.FieldTelegramID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(customer.FieldNotes, field.TypeString, value)

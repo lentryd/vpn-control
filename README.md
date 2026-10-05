@@ -184,6 +184,7 @@ curl -H "Authorization: Bearer vpc_…" "https://control.example.com/api/v1/addo
 | Endpoint | Endpoint key | |
 |---|---|---|
 | `GET /api/v1/customers` | `customers:list` | List customers |
+| `GET /api/v1/customers/lookup?telegram_id=…` or `?short_uuid=…` | `customers:lookup` | Find a customer by Telegram ID or subscription short id; same response as `customers:get` |
 | `GET /api/v1/customers/{id}` | `customers:get` | Customer with balance, ledger, subscriptions and payments |
 | `POST /api/v1/customers` | `customers:create` | Create a customer |
 | `PUT /api/v1/customers/{id}` | `customers:update` | Update a customer |

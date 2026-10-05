@@ -59,6 +59,7 @@ function CustomerForm({
         initialValues: {
             name: customer?.name ?? '',
             contact: customer?.contact ?? '',
+            telegram_id: customer?.telegram_id ?? ('' as number | ''),
             notes: customer?.notes ?? '',
             referrer_id: customer?.referrer_id ? String(customer.referrer_id) : null,
             referral_percent: customer?.referral_percent ?? ('' as number | ''),
@@ -70,6 +71,7 @@ function CustomerForm({
         const body = {
             ...v,
             name: v.name.trim(),
+            telegram_id: v.telegram_id === '' ? null : Number(v.telegram_id),
             referrer_id: v.referrer_id ? Number(v.referrer_id) : null,
             referral_percent: v.referral_percent === '' ? null : Number(v.referral_percent)
         }
@@ -109,6 +111,15 @@ function CustomerForm({
                         leftSection={<PiTelegramLogoDuotone size={16} />}
                         placeholder={t('customers.contact_placeholder')}
                         {...form.getInputProps('contact')}
+                    />
+                    <NumberInput
+                        allowDecimal={false}
+                        allowNegative={false}
+                        description={t('customers.telegram_id_hint')}
+                        hideControls
+                        label={t('customers.telegram_id')}
+                        leftSection={<PiTelegramLogoDuotone size={16} />}
+                        {...form.getInputProps('telegram_id')}
                     />
                     {customer && (
                         <Switch
