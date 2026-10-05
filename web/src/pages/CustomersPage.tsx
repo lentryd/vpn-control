@@ -73,6 +73,13 @@ export function CustomersPage() {
             },
             { accessorKey: 'monthly', header: t('sub.per_month'), enableColumnFilter: false, Cell: ({ cell }) => <Money value={cell.getValue<number>()} /> },
             { accessorKey: 'balance', header: t('dashboard.col_balance'), enableColumnFilter: false, Cell: ({ cell }) => <Money value={cell.getValue<number>()} signed digits={2} /> },
+            { accessorKey: 'balance_own', header: t('customer.balance_own'), enableColumnFilter: false, Cell: ({ cell }) => <Money value={cell.getValue<number>()} signed digits={2} /> },
+            {
+                accessorKey: 'balance_referral',
+                header: t('customer.balance_referral'),
+                enableColumnFilter: false,
+                Cell: ({ cell }) => (cell.getValue<number>() ? <Text c="grape" size="sm"><Money value={cell.getValue<number>()} signed digits={2} /></Text> : <Text c="dimmed" size="sm">—</Text>)
+            },
             {
                 accessorKey: 'subscriptions_count',
                 header: t('menu.subscriptions'),

@@ -574,6 +574,8 @@
         "create_subscription": "Create a subscription in the panel",
         "adjust_balance": "Adjust balance",
         "total_paid": "Paid in total",
+        "balance_own": "Own funds",
+        "balance_referral": "Referral funds",
         "last_payment": "last {{date}}",
         "referred_count": "Customers referred",
         "tab_subs": "Subscriptions ({{count}})",

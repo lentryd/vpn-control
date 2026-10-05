@@ -600,6 +600,8 @@
         "create_subscription": "Создать подписку в панели",
         "adjust_balance": "Корректировка баланса",
         "total_paid": "Оплатил всего",
+        "balance_own": "Свои средства",
+        "balance_referral": "Реферальные",
         "last_payment": "посл. {{date}}",
         "referred_count": "Привёл клиентов",
         "tab_subs": "Подписки ({{count}})",

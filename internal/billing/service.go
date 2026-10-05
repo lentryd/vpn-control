@@ -80,6 +80,43 @@ func (s *Service) Balances(ctx context.Context) (map[int]int64, error) {
 	return out, nil
 }
 
+// BalanceSplit breaks a balance into the money that came from the
+// customer's own payments/adjustments and the part earned as referral
+// accruals (kopecks). Total = Own + Referral.
+type BalanceSplit struct {
+	Own      int64
+	Referral int64
+}
+
+func (b BalanceSplit) Total() int64 { return b.Own + b.Referral }
+
+// BalanceSplits returns every customer's balance split into own and referral money.
+func (s *Service) BalanceSplits(ctx context.Context) (map[int]BalanceSplit, error) {
+	var rows []struct {
+		CustomerID int    `json:"customer_id"`
+		Type       string `json:"type"`
+		Sum        int64  `json:"sum"`
+	}
+	err := s.db.LedgerEntry.Query().
+		GroupBy(ledgerentry.FieldCustomerID, ledgerentry.FieldType).
+		Aggregate(ent.Sum(ledgerentry.FieldAmount)).
+		Scan(ctx, &rows)
+	if err != nil {
+		return nil, err
+	}
+	out := map[int]BalanceSplit{}
+	for _, r := range rows {
+		b := out[r.CustomerID]
+		if r.Type == string(ledgerentry.TypeReferral) {
+			b.Referral += r.Sum
+		} else {
+			b.Own += r.Sum
+		}
+		out[r.CustomerID] = b
+	}
+	return out, nil
+}
+
 // EffectivePrice is the override if set, else the tariff's monthly price.
 func EffectivePrice(override *int64, t *ent.Tariff) int64 {
 	if override != nil {

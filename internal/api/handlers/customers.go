@@ -29,7 +29,9 @@ type CustomerView struct {
 	ReferrerName       string     `json:"referrer_name"`
 	ReferralPercent    *float64   `json:"referral_percent"`
 	Archived           bool       `json:"archived"`
-	Balance            float64    `json:"balance"`
+	Balance            float64    `json:"balance"`          // total = balance_own + balance_referral
+	BalanceOwn         float64    `json:"balance_own"`      // top-ups, charges, adjustments
+	BalanceReferral    float64    `json:"balance_referral"` // referral accruals credited to the balance
 	SubscriptionsCount int        `json:"subscriptions_count"`
 	AddonsCount        int        `json:"addons_count"`
 	Monthly            float64    `json:"monthly"`
@@ -55,7 +57,7 @@ func (h *Handlers) customerViews(c *fiber.Ctx, where ...func(*ent.CustomerQuery)
 	if err != nil {
 		return nil, err
 	}
-	balances, err := h.Billing.Balances(ctx)
+	balances, err := h.Billing.BalanceSplits(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -90,8 +92,10 @@ func (h *Handlers) customerViews(c *fiber.Ctx, where ...func(*ent.CustomerQuery)
 		v := CustomerView{
 			ID: cu.ID, Name: cu.Name, Contact: cu.Contact, Notes: cu.Notes,
 			ReferrerID: cu.ReferrerID, ReferralPercent: cu.ReferralPercent, Archived: cu.Archived,
-			Balance: money.ToMajor(balances[cu.ID]), ReferralsCount: len(cu.Edges.Referrals),
-			CreatedAt: cu.CreatedAt,
+			Balance:    money.ToMajor(balances[cu.ID].Total()),
+			BalanceOwn: money.ToMajor(balances[cu.ID].Own), BalanceReferral: money.ToMajor(balances[cu.ID].Referral),
+			ReferralsCount: len(cu.Edges.Referrals),
+			CreatedAt:      cu.CreatedAt,
 		}
 		if r := cu.Edges.Referrer; r != nil {
 			v.ReferrerName = r.Name

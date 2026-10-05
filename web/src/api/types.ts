@@ -75,6 +75,8 @@ export interface Customer {
     referral_percent: number | null
     archived: boolean
     balance: number
+    balance_own: number
+    balance_referral: number
     subscriptions_count: number
     addons_count: number
     monthly: number

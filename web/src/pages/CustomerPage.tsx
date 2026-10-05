@@ -212,7 +212,13 @@ export function CustomerPage() {
 
             <StatStrip
                 items={[
-                    { label: t('dashboard.col_balance'), value: <Money value={c.balance} signed digits={2} />, color: c.balance < 0 ? 'red' : undefined },
+                    {
+                        label: t('dashboard.col_balance'),
+                        value: <Money value={c.balance} signed digits={2} />,
+                        color: c.balance < 0 ? 'red' : undefined
+                    },
+                    { label: t('customer.balance_own'), value: <Money value={c.balance_own} signed digits={2} />, color: c.balance_own < 0 ? 'red' : undefined },
+                    { label: t('customer.balance_referral'), value: <Money value={c.balance_referral} signed digits={2} />, color: c.balance_referral > 0 ? 'grape' : undefined },
                     { label: t('sub.per_month'), value: <Money value={c.monthly} /> },
                     { label: t('customer.total_paid'), value: <Money value={c.total_paid} />, hint: c.last_payment_at ? t('customer.last_payment', { date: fmtDate(c.last_payment_at) }) : undefined },
                     { label: t('customer.referred_count'), value: c.referrals_count }
