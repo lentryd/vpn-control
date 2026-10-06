@@ -27,14 +27,24 @@ const SUBPAGE_PRESET_KEYS = ['addons:list']
 
 // What vpn-control-bot needs: find/create customers, link a Telegram id,
 // read their card (subscriptions, balance, referrals) and the tariffs;
-// the two lists are for notifications (traffic, payment reminders).
+// the two lists are for notifications (traffic, payment reminders); the
+// rest takes payments: quote and extend items, record payments, provision
+// subscriptions, connect add-ons and change tariffs.
 const BOT_PRESET_KEYS = [
     'customers:lookup',
     'customers:get',
     'customers:create',
     'customers:update',
     'customers:list',
+    'customers:payment_preview',
+    'customers:pay',
     'subscriptions:list',
+    'subscriptions:provision',
+    'subscriptions:connect_addon',
+    'items:quote',
+    'items:extend',
+    'items:tariff_quote',
+    'items:tariff',
     'tariffs:list'
 ]
 
