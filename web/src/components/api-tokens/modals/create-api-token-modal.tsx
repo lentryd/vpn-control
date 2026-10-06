@@ -26,8 +26,17 @@ const DEFAULT_EXPIRES_IN_DAYS = 30
 const SUBPAGE_PRESET_KEYS = ['addons:list']
 
 // What vpn-control-bot needs: find/create customers, link a Telegram id,
-// read their card (subscriptions, balance, referrals) and the tariffs.
-const BOT_PRESET_KEYS = ['customers:lookup', 'customers:get', 'customers:create', 'customers:update', 'tariffs:list']
+// read their card (subscriptions, balance, referrals) and the tariffs;
+// the two lists are for notifications (traffic, payment reminders).
+const BOT_PRESET_KEYS = [
+    'customers:lookup',
+    'customers:get',
+    'customers:create',
+    'customers:update',
+    'customers:list',
+    'subscriptions:list',
+    'tariffs:list'
+]
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
