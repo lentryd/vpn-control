@@ -5,7 +5,7 @@ import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
 import { useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { TbAlertTriangle, TbCheck, TbClearAll, TbClipboard, TbCookie, TbCopy, TbEye, TbHexagon, TbWorld } from 'react-icons/tb'
+import { TbAlertTriangle, TbBrandTelegram, TbCheck, TbClearAll, TbClipboard, TbCookie, TbCopy, TbEye, TbHexagon, TbWorld } from 'react-icons/tb'
 
 import { api } from '@/api/client'
 import { useApiMutation } from '@/api/hooks'
@@ -24,6 +24,10 @@ const DEFAULT_EXPIRES_IN_DAYS = 30
 
 // What subpage needs to read the add-on catalog.
 const SUBPAGE_PRESET_KEYS = ['addons:list']
+
+// What vpn-control-bot needs: find/create customers, link a Telegram id,
+// read their card (subscriptions, balance, referrals) and the tariffs.
+const BOT_PRESET_KEYS = ['customers:lookup', 'customers:get', 'customers:create', 'customers:update', 'tariffs:list']
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -76,6 +80,7 @@ export function CreateApiTokenContent({ isMobile }: { isMobile: boolean }) {
     const presetRead = () => setSelectedEndpoints(new Set(resources.flatMap((r) => getReadKeys(r))))
     const presetFull = () => setSelectedEndpoints(new Set(resources.flatMap((r) => r.endpoints.map((e) => e.key))))
     const presetSubpage = () => setSelectedEndpoints(new Set(SUBPAGE_PRESET_KEYS))
+    const presetBot = () => setSelectedEndpoints(new Set(BOT_PRESET_KEYS))
 
     const handlePasteScopes = async () => {
         try {
@@ -153,6 +158,9 @@ export function CreateApiTokenContent({ isMobile }: { isMobile: boolean }) {
                 </Button>
                 <Button leftSection={<TbHexagon size={16} />} onClick={presetSubpage} size="xs" variant="default">
                     Subpage
+                </Button>
+                <Button leftSection={<TbBrandTelegram size={16} />} onClick={presetBot} size="xs" variant="default">
+                    Telegram bot
                 </Button>
             </Group>
 
