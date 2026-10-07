@@ -29,7 +29,8 @@ const SUBPAGE_PRESET_KEYS = ['addons:list']
 // read their card (subscriptions, balance, referrals) and the tariffs;
 // the two lists are for notifications (traffic, payment reminders); the
 // rest takes payments: quote and extend items, record payments, provision
-// subscriptions, connect add-ons and change tariffs.
+// subscriptions, connect add-ons and change tariffs, and the base currency
+// from the settings (`stats:settings`, read only).
 const BOT_PRESET_KEYS = [
     'customers:lookup',
     'customers:get',
@@ -45,7 +46,8 @@ const BOT_PRESET_KEYS = [
     'items:extend',
     'items:tariff_quote',
     'items:tariff',
-    'tariffs:list'
+    'tariffs:list',
+    'stats:settings'
 ]
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
