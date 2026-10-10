@@ -42,7 +42,9 @@ window.addEventListener('online', () => setNetwork({ offline: false, cachedAt: n
 function trackNetwork(res: Response) {
     const stamp = res.headers.get('X-Cached-At')
     if (!stamp) {
-        if (navigator.onLine) setNetwork({ offline: false, cachedAt: null })
+        // A live answer proves the server is reachable, whatever
+        // navigator.onLine claims (it can stay false behind a VPN).
+        setNetwork({ offline: false, cachedAt: null })
         return
     }
     const at = Date.parse(stamp)
@@ -60,8 +62,9 @@ export function setUnauthorizedHandler(fn: () => void) {
 
 async function send(method: string, path: string, body?: unknown): Promise<Response> {
     // Offline, a change could only fail (or be answered from the cache), so
-    // refuse it up front. Logout still goes through: it only clears cookies.
-    if (method !== 'GET' && network.offline && path !== 'auth/logout') {
+    // refuse it up front. Logout and login still go through: logout only
+    // clears cookies, and login is never answered from the cache.
+    if (method !== 'GET' && network.offline && path !== 'auth/logout' && path !== 'auth/login') {
         throw new ApiError(0, 'offline', 'offline')
     }
     const isForm = body instanceof FormData
